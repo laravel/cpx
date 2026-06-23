@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cpx\Commands;
 
 use Cpx\Console;

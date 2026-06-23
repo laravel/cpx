@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cpx\Commands;
 
 use Cpx\Metadata;
 use Cpx\Package;
+use Cpx\Utils;
 
 class CleanCommand extends Command
 {
@@ -32,7 +35,7 @@ class CleanCommand extends Command
 
             if ($this->console->hasOption('all') || $lastRun < $timeLimit) {
                 $packageDirectory = cpx_path(".exec_cache/{$sandboxDir}");
-                exec("rm -rf {$packageDirectory}");
+                Utils::deleteDirectory($packageDirectory);
                 $this->line(Command::COLOR_GREEN."Removing exec sandbox cache {$sandboxDir}...");
                 unset($metadata->execCache[$sandboxDir]);
                 $cleanedSomething = true;

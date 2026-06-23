@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cpx;
 
 use Cpx\Commands\Command;
 use InvalidArgumentException;
+use RuntimeException;
 
 class Package
 {
@@ -52,8 +55,7 @@ class Package
 
     public function delete(): void
     {
-        $packageDirectory = cpx_path("{$this->folder()}");
-        exec("rm -rf {$packageDirectory}");
+        Utils::deleteDirectory(cpx_path("{$this->folder()}"));
     }
 
     public function runCommand(Console $console, bool $autoUpdate = true): void
@@ -63,8 +65,7 @@ class Package
         $binScripts = Composer::detectBinFromComposer("{$installDir}/vendor/{$this->vendor}/{$this->name}");
 
         if (empty($binScripts)) {
-            printColor("Error: No bin command found in {$this}.", "\033[1;31m");
-            exit(1);
+            throw new RuntimeException("No bin command found in {$this}.");
         }
 
         $binScripts = Utils::arrayMapAssoc(fn ($key, $value) => [basename($value) => $value], $binScripts);
@@ -95,8 +96,7 @@ class Package
             }
 
             if (! isset($command)) {
-                echo Command::BACKGROUND_RED."   More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'   '.Command::COLOR_RESET.PHP_EOL;
-                exit();
+                throw new RuntimeException("More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.');
             }
         } else {
             $command = $binScripts[array_key_first($binScripts)];

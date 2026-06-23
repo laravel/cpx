@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Cpx\Composer;
 use Cpx\Exceptions\ComposerInstallException;
 use Cpx\Metadata;
@@ -17,7 +19,7 @@ if (! function_exists('composer_require')) {
     {
         sort($packages);
 
-        $hash = md5(implode(' ', $packages));
+        $hash = hash('sha256', implode(' ', $packages));
         $sandboxDir = cpx_path(".exec_cache/{$hash}");
 
         $metadata = Metadata::open();

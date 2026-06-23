@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cpx\Commands;
 
 use Cpx\Metadata;
@@ -12,7 +14,8 @@ class ListCommand extends Command
 
         if (empty($metadata->packages)) {
             $this->line('There are no installed packages.');
-            exit();
+
+            return;
         }
 
         $this->line('Installed Packages:');

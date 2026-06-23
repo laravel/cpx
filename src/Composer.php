@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cpx;
 
 use Exception;
@@ -9,16 +11,42 @@ class Composer
     /** @return list<string> */
     public static function runCommand(string $command, ?string $directory = null): array
     {
-        $output = [];
         $workingDirectory = $directory ? "--working-dir={$directory}" : '';
+        $process = proc_open(
+            "composer {$command} --no-interaction --quiet {$workingDirectory}",
+            [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ],
+            $pipes,
+        );
 
-        exec("composer {$command} --no-interaction --quiet {$workingDirectory}", $output, $resultCode);
-
-        if ($resultCode !== 0) {
+        if (! is_resource($process)) {
             throw new Exception("Composer command failed: {$command}");
         }
 
-        return $output;
+        fclose($pipes[0]);
+
+        $output = stream_get_contents($pipes[1]);
+        $errorOutput = stream_get_contents($pipes[2]);
+
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        $resultCode = proc_close($process);
+
+        if ($resultCode !== 0) {
+            $message = trim($errorOutput) ?: "Composer command failed: {$command}";
+
+            throw new Exception($message);
+        }
+
+        if ($output === false || trim($output) === '') {
+            return [];
+        }
+
+        return explode(PHP_EOL, trim($output));
     }
 
     /**

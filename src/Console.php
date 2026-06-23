@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cpx;
 
 use Cpx\Commands\Command;
@@ -183,7 +185,7 @@ class Console
             echo Command::BACKGROUND_CYAN."   Running command: '{$this}'   ".Command::COLOR_RESET;
         }
 
-        $process = proc_open($this, $descriptors, $pipes);
+        $process = proc_open((string) $this, $descriptors, $pipes);
 
         if (is_resource($process)) {
             proc_close($process);
