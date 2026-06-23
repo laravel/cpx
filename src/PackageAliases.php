@@ -4,6 +4,7 @@ namespace Cpx;
 
 class PackageAliases
 {
+    /** @var array<string, array{name: string, description: string, command: string, package: string}> */
     public static array $packages = [
         'psalm' => [
             'name' => 'Psalm',

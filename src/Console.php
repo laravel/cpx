@@ -8,9 +8,9 @@ use Cpx\Exceptions\ConsoleException;
 class Console
 {
     /**
-     * @param  array<int,string>  $arguments
-     * @param  array<string,string|array<int,string>>  $options
-     * @param  array<int,string>  $flags
+     * @param  list<string>  $arguments
+     * @param  array<string, string|null|list<string|null>>  $options
+     * @param  list<string>  $flags
      */
     public function __construct(
         public string $rawInput,
@@ -23,11 +23,11 @@ class Console
     /**
      * Parses $argv to get the command, arguments, options, and flags.
      *
-     * @param  string|array  $input  The $argv variable.
-     * @param  array  $shortOptions  Optional. An array with keys set to short options and their values set to the long option they're assigned to.
-     * @param  array  $flagOptions  Optional. An array of options to be treated as flags. If a flag is not defined here, it will be treated as an option.
+     * @param  string|list<string>  $input  The $argv variable.
+     * @param  array<string, string>  $shortOptions  Optional. An array with keys set to short options and their values set to the long option they're assigned to.
+     * @param  list<string>  $flagOptions  Optional. An array of options to be treated as flags. If a flag is not defined here, it will be treated as an option.
      */
-    public static function parse(string|array $input, $shortOptions = [], $flagOptions = []): Console
+    public static function parse(string|array $input, array $shortOptions = [], array $flagOptions = []): Console
     {
         if (empty($input)) {
             return new Console('', '');
@@ -35,13 +35,13 @@ class Console
 
         if (is_string($input)) {
             $input = trim($input);
-            $input = preg_split('/\s+(?=([^"]*"[^"]*")*[^"]*$)/', $input);
-            $input = array_map(function ($item) {
+            $parts = preg_split('/\s+(?=([^"]*"[^"]*")*[^"]*$)/', $input);
+            $input = array_map(function (string $item): string {
                 return trim($item, '"\'');
-            }, $input);
+            }, $parts === false ? [] : $parts);
         }
 
-        $command = array_shift($input);
+        $command = array_shift($input) ?? '';
         $arguments = [];
         $options = [];
         $flags = [];
@@ -61,12 +61,19 @@ class Console
                     continue;
                 }
             } else {
-                $arg_split = [];
-                preg_match('/^--?([A-Z\d\-_]+)=?(.+)?$/i', $arg, $arg_split);
-                $arg = $arg_split[1];
+                $argSplit = [];
 
-                if (count($arg_split) > 2) {
-                    $value = $arg_split[2];
+                if (preg_match('/^--?([A-Z\d\-_]+)=?(.+)?$/i', $arg, $argSplit) !== 1) {
+                    $arguments[] = $arg;
+                    $lastOption = null;
+
+                    continue;
+                }
+
+                $arg = $argSplit[1];
+
+                if (isset($argSplit[2])) {
+                    $value = $argSplit[2];
                 }
             }
 
@@ -74,8 +81,8 @@ class Console
                 $arg = $shortOptions[$arg];
             }
 
-            if (in_array($arg, $flagOptions)) {
-                if (! in_array($arg, $flags)) {
+            if (in_array($arg, $flagOptions, true)) {
+                if (! in_array($arg, $flags, true)) {
                     $flags[] = $arg;
                 }
 
@@ -109,12 +116,24 @@ class Console
 
     public function getOption(string $option): ?string
     {
-        return $this->options[$option] ?? null;
+        $value = $this->options[$option] ?? null;
+
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        foreach ($value as $optionValue) {
+            if ($optionValue !== null) {
+                return $optionValue;
+            }
+        }
+
+        return null;
     }
 
     public function hasFlag(string $flag): bool
     {
-        return in_array($flag, $this->flags);
+        return in_array($flag, $this->flags, true);
     }
 
     public function __toString(): string
@@ -134,15 +153,17 @@ class Console
 
     public function getOptionsString(): string
     {
-        return implode(' ', array_map(
-            function ($key, $value) {
-                return implode(' ', array_map(function ($v) use ($key) {
-                    return $v === null ? "--{$key}" : "--{$key}=".escapeshellarg($v);
-                }, $value === null ? [null] : (array) $value));
-            },
-            array_keys($this->options),
-            $this->options,
-        ));
+        $options = [];
+
+        foreach ($this->options as $key => $value) {
+            $values = is_array($value) ? $value : [$value];
+
+            foreach ($values as $optionValue) {
+                $options[] = $optionValue === null ? "--{$key}" : "--{$key}=".escapeshellarg($optionValue);
+            }
+        }
+
+        return implode(' ', $options);
     }
 
     public function getFlagsString(): string
@@ -150,7 +171,7 @@ class Console
         return implode(' ', $this->flags);
     }
 
-    public function exec(bool $verbose = false)
+    public function exec(bool $verbose = false): void
     {
         $descriptors = [
             0 => STDIN,

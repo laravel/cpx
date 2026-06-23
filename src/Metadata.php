@@ -4,7 +4,10 @@ namespace Cpx;
 
 class Metadata
 {
-    /** @param array<string,PackageMetadata> $packages */
+    /**
+     * @param  array<string, PackageMetadata>  $packages
+     * @param  array<string, array{packages?: list<string>, last_updated?: int, last_run?: int}>  $execCache
+     */
     protected function __construct(
         public array $packages = [],
         public array $execCache = [],
@@ -15,7 +18,12 @@ class Metadata
         $metadataFile = cpx_path('.cpx_metadata.json');
 
         if (file_exists($metadataFile)) {
-            $json = json_decode(file_get_contents($metadataFile), true);
+            $contents = file_get_contents($metadataFile);
+            $json = $contents === false ? [] : json_decode($contents, true);
+
+            if (! is_array($json)) {
+                $json = [];
+            }
 
             return new Metadata(
                 packages: Utils::arrayMapAssoc(
@@ -26,9 +34,9 @@ class Metadata
                             lastRunAt: $value['last_run'] ?? null,
                         ),
                     ],
-                    $json['packages'] ?? [],
+                    is_array($json['packages'] ?? null) ? $json['packages'] : [],
                 ),
-                execCache: $json['execCache'] ?? [],
+                execCache: is_array($json['execCache'] ?? null) ? $json['execCache'] : [],
             );
         }
 
@@ -68,6 +76,12 @@ class Metadata
         return array_key_exists($package, $this->packages);
     }
 
+    /**
+     * @return array{
+     *     packages: array<string, array{last_updated: string|null, last_run: string|null}>,
+     *     execCache: array<string, array{packages?: list<string>, last_updated?: int, last_run?: int}>
+     * }
+     */
     public function toArray(): array
     {
         return [

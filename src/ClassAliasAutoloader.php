@@ -8,7 +8,7 @@ use SplFileInfo;
 
 class ClassAliasAutoloader
 {
-    /** All of the discovered classes. */
+    /** @var array<string, string> */
     protected array $classes = [];
 
     public function __construct(

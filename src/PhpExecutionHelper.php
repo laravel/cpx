@@ -25,7 +25,13 @@ class PhpExecutionHelper
         $autoloadFile = $autoloadRootDirectory.$autoloadFileSuffix;
 
         while (! file_exists($autoloadFile)) {
-            $autoloadRootDirectory = realpath(dirname($autoloadRootDirectory));
+            $parentDirectory = realpath(dirname($autoloadRootDirectory));
+
+            if ($parentDirectory === false) {
+                break;
+            }
+
+            $autoloadRootDirectory = $parentDirectory;
             $autoloadFile = $autoloadRootDirectory.$autoloadFileSuffix;
 
             if ($autoloadRootDirectory === '/') {

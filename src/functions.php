@@ -79,3 +79,10 @@ if (! function_exists('cpx_path')) {
         return "{$home}/.cpx/".trim($path, '/');
     }
 }
+
+if (! function_exists('printColor')) {
+    function printColor(string $message, string $color = "\033[1;32m"): void
+    {
+        echo $color.$message."\033[0m".PHP_EOL;
+    }
+}

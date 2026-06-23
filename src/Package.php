@@ -77,18 +77,16 @@ class Package
             ])));
 
             foreach ($possibleCommands as $possibleCommand) {
-                if (in_array($possibleCommand, $binScripts)) {
-                    if ($console->arguments[0] ?? $possibleCommand === null) {
-                        unset($console->arguments[0]);
-                        $console->arguments = array_values($console->arguments);
+                if (in_array($possibleCommand, $binScripts, true)) {
+                    if (($console->arguments[0] ?? null) === $possibleCommand) {
+                        $console->arguments = array_slice($console->arguments, 1);
                     }
                     $command = $possibleCommand;
 
                     break;
                 } elseif (array_key_exists($possibleCommand, $binScripts)) {
-                    if ($console->arguments[0] ?? $possibleCommand === null) {
-                        unset($console->arguments[0]);
-                        $console->arguments = array_values($console->arguments);
+                    if (($console->arguments[0] ?? null) === $possibleCommand) {
+                        $console->arguments = array_slice($console->arguments, 1);
                     }
                     $command = $binScripts[$possibleCommand];
 
@@ -157,7 +155,7 @@ class Package
             }
 
             Metadata::open()->updateLastCheckTime($this, 'updated')->save();
-        } elseif ($updateCheck && $this->shouldCheckForUpdates($this)) {
+        } elseif ($updateCheck && $this->shouldCheckForUpdates()) {
             printColor("Checking for updates for {$this}...");
             $previousVersion = Composer::getCurrentVersion($installDir);
             Composer::runCommand('update', $installDir);
@@ -186,7 +184,17 @@ class Package
             return true;
         }
 
-        $lastCheck = strtotime($metadata->packages[$packageKey]->lastUpdatedAt);
+        $lastUpdatedAt = $metadata->packages[$packageKey]->lastUpdatedAt;
+
+        if ($lastUpdatedAt === null) {
+            return true;
+        }
+
+        $lastCheck = strtotime($lastUpdatedAt);
+
+        if ($lastCheck === false) {
+            return true;
+        }
 
         return (time() - $lastCheck) > 3600; // 1 hour
     }

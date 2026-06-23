@@ -6,6 +6,7 @@ use Exception;
 
 class Composer
 {
+    /** @return list<string> */
     public static function runCommand(string $command, ?string $directory = null): array
     {
         $output = [];
@@ -30,9 +31,15 @@ class Composer
         $composerFile = "{$directory}/composer.json";
 
         if (file_exists($composerFile)) {
-            $composerData = json_decode(file_get_contents($composerFile), true);
+            $contents = file_get_contents($composerFile);
 
-            if (isset($composerData['bin'])) {
+            if ($contents === false) {
+                return [];
+            }
+
+            $composerData = json_decode($contents, true);
+
+            if (is_array($composerData) && isset($composerData['bin'])) {
                 return (array) $composerData['bin'];
             }
         }
@@ -45,9 +52,16 @@ class Composer
         $composerLock = "{$directory}/composer.lock";
 
         if (file_exists($composerLock)) {
-            $lockData = json_decode(file_get_contents($composerLock), true);
+            $contents = file_get_contents($composerLock);
 
-            return $lockData['packages'][0]['version'] ?? 'unknown';
+            if ($contents === false) {
+                return 'unknown';
+            }
+
+            $lockData = json_decode($contents, true);
+            $version = is_array($lockData) ? ($lockData['packages'][0]['version'] ?? null) : null;
+
+            return is_string($version) ? $version : 'unknown';
         }
 
         return 'unknown';
