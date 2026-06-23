@@ -4,7 +4,7 @@ namespace Cpx\Commands;
 
 class HelpCommand extends Command
 {
-    public function __invoke(bool $unknownCommand = false)
+    public function __invoke(bool $unknownCommand = false): void
     {
         if ($unknownCommand) {
             $this->error("Unrecognised command {$this->console->command}");

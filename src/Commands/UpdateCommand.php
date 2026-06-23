@@ -7,7 +7,7 @@ use Cpx\Package;
 
 class UpdateCommand extends Command
 {
-    public function __invoke()
+    public function __invoke(): void
     {
         match (true) {
             str_contains($this->console->arguments[0] ?? '', '/') => $this->updatePackage(Package::parse($this->console->arguments[0])),

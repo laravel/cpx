@@ -4,5 +4,5 @@ namespace Cpx\Commands;
 
 class RunPackageCommand extends Command
 {
-    public function __invoke() {}
+    public function __invoke(): void {}
 }

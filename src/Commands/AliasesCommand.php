@@ -6,7 +6,7 @@ use Cpx\PackageAliases;
 
 class AliasesCommand extends Command
 {
-    public function __invoke()
+    public function __invoke(): void
     {
         $this->line('Aliased packages:'.PHP_EOL);
         $packages = PackageAliases::$packages;

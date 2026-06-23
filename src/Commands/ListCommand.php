@@ -6,7 +6,7 @@ use Cpx\Metadata;
 
 class ListCommand extends Command
 {
-    public function __invoke()
+    public function __invoke(): void
     {
         $metadata = Metadata::open();
 

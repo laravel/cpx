@@ -7,7 +7,7 @@ use Cpx\Package;
 
 class CleanCommand extends Command
 {
-    public function __invoke()
+    public function __invoke(): void
     {
         $days = (int) ($this->console->getOption('days') ?? 30);
 
@@ -28,7 +28,7 @@ class CleanCommand extends Command
         }
 
         foreach ($metadata->execCache as $sandboxDir => $packageMetadata) {
-            $lastRun = strtotime($packageMetadata->lastRunAt ?? '1970-01-01 00:00:00');
+            $lastRun = $packageMetadata['last_run'] ?? 0;
 
             if ($this->console->hasOption('all') || $lastRun < $timeLimit) {
                 $packageDirectory = cpx_path(".exec_cache/{$sandboxDir}");
