@@ -32,6 +32,7 @@
         "php": "^8.2"
     },
     "require-dev": {
+        "laravel/pao": "^1.1",
         "laravel/pint": "^1.29",
         "phpstan/phpstan": "^2.2"
     },
@@ -52,5 +53,8 @@
             "@analyse",
             "@lint:check"
         ]
+    },
+    "config": {
+        "sort-packages": true
     }
 }
