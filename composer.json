@@ -28,12 +28,18 @@
             "src/functions.php"
         ]
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
     "require": {
         "php": "^8.2"
     },
     "require-dev": {
         "laravel/pao": "^1.1",
         "laravel/pint": "^1.29",
+        "pestphp/pest": "^4.7",
         "phpstan/phpstan": "^2.2"
     },
     "bin": [
@@ -49,12 +55,19 @@
         "lint:check": [
             "pint --parallel --test"
         ],
+        "test:unit": [
+            "pest --parallel"
+        ],
         "test": [
             "@analyse",
-            "@lint:check"
+            "@lint:check",
+            "@test:unit"
         ]
     },
     "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
         "sort-packages": true
     }
 }
