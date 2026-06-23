@@ -40,6 +40,7 @@
         "laravel/pao": "^1.1",
         "laravel/pint": "^1.29",
         "pestphp/pest": "^4.7",
+        "pestphp/pest-plugin-type-coverage": "^4.0",
         "phpstan/phpstan": "^2.2"
     },
     "bin": [
@@ -55,12 +56,16 @@
         "lint:check": [
             "pint --parallel --test"
         ],
+        "test:types": [
+            "pest --type-coverage --min=100"
+        ],
         "test:unit": [
             "pest --parallel"
         ],
         "test": [
             "@analyse",
             "@lint:check",
+            "@test:types",
             "@test:unit"
         ]
     },

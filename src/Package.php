@@ -68,7 +68,7 @@ class Package
             throw new RuntimeException("No bin command found in {$this}.");
         }
 
-        $binScripts = Utils::arrayMapAssoc(fn ($key, $value) => [basename($value) => $value], $binScripts);
+        $binScripts = Utils::arrayMapAssoc(fn (int $_, string $value): array => [basename($value) => $value], $binScripts);
 
         if (count($binScripts) > 1) {
             $possibleCommands = array_values(array_unique(array_filter([

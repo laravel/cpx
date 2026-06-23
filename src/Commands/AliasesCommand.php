@@ -12,7 +12,7 @@ class AliasesCommand extends Command
     {
         $this->line('Aliased packages:'.PHP_EOL);
         $packages = PackageAliases::$packages;
-        usort($packages, fn ($a, $b) => strcmp($a['command'], $b['command']));
+        usort($packages, fn (array $a, array $b): int => strcmp($a['command'], $b['command']));
 
         foreach ($packages as $package) {
             $paddedCommand = str_pad($package['command'], 15);

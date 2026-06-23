@@ -29,7 +29,7 @@ class Metadata
 
             return new Metadata(
                 packages: Utils::arrayMapAssoc(
-                    fn ($key, $value) => [
+                    fn (string $key, array $value): array => [
                         $key => new PackageMetadata(
                             package: Package::parse($key),
                             lastUpdatedAt: $value['last_updated'] ?? null,
@@ -88,7 +88,7 @@ class Metadata
     {
         return [
             'packages' => Utils::arrayMapAssoc(
-                fn ($key, PackageMetadata $packageMetadata) => [
+                fn (string $key, PackageMetadata $packageMetadata): array => [
                     $packageMetadata->package->fullPackageString() => [
                         'last_updated' => $packageMetadata->lastUpdatedAt,
                         'last_run' => $packageMetadata->lastRunAt,
