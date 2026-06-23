@@ -5,11 +5,12 @@ use Cpx\Exceptions\ComposerInstallException;
 use Cpx\Metadata;
 use Cpx\PhpExecutionHelper;
 
-if (!function_exists('composer_require')) {
+if (! function_exists('composer_require')) {
     /**
      * Dynamically requires Composer packages in a sandboxed environment.
      *
-     * @param string ...$packages List of packages to require in the format vendor/package[:version].
+     * @param  string  ...$packages  List of packages to require in the format vendor/package[:version].
+     *
      * @throws Exception If the Composer require command fails.
      */
     function composer_require(string ...$packages): void
@@ -21,14 +22,14 @@ if (!function_exists('composer_require')) {
 
         $metadata = Metadata::open();
 
-        if (!is_dir($sandboxDir)) {
+        if (! is_dir($sandboxDir)) {
             mkdir($sandboxDir, 0755, true);
 
-            file_put_contents($sandboxDir . '/composer.json', json_encode([
-                'require' => new stdClass(),
+            file_put_contents($sandboxDir.'/composer.json', json_encode([
+                'require' => new stdClass,
                 'config' => [
-                    'vendor-dir' => './vendor'
-                ]
+                    'vendor-dir' => './vendor',
+                ],
             ], JSON_PRETTY_PRINT));
 
             // Run `composer require` for each package
@@ -44,7 +45,7 @@ if (!function_exists('composer_require')) {
             if (isset($metadata->execCache[$hash]['last_updated']) && time() - $metadata->execCache[$hash]['last_updated'] >= 3600) {
                 // Composer update was not run within the last hour
                 try {
-                    Composer::runCommand("update --no-interaction --quiet", $sandboxDir);
+                    Composer::runCommand('update --no-interaction --quiet', $sandboxDir);
                     $metadata->execCache[$hash]['last_updated'] = time();
                 } catch (Exception $e) {
                     // Update failed, let's just use the existing folder.
@@ -58,7 +59,7 @@ if (!function_exists('composer_require')) {
 
         $autoloadFile = "{$sandboxDir}/vendor/autoload.php";
 
-        if (!file_exists($autoloadFile)) {
+        if (! file_exists($autoloadFile)) {
             throw new Exception("Autoload file not found in {$sandboxDir}/vendor/. Composer installation may have failed.");
         }
 
@@ -70,11 +71,11 @@ if (!function_exists('composer_require')) {
     }
 }
 
-if (!function_exists('cpx_path')) {
+if (! function_exists('cpx_path')) {
     function cpx_path(string $path = ''): string
     {
         $home = $_SERVER['HOME'] ?? __DIR__;
 
-        return "{$home}/.cpx/" . trim($path, '/');
+        return "{$home}/.cpx/".trim($path, '/');
     }
 }

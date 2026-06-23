@@ -2,8 +2,8 @@
 
 namespace Cpx;
 
-use RecursiveIteratorIterator;
 use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use SplFileInfo;
 
 class ClassAliasAutoloader
@@ -21,13 +21,13 @@ class ClassAliasAutoloader
             $classes = require "{$autoloadRootDirectory}/vendor/composer/autoload_classmap.php";
 
             foreach ($classes as $class => $path) {
-                if (!str_contains($class, '\\')) {
+                if (! str_contains($class, '\\')) {
                     continue;
                 }
 
                 $name = basename(str_replace('\\', '/', $class));
 
-                if (!isset($this->classes[$name]) && class_exists($name)) {
+                if (! isset($this->classes[$name]) && class_exists($name)) {
                     $this->classes[$name] = $class;
                 }
             }
@@ -38,12 +38,12 @@ class ClassAliasAutoloader
 
             foreach ($psr4 as $namespace => $directories) {
                 foreach ($directories as $directory) {
-                    if (!file_exists($directory)) {
+                    if (! file_exists($directory)) {
                         continue;
                     }
                     $iterator = new RecursiveIteratorIterator(
                         new RecursiveDirectoryIterator($directory),
-                        RecursiveIteratorIterator::LEAVES_ONLY
+                        RecursiveIteratorIterator::LEAVES_ONLY,
                     );
 
                     foreach ($iterator as $file) {
@@ -53,13 +53,12 @@ class ClassAliasAutoloader
 
                             $relativePath = str_replace($directory, '', $file->getPath());
 
-                            if (!empty($relativePath)) {
-                                $classNamespace .= strtr($relativePath, DIRECTORY_SEPARATOR, '\\') . '\\';
+                            if (! empty($relativePath)) {
+                                $classNamespace .= strtr($relativePath, DIRECTORY_SEPARATOR, '\\').'\\';
                             }
 
                             $basename = $file->getBasename('.php');
-                            $class = str_replace('\\\\', '\\', $classNamespace . $basename);
-
+                            $class = str_replace('\\\\', '\\', $classNamespace.$basename);
 
                             if (str_ends_with($basename, 'Test')) {
                                 continue;

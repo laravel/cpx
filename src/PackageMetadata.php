@@ -2,8 +2,6 @@
 
 namespace Cpx;
 
-use Cpx\Package;
-
 class PackageMetadata
 {
     public function __construct(

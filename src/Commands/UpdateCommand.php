@@ -9,9 +9,9 @@ class UpdateCommand extends Command
 {
     public function __invoke()
     {
-        match(true) {
+        match (true) {
             str_contains($this->console->arguments[0] ?? '', '/') => $this->updatePackage(Package::parse($this->console->arguments[0])),
-            !empty($this->console->arguments[0]) => $this->updateVendor($this->console->arguments[0]),
+            ! empty($this->console->arguments[0]) => $this->updateVendor($this->console->arguments[0]),
             default => $this->updateAllPackages(),
         };
     }
@@ -63,7 +63,7 @@ class UpdateCommand extends Command
 
     protected function updateDirectory(string $directory): void
     {
-        $this->line('Updating ' . Command::COLOR_GREEN . str_replace(cpx_path(), '', $directory));
-        Composer::runCommand("update", $directory);
+        $this->line('Updating '.Command::COLOR_GREEN.str_replace(cpx_path(), '', $directory));
+        Composer::runCommand('update', $directory);
     }
 }

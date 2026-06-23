@@ -2,7 +2,6 @@
 
 namespace Cpx;
 
-use Cpx\Utils;
 use Cpx\Commands\Command;
 use InvalidArgumentException;
 
@@ -20,7 +19,7 @@ class Package
             throw new InvalidArgumentException('A package name must be provided.');
         }
 
-        if (!str_contains($str, '/')) {
+        if (! str_contains($str, '/')) {
             throw new InvalidArgumentException('A package name should be in the format "<vendor>/<package>');
         }
 
@@ -48,7 +47,7 @@ class Package
     public function fullPackageString(): string
     {
         return "{$this->vendor}/{$this->name}"
-            . ($this->version ? ':' . $this->version : '');
+            .($this->version ? ':'.$this->version : '');
     }
 
     public function delete(): void
@@ -79,24 +78,26 @@ class Package
 
             foreach ($possibleCommands as $possibleCommand) {
                 if (in_array($possibleCommand, $binScripts)) {
-                    if ($console->arguments[0] ?? null === $possibleCommand) {
+                    if ($console->arguments[0] ?? $possibleCommand === null) {
                         unset($console->arguments[0]);
                         $console->arguments = array_values($console->arguments);
                     }
                     $command = $possibleCommand;
+
                     break;
                 } elseif (array_key_exists($possibleCommand, $binScripts)) {
-                    if ($console->arguments[0] ?? null === $possibleCommand) {
+                    if ($console->arguments[0] ?? $possibleCommand === null) {
                         unset($console->arguments[0]);
                         $console->arguments = array_values($console->arguments);
                     }
                     $command = $binScripts[$possibleCommand];
+
                     break;
                 }
             }
 
-            if (!isset($command)) {
-                echo Command::BACKGROUND_RED . "   More than 1 bin command found for {$this}: " . join(', ', array_keys($binScripts)) . '   ' . Command::COLOR_RESET . PHP_EOL;
+            if (! isset($command)) {
+                echo Command::BACKGROUND_RED."   More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'   '.Command::COLOR_RESET.PHP_EOL;
                 exit();
             }
         } else {
@@ -134,11 +135,11 @@ class Package
     {
         $installDir = cpx_path($this->folder());
 
-        if (!is_dir($installDir)) {
+        if (! is_dir($installDir)) {
             mkdir($installDir, 0755, true);
         }
 
-        if (!is_dir("$installDir/vendor")) {
+        if (! is_dir("$installDir/vendor")) {
             printColor("Installing {$this}...");
             file_put_contents("{$installDir}/composer.json", json_encode([
                 'name' => "cpx-{$this->vendor}/cpx-{$this->name}",
@@ -159,7 +160,7 @@ class Package
         } elseif ($updateCheck && $this->shouldCheckForUpdates($this)) {
             printColor("Checking for updates for {$this}...");
             $previousVersion = Composer::getCurrentVersion($installDir);
-            Composer::runCommand("update", $installDir);
+            Composer::runCommand('update', $installDir);
             $newVersion = Composer::getCurrentVersion($installDir);
 
             if ($previousVersion !== $newVersion) {
@@ -176,12 +177,12 @@ class Package
         return $installDir;
     }
 
-    function shouldCheckForUpdates(): bool
+    public function shouldCheckForUpdates(): bool
     {
         $metadata = Metadata::open();
         $packageKey = $this->fullPackageString();
 
-        if (!$metadata->hasPackage($this)) {
+        if (! $metadata->hasPackage($this)) {
             return true;
         }
 

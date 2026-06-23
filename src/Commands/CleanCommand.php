@@ -2,8 +2,8 @@
 
 namespace Cpx\Commands;
 
-use Cpx\Package;
 use Cpx\Metadata;
+use Cpx\Package;
 
 class CleanCommand extends Command
 {
@@ -20,7 +20,7 @@ class CleanCommand extends Command
 
             if ($this->console->hasOption('all') || $lastRun < $timeLimit) {
                 $package = Package::parse($packageKey);
-                $this->line(Command::COLOR_GREEN . "Removing unused package {$package}...");
+                $this->line(Command::COLOR_GREEN."Removing unused package {$package}...");
                 $package->delete();
                 unset($metadata->packages[$packageKey]);
                 $cleanedSomething = true;
@@ -33,7 +33,7 @@ class CleanCommand extends Command
             if ($this->console->hasOption('all') || $lastRun < $timeLimit) {
                 $packageDirectory = cpx_path(".exec_cache/{$sandboxDir}");
                 exec("rm -rf {$packageDirectory}");
-                $this->line(Command::COLOR_GREEN . "Removing exec sandbox cache {$sandboxDir}...");
+                $this->line(Command::COLOR_GREEN."Removing exec sandbox cache {$sandboxDir}...");
                 unset($metadata->execCache[$sandboxDir]);
                 $cleanedSomething = true;
             }
@@ -41,8 +41,8 @@ class CleanCommand extends Command
 
         $metadata->save();
 
-        if (!$cleanedSomething) {
-            $this->success("There were no packages to clean.");
+        if (! $cleanedSomething) {
+            $this->success('There were no packages to clean.');
         }
     }
 }

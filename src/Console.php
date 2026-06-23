@@ -8,11 +8,9 @@ use Cpx\Exceptions\ConsoleException;
 class Console
 {
     /**
-     * @param string $rawInput
-     * @param string $command
-     * @param array<int,string> $arguments
-     * @param array<string,string|array<int,string>> $options
-     * @param array<int,string> $flags
+     * @param  array<int,string>  $arguments
+     * @param  array<string,string|array<int,string>>  $options
+     * @param  array<int,string>  $flags
      */
     public function __construct(
         public string $rawInput,
@@ -25,11 +23,9 @@ class Console
     /**
      * Parses $argv to get the command, arguments, options, and flags.
      *
-     * @param string|array $input The $argv variable.
-     * @param array $shortOptions Optional. An array with keys set to short options and their values set to the long option they're assigned to.
-     * @param array $flagOptions Optional. An array of options to be treated as flags. If a flag is not defined here, it will be treated as an option.
-     *
-     * @return Console
+     * @param  string|array  $input  The $argv variable.
+     * @param  array  $shortOptions  Optional. An array with keys set to short options and their values set to the long option they're assigned to.
+     * @param  array  $flagOptions  Optional. An array of options to be treated as flags. If a flag is not defined here, it will be treated as an option.
      */
     public static function parse(string|array $input, $shortOptions = [], $flagOptions = []): Console
     {
@@ -40,7 +36,7 @@ class Console
         if (is_string($input)) {
             $input = trim($input);
             $input = preg_split('/\s+(?=([^"]*"[^"]*")*[^"]*$)/', $input);
-            $input = array_map(function($item) {
+            $input = array_map(function ($item) {
                 return trim($item, '"\'');
             }, $input);
         }
@@ -51,7 +47,7 @@ class Console
         $flags = [];
         $lastOption = null;
 
-        foreach($input as $arg) {
+        foreach ($input as $arg) {
             $value = null;
 
             if (substr($arg, 0, 1) !== '-') {
@@ -61,6 +57,7 @@ class Console
                 } else {
                     $arguments[] = $arg;
                     $lastOption = null;
+
                     continue;
                 }
             } else {
@@ -72,12 +69,13 @@ class Console
                     $value = $arg_split[2];
                 }
             }
+
             if (array_key_exists($arg, $shortOptions)) {
                 $arg = $shortOptions[$arg];
             }
 
             if (in_array($arg, $flagOptions)) {
-                if (!in_array($arg, $flags)) {
+                if (! in_array($arg, $flags)) {
                     $flags[] = $arg;
                 }
 
@@ -89,8 +87,8 @@ class Console
                     } else {
                         if (is_null($options[$arg])) {
                             $options[$arg] = $value;
-                        } elseif (!is_null($value)) {
-                            $options[$arg] = array($options[$arg], $value);
+                        } elseif (! is_null($value)) {
+                            $options[$arg] = [$options[$arg], $value];
                         }
                     }
                 } else {
@@ -101,7 +99,7 @@ class Console
             }
         }
 
-        return new Console(join(' ', $input), $command, $arguments, $options, $flags);
+        return new Console(implode(' ', $input), $command, $arguments, $options, $flags);
     }
 
     public function hasOption(string $option): bool
@@ -131,7 +129,7 @@ class Console
 
     public function getArgumentsString(): string
     {
-        return join(' ', $this->arguments);
+        return implode(' ', $this->arguments);
     }
 
     public function getOptionsString(): string
@@ -139,11 +137,11 @@ class Console
         return implode(' ', array_map(
             function ($key, $value) {
                 return implode(' ', array_map(function ($v) use ($key) {
-                    return $v === null ? "--{$key}" : "--{$key}=" . escapeshellarg($v);
+                    return $v === null ? "--{$key}" : "--{$key}=".escapeshellarg($v);
                 }, $value === null ? [null] : (array) $value));
             },
             array_keys($this->options),
-            $this->options
+            $this->options,
         ));
     }
 
@@ -161,7 +159,7 @@ class Console
         ];
 
         if ($verbose) {
-            echo Command::BACKGROUND_CYAN . "   Running command: '{$this}'   " . Command::COLOR_RESET;
+            echo Command::BACKGROUND_CYAN."   Running command: '{$this}'   ".Command::COLOR_RESET;
         }
 
         $process = proc_open($this, $descriptors, $pipes);

@@ -4,7 +4,6 @@ namespace Cpx\Commands;
 
 use Cpx\Console;
 use Cpx\Exceptions\ConsoleException;
-use Exception;
 
 class TestCommand extends Command
 {

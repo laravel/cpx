@@ -2,9 +2,6 @@
 
 namespace Cpx;
 
-use Cpx\Package;
-use Cpx\PackageMetadata;
-
 class Metadata
 {
     /** @param array<string,PackageMetadata> $packages */
@@ -35,15 +32,15 @@ class Metadata
             );
         }
 
-        return new Metadata();
+        return new Metadata;
     }
 
-    function updateLastCheckTime(Package $package, string $type = 'run'): Metadata
+    public function updateLastCheckTime(Package $package, string $type = 'run'): Metadata
     {
         $packageKey = $package->fullPackageString();
         $currentTime = date('Y-m-d H:i:s');
 
-        if (!isset($this->packages[$packageKey])) {
+        if (! isset($this->packages[$packageKey])) {
             $this->packages[$packageKey] = new PackageMetadata($package);
         }
 

@@ -2,7 +2,6 @@
 
 namespace Cpx\Commands;
 
-use Cpx\ClassAliasAutoloader;
 use Cpx\PhpExecutionHelper;
 
 class ExecCommand extends Command
@@ -16,6 +15,7 @@ class ExecCommand extends Command
 
             if (empty($code)) {
                 $this->error('Please supply code to execute with the -r option.');
+
                 return;
             }
 
@@ -27,7 +27,7 @@ class ExecCommand extends Command
                 }
             }
 
-            if (!str_ends_with(trim($code), ';')) {
+            if (! str_ends_with(trim($code), ';')) {
                 $code .= ';';
             }
 
@@ -41,13 +41,15 @@ class ExecCommand extends Command
 
         if (empty($this->console->arguments[0])) {
             $this->error('Please supply the path to a file to execute.');
+
             return;
         }
 
         $this->path = realpath($this->console->arguments[0]);
 
-        if (!file_exists($this->path)) {
+        if (! file_exists($this->path)) {
             $this->error("File does not exist at '{$this->path}'");
+
             return;
         }
 

@@ -1,7 +1,9 @@
 <?php
 
-require_once __DIR__ . '/../vendor/autoload.php';
+use Cpx\PhpExecutionHelper;
 
-Cpx\PhpExecutionHelper::init(getcwd());
+require_once __DIR__.'/../vendor/autoload.php';
+
+PhpExecutionHelper::init(getcwd());
 
 return [];
