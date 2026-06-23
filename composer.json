@@ -32,12 +32,16 @@
         "php": "^8.2"
     },
     "require-dev": {
-        "laravel/pint": "^1.27"
+        "laravel/pint": "^1.29",
+        "phpstan/phpstan": "^2.2"
     },
     "bin": [
         "cpx"
     ],
     "scripts": {
+        "analyse": [
+            "phpstan analyse"
+        ],
         "lint": [
             "pint --parallel"
         ],
@@ -45,6 +49,7 @@
             "pint --parallel --test"
         ],
         "test": [
+            "@analyse",
             "@lint:check"
         ]
     }
