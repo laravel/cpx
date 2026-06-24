@@ -23,7 +23,7 @@ class Utils
      */
     public static function arrayMapAssoc(callable $f, array $a): array
     {
-        return array_merge(...array_map($f, array_keys($a), $a));
+        return $a === [] ? [] : array_merge(...array_map($f, array_keys($a), $a));
     }
 
     public static function deleteDirectory(string $directory): void

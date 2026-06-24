@@ -22,19 +22,15 @@ class Package
             throw new InvalidArgumentException('A package name must be provided.');
         }
 
-        if (! str_contains($str, '/')) {
-            throw new InvalidArgumentException('A package name should be in the format "<vendor>/<package>');
+        if (preg_match('/\A(?<vendor>[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?)\/(?<name>[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?)(?::(?<version>[a-zA-Z0-9_.@~^*<>!=|,-]+))?\z/', $str, $matches) !== 1) {
+            throw new InvalidArgumentException('A package name should be in the format "<vendor>/<package>[:version]".');
         }
 
-        $parts = explode(':', str_replace('@', ':', $str));
-        [$vendor, $name] = explode('/', $parts[0]);
-        $version = $parts[1] ?? null;
-
-        if ($version === '') {
-            $version = null;
-        }
-
-        return new Package($vendor, $name, $version);
+        return new Package(
+            vendor: $matches['vendor'],
+            name: $matches['name'],
+            version: $matches['version'] ?? null,
+        );
     }
 
     public function folder(): string
