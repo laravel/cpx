@@ -76,7 +76,7 @@ if (! function_exists('composer_require')) {
 if (! function_exists('cpx_path')) {
     function cpx_path(string $path = ''): string
     {
-        $home = $_SERVER['HOME'] ?? __DIR__;
+        $home = $_SERVER['COMPOSER_HOME'] ?? getenv('COMPOSER_HOME') ?: ($_SERVER['HOME'] ?? __DIR__);
 
         return "{$home}/.cpx/".trim($path, '/');
     }
