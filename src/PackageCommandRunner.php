@@ -15,9 +15,7 @@ class PackageCommandRunner
     public function run(Console $console, OutputInterface $output): int
     {
         if ($this->isFile($console->command)) {
-            return (new ExecCommand)->run(new ArrayInput([
-                'file' => $console->command,
-            ]), $output);
+            return (new ExecCommand)->run($this->fileInput($console), $output);
         }
 
         if (array_key_exists($console->command, PackageAliases::$packages)) {
@@ -42,5 +40,18 @@ class PackageCommandRunner
         $realPath = realpath($path);
 
         return $realPath !== false && file_exists($realPath) && ! is_dir($realPath);
+    }
+
+    private function fileInput(Console $console): ArrayInput
+    {
+        $input = ['file' => $console->command];
+
+        foreach (['find-autoloader', 'load-laravel-bootstrap', 'alias-classes'] as $option) {
+            if ($console->hasOption($option)) {
+                $input["--{$option}"] = $console->getOption($option) ?? true;
+            }
+        }
+
+        return new ArrayInput($input);
     }
 }
