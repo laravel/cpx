@@ -17,8 +17,14 @@ abstract class TestCase extends BaseTestCase
     /** @var list<string> */
     private array $temporaryDirectories = [];
 
+    private ?string $workingDirectory = null;
+
     protected function tearDown(): void
     {
+        if ($this->workingDirectory !== null) {
+            chdir($this->workingDirectory);
+        }
+
         foreach (array_reverse($this->temporaryDirectories) as $directory) {
             $this->deleteDirectory($directory);
         }
@@ -76,6 +82,13 @@ abstract class TestCase extends BaseTestCase
 
         putenv("{$name}={$value}");
         $_SERVER[$name] = $value;
+    }
+
+    protected function useWorkingDirectory(string $directory): void
+    {
+        $this->workingDirectory ??= getcwd() ?: null;
+
+        chdir($directory);
     }
 
     private function deleteDirectory(string $directory): void
