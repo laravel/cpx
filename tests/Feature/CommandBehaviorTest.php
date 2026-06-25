@@ -5,6 +5,7 @@ use Cpx\Console;
 use Cpx\PackageCommandRunner;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Tester\ApplicationTester;
 
 function runCpxCommand(array $arguments): array
@@ -123,23 +124,23 @@ test('exec runs inline php code', function () {
         ->and($output)->toContain('hello');
 });
 
-test('format fails clearly when no formatter exists in the project', function () {
+test('format fails clearly when no formatter exists in the project', function (string $command) {
     $this->useWorkingDirectory($this->temporaryDirectory('cpx-format'));
 
-    [$status, $output] = runCpxCommand(['format']);
+    [$status, $output] = runCpxCommand([$command]);
 
     expect($status)->toBe(1)
         ->and($output)->toContain('No code formatters found in the project.');
-});
+})->with(['format', 'fmt']);
 
-test('check fails clearly when no analyzer exists in the project', function () {
+test('check fails clearly when no analyzer exists in the project', function (string $command) {
     $this->useWorkingDirectory($this->temporaryDirectory('cpx-check'));
 
-    [$status, $output] = runCpxCommand(['check']);
+    [$status, $output] = runCpxCommand([$command]);
 
     expect($status)->toBe(1)
         ->and($output)->toContain('No static analyzers found in the project.');
-});
+})->with(['check', 'analyze', 'analyse']);
 
 test('test fails clearly when no test runner exists in the project', function () {
     $this->useWorkingDirectory($this->temporaryDirectory('cpx-test-runner'));
@@ -181,7 +182,7 @@ test('unknown package targets route to the package fallback command', function (
     {
         public ?Console $console = null;
 
-        public function run(Console $console): int
+        public function run(Console $console, OutputInterface $output): int
         {
             $this->console = $console;
 
@@ -204,7 +205,7 @@ test('package fallback accepts arbitrary package options without Symfony validat
     {
         public ?Console $console = null;
 
-        public function run(Console $console): int
+        public function run(Console $console, OutputInterface $output): int
         {
             $this->console = $console;
 

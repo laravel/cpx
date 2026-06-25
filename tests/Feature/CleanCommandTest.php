@@ -1,7 +1,8 @@
 <?php
 
-use Cpx\Commands\CleanCommand;
-use Cpx\Console;
+use Cpx\Application;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 test('it removes all tracked package and exec cache directories', function () {
     $this->useIsolatedComposerHome();
@@ -31,9 +32,7 @@ test('it removes all tracked package and exec cache directories', function () {
         ],
     ], JSON_THROW_ON_ERROR));
 
-    ob_start();
-    (new CleanCommand(Console::parse(['clean', '--all'])))->__invoke();
-    ob_end_clean();
+    (new Application)->run(new ArgvInput(['cpx', 'clean', '--all']), new BufferedOutput);
 
     expect(is_dir($packageDirectory))->toBeFalse()
         ->and(is_dir($execDirectory))->toBeFalse()
@@ -63,9 +62,7 @@ test('it preserves fresh tracked package cache directories', function () {
         'execCache' => [],
     ], JSON_THROW_ON_ERROR));
 
-    ob_start();
-    (new CleanCommand(Console::parse(['clean'])))->__invoke();
-    ob_end_clean();
+    (new Application)->run(new ArgvInput(['cpx', 'clean']), new BufferedOutput);
 
     expect(is_dir($packageDirectory))->toBeTrue();
 });

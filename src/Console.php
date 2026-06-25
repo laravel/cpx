@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Cpx;
 
-use Cpx\Commands\Command;
 use Cpx\Exceptions\ConsoleException;
 
 class Console
@@ -182,7 +181,7 @@ class Console
         ];
 
         if ($verbose) {
-            echo Command::BACKGROUND_CYAN."   Running command: '{$this}'   ".Command::COLOR_RESET;
+            echo "\033[46m   Running command: '{$this}'   \033[0m";
         }
 
         $process = proc_open((string) $this, $descriptors, $pipes);

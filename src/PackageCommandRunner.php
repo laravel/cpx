@@ -7,15 +7,17 @@ namespace Cpx;
 use Cpx\Commands\ExecCommand;
 use Cpx\Commands\HelpCommand;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class PackageCommandRunner
 {
-    public function run(Console $console): int
+    public function run(Console $console, OutputInterface $output): int
     {
         if ($this->isFile($console->command)) {
-            (new ExecCommand($this->fileConsole($console)))();
-
-            return SymfonyCommand::SUCCESS;
+            return (new ExecCommand)->run(new ArrayInput([
+                'file' => $console->command,
+            ]), $output);
         }
 
         if (array_key_exists($console->command, PackageAliases::$packages)) {
@@ -30,7 +32,7 @@ class PackageCommandRunner
             return SymfonyCommand::SUCCESS;
         }
 
-        (new HelpCommand($console))(true);
+        HelpCommand::render($output, $console->command);
 
         return SymfonyCommand::FAILURE;
     }
@@ -40,16 +42,5 @@ class PackageCommandRunner
         $realPath = realpath($path);
 
         return $realPath !== false && file_exists($realPath) && ! is_dir($realPath);
-    }
-
-    private function fileConsole(Console $console): Console
-    {
-        return new Console(
-            rawInput: $console->rawInput,
-            command: 'exec',
-            arguments: [$console->command, ...$console->arguments],
-            options: $console->options,
-            flags: $console->flags,
-        );
     }
 }
