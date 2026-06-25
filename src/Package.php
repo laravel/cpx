@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Cpx;
 
-use Cpx\Commands\Command;
 use InvalidArgumentException;
 use RuntimeException;
 
