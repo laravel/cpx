@@ -7,12 +7,27 @@ namespace Cpx\Commands;
 use Cpx\Metadata;
 use Cpx\Package;
 use Cpx\Utils;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'clean',
+    description: 'Clean unused cpx package caches',
+)]
 class CleanCommand extends Command
 {
-    public function __invoke(): void
+    protected function configure(): void
     {
-        $days = (int) ($this->console->getOption('days') ?? 30);
+        $this->addOption('all', null, InputOption::VALUE_NONE, 'Clean all packages');
+        $this->addOption('days', null, InputOption::VALUE_REQUIRED, 'Clean packages older than this number of days', '30');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $days = (int) $input->getOption('days');
 
         $metadata = Metadata::open();
         $timeLimit = time() - ($days * 24 * 3600);
@@ -21,9 +36,9 @@ class CleanCommand extends Command
         foreach ($metadata->packages as $packageKey => $packageMetadata) {
             $lastRun = strtotime($packageMetadata->lastRunAt ?? '1970-01-01 00:00:00');
 
-            if ($this->console->hasOption('all') || $lastRun < $timeLimit) {
+            if ($input->getOption('all') === true || $lastRun < $timeLimit) {
                 $package = Package::parse($packageKey);
-                $this->line(Command::COLOR_GREEN."Removing unused package {$package}...");
+                $output->writeln("<info>Removing unused package {$package}...</info>");
                 $package->delete();
                 unset($metadata->packages[$packageKey]);
                 $cleanedSomething = true;
@@ -33,10 +48,10 @@ class CleanCommand extends Command
         foreach ($metadata->execCache as $sandboxDir => $packageMetadata) {
             $lastRun = $packageMetadata['last_run'] ?? 0;
 
-            if ($this->console->hasOption('all') || $lastRun < $timeLimit) {
+            if ($input->getOption('all') === true || $lastRun < $timeLimit) {
                 $packageDirectory = cpx_path(".exec_cache/{$sandboxDir}");
                 Utils::deleteDirectory($packageDirectory);
-                $this->line(Command::COLOR_GREEN."Removing exec sandbox cache {$sandboxDir}...");
+                $output->writeln("<info>Removing exec sandbox cache {$sandboxDir}...</info>");
                 unset($metadata->execCache[$sandboxDir]);
                 $cleanedSomething = true;
             }
@@ -45,7 +60,9 @@ class CleanCommand extends Command
         $metadata->save();
 
         if (! $cleanedSomething) {
-            $this->success('There were no packages to clean.');
+            $output->writeln('<info>There were no packages to clean.</info>');
         }
+
+        return self::SUCCESS;
     }
 }
