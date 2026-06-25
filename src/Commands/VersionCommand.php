@@ -4,9 +4,18 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+
+#[AsCommand(
+    name: 'version',
+    description: 'Show cpx and PHP versions',
+)]
 class VersionCommand extends Command
 {
-    public function __invoke(): void
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $contents = file_get_contents(__DIR__.'/../../composer.json');
         $composerData = [];
@@ -21,7 +30,9 @@ class VersionCommand extends Command
 
         $cpxVersion = is_string($composerData['version'] ?? null) ? $composerData['version'] : 'unknown';
 
-        $this->line('cpx version: '.Command::COLOR_GREEN.$cpxVersion);
-        $this->line('php version: '.Command::COLOR_GREEN.PHP_VERSION);
+        $output->writeln("cpx version: <info>{$cpxVersion}</info>");
+        $output->writeln('php version: <info>'.PHP_VERSION.'</info>');
+
+        return self::SUCCESS;
     }
 }
