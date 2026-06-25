@@ -124,6 +124,20 @@ test('exec runs inline php code', function () {
         ->and($output)->toContain('hello');
 });
 
+test('file fallback preserves exec options', function () {
+    $directory = $this->temporaryDirectory('cpx-file-fallback');
+    $this->useWorkingDirectory($directory);
+
+    mkdir($directory.'/vendor', 0755, true);
+    file_put_contents($directory.'/vendor/autoload.php', '<?php $GLOBALS[\'cpx_autoload_loaded\'] = true;');
+    file_put_contents($directory.'/script.php', '<?php echo isset($GLOBALS[\'cpx_autoload_loaded\']) ? \'loaded\' : \'not-loaded\';');
+
+    [$status, $output] = runCpxCommand(['script.php', '--find-autoloader=false']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('not-loaded');
+});
+
 test('format fails clearly when no formatter exists in the project', function (string $command) {
     $this->useWorkingDirectory($this->temporaryDirectory('cpx-format'));
 
