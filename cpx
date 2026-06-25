@@ -1,22 +1,7 @@
 #! /usr/bin/env php
 <?php
 
-use Cpx\Console;
-use Cpx\Package;
-use Cpx\PackageAliases;
-use Cpx\Commands\Command;
-use Cpx\Commands\ExecCommand;
-use Cpx\Commands\HelpCommand;
-use Cpx\Commands\ListCommand;
-use Cpx\Commands\TestCommand;
-use Cpx\Commands\CheckCommand;
-use Cpx\Commands\CleanCommand;
-use Cpx\Commands\FormatCommand;
-use Cpx\Commands\TinkerCommand;
-use Cpx\Commands\UpdateCommand;
-use Cpx\Commands\AliasesCommand;
-use Cpx\Commands\UpgradeCommand;
-use Cpx\Commands\VersionCommand;
+use Cpx\Application;
 
 if (isset($GLOBALS['_composer_autoload_path'])) {
     require_once $GLOBALS['_composer_autoload_path'];
@@ -34,37 +19,4 @@ if (isset($GLOBALS['_composer_autoload_path'])) {
     unset($file);
 }
 
-array_shift($argv);
-$console = Console::parse($argv ?? []);
-
-$command = match (true) {
-    $console->command === 'list' => ListCommand::class,
-    $console->command === 'help' => HelpCommand::class,
-    $console->command === 'clean' => CleanCommand::class,
-    $console->command === 'aliases' => AliasesCommand::class,
-    $console->command === 'update' => UpdateCommand::class,
-    $console->command === 'upgrade' => UpgradeCommand::class,
-    $console->command === 'exec' => ExecCommand::class,
-    $console->command === 'format' || $console->command === 'fmt' => FormatCommand::class,
-    $console->command === 'check' || $console->command === 'analyze' || $console->command === 'analyse' => CheckCommand::class,
-    $console->command === 'test' => TestCommand::class,
-    $console->command === 'tinker' => TinkerCommand::class,
-    $console->command === 'version' => VersionCommand::class,
-    file_exists(realpath($console->command)) && !is_dir(realpath($console->command)) => (new ExecCommand(Console::parse("exec {$console->command} {$console->getCommandInput()}")))(),
-    array_key_exists($console->command, PackageAliases::$packages) => Package::parse(PackageAliases::$packages[$console->command]['package'])->runCommand($console),
-    str_contains($console->command, '/') => Package::parse($console->command)->runCommand($console),
-    $console->command === '--version' || $console->command === '-v' || $console->hasOption('version') || $console->hasOption('v') => VersionCommand::class,
-    default => (new HelpCommand($console))(true),
-};
-
-try {
-    if (is_subclass_of($command, Command::class)) {
-        $command = new $command($console);
-        $command();
-    } elseif (is_callable($command)) {
-        $command();
-    }
-} catch (Exception $e) {
-    echo Command::BACKGROUND_RED . "  {$e->getMessage()}  " . Command::COLOR_RESET . PHP_EOL;
-    exit(1);
-}
+exit((new Application)->run());
