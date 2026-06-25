@@ -6,48 +6,67 @@ namespace Cpx\Commands;
 
 use Cpx\Composer;
 use Cpx\Package;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'update',
+    description: 'Update installed cpx packages',
+)]
 class UpdateCommand extends Command
 {
-    public function __invoke(): void
+    protected function configure(): void
     {
-        match (true) {
-            str_contains($this->console->arguments[0] ?? '', '/') => $this->updatePackage(Package::parse($this->console->arguments[0])),
-            ! empty($this->console->arguments[0]) => $this->updateVendor($this->console->arguments[0]),
-            default => $this->updateAllPackages(),
-        };
+        $this->addArgument('target', InputArgument::OPTIONAL, 'Package or vendor to update');
     }
 
-    protected function updateAllPackages(): void
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $target = $input->getArgument('target');
+        $target = is_string($target) ? $target : '';
+
+        match (true) {
+            str_contains($target, '/') => $this->updatePackage(Package::parse($target), $output),
+            $target !== '' => $this->updateVendor($target, $output),
+            default => $this->updateAllPackages($output),
+        };
+
+        return self::SUCCESS;
+    }
+
+    protected function updateAllPackages(OutputInterface $output): void
     {
         $packageDirectories = glob(cpx_path('*/*/*'), GLOB_ONLYDIR) ?: [];
 
         if (empty($packageDirectories)) {
-            $this->line('There are no packages to update.');
+            $output->writeln('There are no packages to update.');
         } else {
             foreach ($packageDirectories as $directory) {
-                $this->updateDirectory($directory);
+                $this->updateDirectory($directory, $output);
             }
         }
     }
 
-    protected function updateVendor(string $vendor): void
+    protected function updateVendor(string $vendor, OutputInterface $output): void
     {
         $packageDirectories = glob(cpx_path("{$vendor}/*/*"), GLOB_ONLYDIR) ?: [];
 
         if (empty($packageDirectories)) {
-            $this->line("There are no packages in vendor '{$vendor}' to update.");
+            $output->writeln("There are no packages in vendor '{$vendor}' to update.");
         } else {
             foreach ($packageDirectories as $directory) {
-                $this->updateDirectory($directory);
+                $this->updateDirectory($directory, $output);
             }
         }
     }
 
-    protected function updatePackage(Package $package): void
+    protected function updatePackage(Package $package, OutputInterface $output): void
     {
         if ($package->version) {
-            $this->updateDirectory(cpx_path($package->folder()));
+            $this->updateDirectory(cpx_path($package->folder()), $output);
 
             return;
         }
@@ -55,17 +74,17 @@ class UpdateCommand extends Command
         $packageDirectories = glob(cpx_path("{$package->vendor}/{$package->name}/*"), GLOB_ONLYDIR) ?: [];
 
         if (empty($packageDirectories)) {
-            $this->line("There are no installed versions of '{$package->vendor}/{$package->name}' to update.");
+            $output->writeln("There are no installed versions of '{$package->vendor}/{$package->name}' to update.");
         } else {
             foreach ($packageDirectories as $directory) {
-                $this->updateDirectory($directory);
+                $this->updateDirectory($directory, $output);
             }
         }
     }
 
-    protected function updateDirectory(string $directory): void
+    protected function updateDirectory(string $directory, OutputInterface $output): void
     {
-        $this->line('Updating '.Command::COLOR_GREEN.str_replace(cpx_path(), '', $directory));
+        $output->writeln('Updating <info>'.str_replace(cpx_path(), '', $directory).'</info>');
         Composer::runCommand('update', $directory);
     }
 }
