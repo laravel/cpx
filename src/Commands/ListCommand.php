@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
-use Cpx\Metadata;
+use Cpx\Cache\Metadata;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;

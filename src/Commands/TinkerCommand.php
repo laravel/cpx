@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
-use Cpx\Console;
-use Cpx\Package;
+use Cpx\Input\PackageInvocation;
+use Cpx\Packages\Package;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -30,7 +30,7 @@ class TinkerCommand extends Command
         ob_start();
 
         try {
-            Package::parse('psy/psysh')->runCommand(Console::parse("psysh --config {$psyshConfig}"));
+            return Package::parse('psy/psysh')->runCommand(PackageInvocation::fromRawTokens(['psysh', '--config', $psyshConfig]));
         } finally {
             $contents = ob_get_clean();
 
@@ -39,6 +39,5 @@ class TinkerCommand extends Command
             }
         }
 
-        return self::SUCCESS;
     }
 }

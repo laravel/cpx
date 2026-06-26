@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
-use Cpx\Metadata;
-use Cpx\Package;
-use Cpx\Utils;
+use Cpx\Cache\Metadata;
+use Cpx\Packages\Package;
+use Cpx\Support\Filesystem;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -50,7 +50,7 @@ class CleanCommand extends Command
 
             if ($input->getOption('all') === true || $lastRun < $timeLimit) {
                 $packageDirectory = cpx_path(".exec_cache/{$sandboxDir}");
-                Utils::deleteDirectory($packageDirectory);
+                Filesystem::deleteDirectory($packageDirectory);
                 $output->writeln("<info>Removing exec sandbox cache {$sandboxDir}...</info>");
                 unset($metadata->execCache[$sandboxDir]);
                 $cleanedSomething = true;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
-use Cpx\Composer;
-use Cpx\Package;
+use Cpx\Composer\ComposerRunner;
+use Cpx\Packages\Package;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -84,6 +84,6 @@ class UpdateCommand extends Command
     protected function updateDirectory(string $directory, OutputInterface $output): void
     {
         $output->writeln('Updating <info>'.str_replace(cpx_path(), '', $directory).'</info>');
-        Composer::runCommand('update', $directory);
+        ComposerRunner::run(['update'], $directory);
     }
 }

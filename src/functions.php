@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Cpx\Composer;
+use Cpx\Cache\Metadata;
+use Cpx\Composer\ComposerRunner;
 use Cpx\Exceptions\ComposerInstallException;
-use Cpx\Metadata;
-use Cpx\PhpExecutionHelper;
+use Cpx\Runtime\PhpExecutionHelper;
 
 if (! function_exists('composer_require')) {
     /**
@@ -37,7 +37,7 @@ if (! function_exists('composer_require')) {
             // Run `composer require` for each package
             foreach ($packages as $package) {
                 try {
-                    Composer::runCommand("require {$package} --no-interaction --quiet", $sandboxDir);
+                    ComposerRunner::run(['require', $package], $sandboxDir);
                     $metadata->execCache[$hash]['last_updated'] = time();
                 } catch (Exception $e) {
                     throw new ComposerInstallException("Failed to install package: {$package}.");
@@ -47,7 +47,7 @@ if (! function_exists('composer_require')) {
             if (isset($metadata->execCache[$hash]['last_updated']) && time() - $metadata->execCache[$hash]['last_updated'] >= 3600) {
                 // Composer update was not run within the last hour
                 try {
-                    Composer::runCommand('update --no-interaction --quiet', $sandboxDir);
+                    ComposerRunner::run(['update'], $sandboxDir);
                     $metadata->execCache[$hash]['last_updated'] = time();
                 } catch (Exception $e) {
                     // Update failed, let's just use the existing folder.

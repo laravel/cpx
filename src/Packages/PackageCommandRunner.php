@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Cpx\Packages;
 
 use Cpx\Commands\ExecCommand;
-use Cpx\Commands\HelpCommand;
 use Cpx\Input\PackageInvocation;
 use InvalidArgumentException;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
@@ -34,13 +33,13 @@ class PackageCommandRunner
             try {
                 return Package::parse($invocation->target)->runCommand($invocation);
             } catch (InvalidArgumentException) {
-                HelpCommand::render($output, $invocation->target);
+                $output->writeln("<error>Unrecognised command {$invocation->target}</error>");
 
                 return SymfonyCommand::FAILURE;
             }
         }
 
-        HelpCommand::render($output, $invocation->target);
+        $output->writeln("<error>Unrecognised command {$invocation->target}</error>");
 
         return SymfonyCommand::FAILURE;
     }

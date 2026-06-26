@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
-use Cpx\Console;
-use Cpx\PackageCommandRunner;
+use Cpx\Input\PackageInvocation;
+use Cpx\Packages\PackageCommandRunner;
+use InvalidArgumentException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\ArgvInput;
@@ -13,12 +14,12 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
-    name: self::Name,
+    name: self::NAME,
     hidden: true,
 )]
 class RunPackageCommand extends SymfonyCommand
 {
-    public const Name = '__cpx_run_package';
+    public const NAME = '__cpx_run_package';
 
     public function __construct(
         private PackageCommandRunner $packageCommandRunner,
@@ -35,12 +36,24 @@ class RunPackageCommand extends SymfonyCommand
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $console = Console::parse($input instanceof ArgvInput ? $input->getRawTokens() : []);
+        $tokens = $input instanceof ArgvInput ? $input->getRawTokens() : [];
+
+        if (($tokens[0] ?? null) === self::NAME) {
+            array_shift($tokens);
+        }
+
+        if (($tokens[0] ?? null) === '--') {
+            array_shift($tokens);
+        }
 
         ob_start();
 
         try {
-            return $this->packageCommandRunner->run($console, $output);
+            return $this->packageCommandRunner->run(PackageInvocation::fromRawTokens($tokens), $output);
+        } catch (InvalidArgumentException $e) {
+            $output->writeln("<error>{$e->getMessage()}</error>");
+
+            return SymfonyCommand::FAILURE;
         } finally {
             $contents = ob_get_clean();
 

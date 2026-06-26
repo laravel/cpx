@@ -1,27 +1,12 @@
 <?php
 
 use Cpx\Application;
-use Cpx\Console;
-use Cpx\PackageCommandRunner;
+use Cpx\Input\PackageInvocation;
+use Cpx\Packages\PackageCommandRunner;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Tester\ApplicationTester;
-
-function runCpxCommand(array $arguments): array
-{
-    $application = new Application;
-    $output = new BufferedOutput;
-    $status = $application->run(new ArgvInput(['cpx', ...$arguments]), $output);
-
-    return [$status, $output->fetch()];
-}
-
-function writeExecutable(string $path, string $contents): void
-{
-    file_put_contents($path, $contents);
-    chmod($path, 0755);
-}
 
 test('it can run through Symfony tester utilities without exiting', function () {
     $tester = new ApplicationTester(new Application);
@@ -153,11 +138,11 @@ test('tinker runs the cached psysh package with the bundled config', function ()
 test('unknown package targets route to the package fallback command', function () {
     $runner = new class extends PackageCommandRunner
     {
-        public ?Console $console = null;
+        public ?PackageInvocation $invocation = null;
 
-        public function run(Console $console, OutputInterface $output): int
+        public function run(PackageInvocation $invocation, OutputInterface $output): int
         {
-            $this->console = $console;
+            $this->invocation = $invocation;
 
             return 0;
         }
@@ -167,20 +152,19 @@ test('unknown package targets route to the package fallback command', function (
     $status = $application->run(new ArgvInput(['cpx', 'vendor/package', '--flag', 'value']), new BufferedOutput);
 
     expect($status)->toBe(0)
-        ->and($runner->console)->toBeInstanceOf(Console::class)
-        ->and($runner->console?->command)->toBe('vendor/package')
-        ->and($runner->console?->hasOption('flag'))->toBeTrue()
-        ->and($runner->console?->getOption('flag'))->toBe('value');
+        ->and($runner->invocation)->toBeInstanceOf(PackageInvocation::class)
+        ->and($runner->invocation?->target)->toBe('vendor/package')
+        ->and($runner->invocation?->forwardedTokens())->toBe(['--flag', 'value']);
 });
 
 test('package fallback accepts arbitrary package options without Symfony validation errors', function () {
     $runner = new class extends PackageCommandRunner
     {
-        public ?Console $console = null;
+        public ?PackageInvocation $invocation = null;
 
-        public function run(Console $console, OutputInterface $output): int
+        public function run(PackageInvocation $invocation, OutputInterface $output): int
         {
-            $this->console = $console;
+            $this->invocation = $invocation;
 
             return 0;
         }
@@ -200,9 +184,53 @@ test('package fallback accepts arbitrary package options without Symfony validat
     ]), new BufferedOutput);
 
     expect($status)->toBe(0)
-        ->and($runner->console?->command)->toBe('vendor/package')
-        ->and($runner->console?->getOption('unknown'))->toBe('value')
-        ->and($runner->console?->options['filter'] ?? null)->toBe(['one', 'two']);
+        ->and($runner->invocation?->target)->toBe('vendor/package')
+        ->and($runner->invocation?->forwardedTokens())->toBe([
+            '--unknown',
+            'value',
+            '-x',
+            '--filter=one',
+            '--filter=two',
+            '--',
+            '--literal',
+        ]);
+});
+
+test('package-target version options are forwarded instead of rendering cpx version', function () {
+    $runner = new class extends PackageCommandRunner
+    {
+        public ?PackageInvocation $invocation = null;
+
+        public function run(PackageInvocation $invocation, OutputInterface $output): int
+        {
+            $this->invocation = $invocation;
+
+            return 0;
+        }
+    };
+    $application = new Application($runner);
+    $output = new BufferedOutput;
+
+    $status = $application->run(new ArgvInput(['cpx', 'pint', '--version']), $output);
+
+    expect($status)->toBe(0)
+        ->and($runner->invocation?->target)->toBe('pint')
+        ->and($runner->invocation?->forwardedTokens())->toBe(['--version'])
+        ->and($output->fetch())->not->toContain('cpx version:');
+});
+
+test('package-looking values with shell metacharacters fail before composer execution', function () {
+    $binDirectory = $this->temporaryDirectory('cpx-bin');
+    $logFile = $this->temporaryDirectory('cpx-log').'/composer.log';
+
+    writeExecutable($binDirectory.'/composer', "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', 'called'); exit(0);\n");
+    $this->setEnvironmentVariable('PATH', $binDirectory.PATH_SEPARATOR.getenv('PATH'));
+
+    [$status, $output] = runCpxCommand(['vendor/package;touch injected']);
+
+    expect($status)->toBe(1)
+        ->and($output)->toContain('Unrecognised command vendor/package;touch injected')
+        ->and(file_exists($logFile))->toBeFalse();
 });
 
 test('invalid fallback commands return a failure status with help output', function () {

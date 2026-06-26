@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
-use Cpx\PhpExecutionHelper;
+use Cpx\Runtime\PhpExecutionHelper;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -18,7 +18,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class ExecCommand extends Command
 {
-    public string $path;
+    private string $path;
 
     protected function configure(): void
     {
@@ -42,6 +42,16 @@ class ExecCommand extends Command
                 $output->write($contents);
             }
         }
+    }
+
+    protected function autoload(string $directory, InputInterface $input, OutputInterface $output): void
+    {
+        $shouldFindAutoloader = $input->getOption('find-autoloader') === true;
+        $shouldLoadLaravelBootstrap = $input->getOption('load-laravel-bootstrap') === true;
+        $shouldAliasClasses = $input->getOption('alias-classes') === true;
+        $shouldBeVerbose = $output->isVerbose();
+
+        PhpExecutionHelper::init($directory, $shouldFindAutoloader, $shouldLoadLaravelBootstrap, $shouldAliasClasses, $shouldBeVerbose);
     }
 
     private function executeInput(InputInterface $input, OutputInterface $output): int
@@ -108,17 +118,7 @@ class ExecCommand extends Command
         return self::SUCCESS;
     }
 
-    protected function autoload(string $directory, InputInterface $input, OutputInterface $output): void
-    {
-        $shouldFindAutoloader = $input->getOption('find-autoloader') === true;
-        $shouldLoadLaravelBootstrap = $input->getOption('load-laravel-bootstrap') === true;
-        $shouldAliasClasses = $input->getOption('alias-classes') === true;
-        $shouldBeVerbose = $output->isVerbose();
-
-        PhpExecutionHelper::init($directory, $shouldFindAutoloader, $shouldLoadLaravelBootstrap, $shouldAliasClasses, $shouldBeVerbose);
-    }
-
-    public function runFile(): void
+    private function runFile(): void
     {
         require $this->path;
     }
