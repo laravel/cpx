@@ -40,6 +40,14 @@ test('it can run through Symfony tester utilities without exiting', function () 
         ->and($tester->getDisplay())->toContain('cpx - A Composer package runner');
 });
 
+test('command help options use Symfony command help', function () {
+    [$status, $output] = runCpxCommand(['list', '--help']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('List installed cpx packages')
+        ->and($output)->toContain('Usage:');
+});
+
 test('empty invocations show cpx help instead of Symfony command listings', function () {
     [$status, $output] = runCpxCommand([]);
 
