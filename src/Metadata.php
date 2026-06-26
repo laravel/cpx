@@ -1,13 +1,15 @@
 <?php
 
-namespace Cpx;
+declare(strict_types=1);
 
-use Cpx\Package;
-use Cpx\PackageMetadata;
+namespace Cpx;
 
 class Metadata
 {
-    /** @param array<string,PackageMetadata> $packages */
+    /**
+     * @param  array<string, PackageMetadata>  $packages
+     * @param  array<string, array{packages?: list<string>, last_updated?: int, last_run?: int}>  $execCache
+     */
     protected function __construct(
         public array $packages = [],
         public array $execCache = [],
@@ -18,32 +20,37 @@ class Metadata
         $metadataFile = cpx_path('.cpx_metadata.json');
 
         if (file_exists($metadataFile)) {
-            $json = json_decode(file_get_contents($metadataFile), true);
+            $contents = file_get_contents($metadataFile);
+            $json = $contents === false ? [] : json_decode($contents, true);
+
+            if (! is_array($json)) {
+                $json = [];
+            }
 
             return new Metadata(
                 packages: Utils::arrayMapAssoc(
-                    fn ($key, $value) => [
+                    fn (string $key, array $value): array => [
                         $key => new PackageMetadata(
                             package: Package::parse($key),
                             lastUpdatedAt: $value['last_updated'] ?? null,
                             lastRunAt: $value['last_run'] ?? null,
                         ),
                     ],
-                    $json['packages'] ?? [],
+                    is_array($json['packages'] ?? null) ? $json['packages'] : [],
                 ),
-                execCache: $json['execCache'] ?? [],
+                execCache: is_array($json['execCache'] ?? null) ? $json['execCache'] : [],
             );
         }
 
-        return new Metadata();
+        return new Metadata;
     }
 
-    function updateLastCheckTime(Package $package, string $type = 'run'): Metadata
+    public function updateLastCheckTime(Package $package, string $type = 'run'): Metadata
     {
         $packageKey = $package->fullPackageString();
         $currentTime = date('Y-m-d H:i:s');
 
-        if (!isset($this->packages[$packageKey])) {
+        if (! isset($this->packages[$packageKey])) {
             $this->packages[$packageKey] = new PackageMetadata($package);
         }
 
@@ -71,11 +78,17 @@ class Metadata
         return array_key_exists($package, $this->packages);
     }
 
+    /**
+     * @return array{
+     *     packages: array<string, array{last_updated: string|null, last_run: string|null}>,
+     *     execCache: array<string, array{packages?: list<string>, last_updated?: int, last_run?: int}>
+     * }
+     */
     public function toArray(): array
     {
         return [
             'packages' => Utils::arrayMapAssoc(
-                fn ($key, PackageMetadata $packageMetadata) => [
+                fn (string $key, PackageMetadata $packageMetadata): array => [
                     $packageMetadata->package->fullPackageString() => [
                         'last_updated' => $packageMetadata->lastUpdatedAt,
                         'last_run' => $packageMetadata->lastRunAt,

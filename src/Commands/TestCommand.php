@@ -1,29 +1,38 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cpx\Commands;
 
 use Cpx\Console;
 use Cpx\Exceptions\ConsoleException;
-use Exception;
 
 class TestCommand extends Command
 {
-    public function __invoke()
+    public function __invoke(): void
     {
         if (file_exists('vendor/bin/pest')) {
-            return Console::parse('vendor/bin/pest')->exec();
+            Console::parse('vendor/bin/pest')->exec();
+
+            return;
         }
 
         if (file_exists('bin/phpunit')) {
-            return Console::parse('bin/phpunit')->exec();
+            Console::parse('bin/phpunit')->exec();
+
+            return;
         }
 
         if (file_exists('vendor/bin/phpunit')) {
-            return Console::parse('vendor/bin/phpunit')->exec();
+            Console::parse('vendor/bin/phpunit')->exec();
+
+            return;
         }
 
         if (file_exists('vendor/bin/codecept')) {
-            return Console::parse('vendor/bin/codecept')->exec();
+            Console::parse('vendor/bin/codecept')->exec();
+
+            return;
         }
 
         throw new ConsoleException('No test runner found in the project.');

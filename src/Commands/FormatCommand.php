@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cpx\Commands;
 
 use Cpx\Console;
@@ -7,7 +9,7 @@ use Cpx\Exceptions\ConsoleException;
 
 class FormatCommand extends Command
 {
-    public function __invoke()
+    public function __invoke(): void
     {
         $directory = $this->console->arguments[0] ?? '.';
 
@@ -18,7 +20,9 @@ class FormatCommand extends Command
                 $command .= ' --test';
             }
 
-            return Console::parse($command)->exec();
+            Console::parse($command)->exec();
+
+            return;
         }
 
         if (file_exists('vendor/bin/php-cs-fixer')) {
@@ -30,13 +34,17 @@ class FormatCommand extends Command
 
             $command .= ' --allow-risky=yes';
 
-            return Console::parse($command)->exec();
+            Console::parse($command)->exec();
+
+            return;
         }
 
         if (file_exists('vendor/bin/phpcbf')) {
             $command = "vendor/bin/phpcbf {$directory}";
 
-            return Console::parse($command)->exec();
+            Console::parse($command)->exec();
+
+            return;
         }
 
         throw new ConsoleException('No code formatters found in the project.');

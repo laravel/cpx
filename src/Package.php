@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cpx;
 
-use Cpx\Utils;
-use Cpx\Commands\Command;
 use InvalidArgumentException;
+use RuntimeException;
 
 class Package
 {
@@ -20,7 +21,7 @@ class Package
             throw new InvalidArgumentException('A package name must be provided.');
         }
 
-        if (!str_contains($str, '/')) {
+        if (! str_contains($str, '/')) {
             throw new InvalidArgumentException('A package name should be in the format "<vendor>/<package>');
         }
 
@@ -48,13 +49,12 @@ class Package
     public function fullPackageString(): string
     {
         return "{$this->vendor}/{$this->name}"
-            . ($this->version ? ':' . $this->version : '');
+            .($this->version ? ':'.$this->version : '');
     }
 
     public function delete(): void
     {
-        $packageDirectory = cpx_path("{$this->folder()}");
-        exec("rm -rf {$packageDirectory}");
+        Utils::deleteDirectory(cpx_path("{$this->folder()}"));
     }
 
     public function runCommand(Console $console, bool $autoUpdate = true): void
@@ -64,11 +64,10 @@ class Package
         $binScripts = Composer::detectBinFromComposer("{$installDir}/vendor/{$this->vendor}/{$this->name}");
 
         if (empty($binScripts)) {
-            printColor("Error: No bin command found in {$this}.", "\033[1;31m");
-            exit(1);
+            throw new RuntimeException("No bin command found in {$this}.");
         }
 
-        $binScripts = Utils::arrayMapAssoc(fn ($key, $value) => [basename($value) => $value], $binScripts);
+        $binScripts = Utils::arrayMapAssoc(fn (int $_, string $value): array => [basename($value) => $value], $binScripts);
 
         if (count($binScripts) > 1) {
             $possibleCommands = array_values(array_unique(array_filter([
@@ -78,26 +77,25 @@ class Package
             ])));
 
             foreach ($possibleCommands as $possibleCommand) {
-                if (in_array($possibleCommand, $binScripts)) {
-                    if ($console->arguments[0] ?? null === $possibleCommand) {
-                        unset($console->arguments[0]);
-                        $console->arguments = array_values($console->arguments);
+                if (in_array($possibleCommand, $binScripts, true)) {
+                    if (($console->arguments[0] ?? null) === $possibleCommand) {
+                        $console->arguments = array_slice($console->arguments, 1);
                     }
                     $command = $possibleCommand;
+
                     break;
                 } elseif (array_key_exists($possibleCommand, $binScripts)) {
-                    if ($console->arguments[0] ?? null === $possibleCommand) {
-                        unset($console->arguments[0]);
-                        $console->arguments = array_values($console->arguments);
+                    if (($console->arguments[0] ?? null) === $possibleCommand) {
+                        $console->arguments = array_slice($console->arguments, 1);
                     }
                     $command = $binScripts[$possibleCommand];
+
                     break;
                 }
             }
 
-            if (!isset($command)) {
-                echo Command::BACKGROUND_RED . "   More than 1 bin command found for {$this}: " . join(', ', array_keys($binScripts)) . '   ' . Command::COLOR_RESET . PHP_EOL;
-                exit();
+            if (! isset($command)) {
+                throw new RuntimeException("More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.');
             }
         } else {
             $command = $binScripts[array_key_first($binScripts)];
@@ -134,11 +132,11 @@ class Package
     {
         $installDir = cpx_path($this->folder());
 
-        if (!is_dir($installDir)) {
+        if (! is_dir($installDir)) {
             mkdir($installDir, 0755, true);
         }
 
-        if (!is_dir("$installDir/vendor")) {
+        if (! is_dir("$installDir/vendor")) {
             printColor("Installing {$this}...");
             file_put_contents("{$installDir}/composer.json", json_encode([
                 'name' => "cpx-{$this->vendor}/cpx-{$this->name}",
@@ -156,10 +154,10 @@ class Package
             }
 
             Metadata::open()->updateLastCheckTime($this, 'updated')->save();
-        } elseif ($updateCheck && $this->shouldCheckForUpdates($this)) {
+        } elseif ($updateCheck && $this->shouldCheckForUpdates()) {
             printColor("Checking for updates for {$this}...");
             $previousVersion = Composer::getCurrentVersion($installDir);
-            Composer::runCommand("update", $installDir);
+            Composer::runCommand('update', $installDir);
             $newVersion = Composer::getCurrentVersion($installDir);
 
             if ($previousVersion !== $newVersion) {
@@ -176,16 +174,26 @@ class Package
         return $installDir;
     }
 
-    function shouldCheckForUpdates(): bool
+    public function shouldCheckForUpdates(): bool
     {
         $metadata = Metadata::open();
         $packageKey = $this->fullPackageString();
 
-        if (!$metadata->hasPackage($this)) {
+        if (! $metadata->hasPackage($this)) {
             return true;
         }
 
-        $lastCheck = strtotime($metadata->packages[$packageKey]->lastUpdatedAt);
+        $lastUpdatedAt = $metadata->packages[$packageKey]->lastUpdatedAt;
+
+        if ($lastUpdatedAt === null) {
+            return true;
+        }
+
+        $lastCheck = strtotime($lastUpdatedAt);
+
+        if ($lastCheck === false) {
+            return true;
+        }
 
         return (time() - $lastCheck) > 3600; // 1 hour
     }

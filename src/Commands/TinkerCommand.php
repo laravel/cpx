@@ -1,18 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cpx\Commands;
 
 use Cpx\Console;
 use Cpx\Package;
-use Cpx\Commands\Command;
-use Cpx\Composer;
 
 class TinkerCommand extends Command
 {
-    public function __invoke()
+    public function __invoke(): void
     {
-        $psyshConfig = realpath(__DIR__ . '/../../files/psysh-config.php');
+        $psyshConfig = realpath(__DIR__.'/../../files/psysh-config.php');
 
-        return Package::parse('psy/psysh')->runCommand(Console::parse("psysh --config {$psyshConfig}"));
+        if ($psyshConfig === false) {
+            $this->error('Unable to find the PsySH configuration file.');
+
+            return;
+        }
+
+        Package::parse('psy/psysh')->runCommand(Console::parse("psysh --config {$psyshConfig}"));
     }
 }

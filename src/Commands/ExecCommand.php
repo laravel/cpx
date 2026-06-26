@@ -1,21 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cpx\Commands;
 
-use Cpx\ClassAliasAutoloader;
 use Cpx\PhpExecutionHelper;
 
 class ExecCommand extends Command
 {
     public string $path;
 
-    public function __invoke()
+    public function __invoke(): void
     {
         if ($this->console->hasOption('r')) {
             $code = $this->console->getOption('r');
 
             if (empty($code)) {
                 $this->error('Please supply code to execute with the -r option.');
+
                 return;
             }
 
@@ -27,11 +29,19 @@ class ExecCommand extends Command
                 }
             }
 
-            if (!str_ends_with(trim($code), ';')) {
+            if (! str_ends_with(trim($code), ';')) {
                 $code .= ';';
             }
 
-            $this->autoload(getcwd());
+            $directory = getcwd();
+
+            if ($directory === false) {
+                $this->error('Unable to determine the current working directory.');
+
+                return;
+            }
+
+            $this->autoload($directory);
 
             eval($code);
             echo PHP_EOL;
@@ -41,15 +51,19 @@ class ExecCommand extends Command
 
         if (empty($this->console->arguments[0])) {
             $this->error('Please supply the path to a file to execute.');
+
             return;
         }
 
-        $this->path = realpath($this->console->arguments[0]);
+        $path = realpath($this->console->arguments[0]);
 
-        if (!file_exists($this->path)) {
-            $this->error("File does not exist at '{$this->path}'");
+        if ($path === false || ! file_exists($path)) {
+            $this->error("File does not exist at '{$this->console->arguments[0]}'");
+
             return;
         }
+
+        $this->path = $path;
 
         $this->autoload(dirname($this->path));
 
@@ -58,12 +72,23 @@ class ExecCommand extends Command
 
     protected function autoload(string $directory): void
     {
-        $shouldFindAutoloader = $this->console->getOption('find-autoloader') ?? true;
-        $shouldLoadLaravelBootstrap = $this->console->getOption('load-laravel-bootstrap') ?? true;
-        $shouldAliasClasses = $this->console->getOption('alias-classes') ?? true;
-        $shouldBeVerbose = $this->console->getOption('verbose') ?? false;
+        $shouldFindAutoloader = $this->booleanOption('find-autoloader', true);
+        $shouldLoadLaravelBootstrap = $this->booleanOption('load-laravel-bootstrap', true);
+        $shouldAliasClasses = $this->booleanOption('alias-classes', true);
+        $shouldBeVerbose = $this->booleanOption('verbose', false);
 
         PhpExecutionHelper::init($directory, $shouldFindAutoloader, $shouldLoadLaravelBootstrap, $shouldAliasClasses, $shouldBeVerbose);
+    }
+
+    protected function booleanOption(string $option, bool $default): bool
+    {
+        $value = $this->console->getOption($option);
+
+        if ($value === null) {
+            return $default;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $default;
     }
 
     public function runFile(): void

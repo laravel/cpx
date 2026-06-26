@@ -1,8 +1,8 @@
 <?php
 
-namespace Cpx;
+declare(strict_types=1);
 
-use Cpx\Package;
+namespace Cpx;
 
 class PackageMetadata
 {

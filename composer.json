@@ -28,10 +28,51 @@
             "src/functions.php"
         ]
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
     "require": {
-        "php": "^8.2"
+        "php": "^8.3"
+    },
+    "require-dev": {
+        "laravel/pao": "^1.1",
+        "laravel/pint": "^1.29",
+        "pestphp/pest": "^4.7",
+        "pestphp/pest-plugin-type-coverage": "^4.0",
+        "phpstan/phpstan": "^2.2"
     },
     "bin": [
         "cpx"
-    ]
+    ],
+    "scripts": {
+        "analyse": [
+            "phpstan analyse"
+        ],
+        "lint": [
+            "pint --parallel"
+        ],
+        "lint:check": [
+            "pint --parallel --test"
+        ],
+        "test:types": [
+            "pest --type-coverage --min=100"
+        ],
+        "test:unit": [
+            "pest --parallel"
+        ],
+        "test": [
+            "@analyse",
+            "@lint:check",
+            "@test:types",
+            "@test:unit"
+        ]
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    }
 }

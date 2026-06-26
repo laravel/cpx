@@ -1,23 +1,52 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Cpx;
 
 use Exception;
 
 class Composer
 {
+    /** @return list<string> */
     public static function runCommand(string $command, ?string $directory = null): array
     {
-        $output = [];
         $workingDirectory = $directory ? "--working-dir={$directory}" : '';
+        $process = proc_open(
+            "composer {$command} --no-interaction --quiet {$workingDirectory}",
+            [
+                0 => ['pipe', 'r'],
+                1 => ['pipe', 'w'],
+                2 => ['pipe', 'w'],
+            ],
+            $pipes,
+        );
 
-        exec("composer {$command} --no-interaction --quiet {$workingDirectory}", $output, $resultCode);
-
-        if ($resultCode !== 0) {
+        if (! is_resource($process)) {
             throw new Exception("Composer command failed: {$command}");
         }
 
-        return $output;
+        fclose($pipes[0]);
+
+        $output = stream_get_contents($pipes[1]);
+        $errorOutput = stream_get_contents($pipes[2]);
+
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        $resultCode = proc_close($process);
+
+        if ($resultCode !== 0) {
+            $message = trim($errorOutput) ?: "Composer command failed: {$command}";
+
+            throw new Exception($message);
+        }
+
+        if ($output === false || trim($output) === '') {
+            return [];
+        }
+
+        return explode(PHP_EOL, trim($output));
     }
 
     /**
@@ -30,9 +59,15 @@ class Composer
         $composerFile = "{$directory}/composer.json";
 
         if (file_exists($composerFile)) {
-            $composerData = json_decode(file_get_contents($composerFile), true);
+            $contents = file_get_contents($composerFile);
 
-            if (isset($composerData['bin'])) {
+            if ($contents === false) {
+                return [];
+            }
+
+            $composerData = json_decode($contents, true);
+
+            if (is_array($composerData) && isset($composerData['bin'])) {
                 return (array) $composerData['bin'];
             }
         }
@@ -45,9 +80,16 @@ class Composer
         $composerLock = "{$directory}/composer.lock";
 
         if (file_exists($composerLock)) {
-            $lockData = json_decode(file_get_contents($composerLock), true);
+            $contents = file_get_contents($composerLock);
 
-            return $lockData['packages'][0]['version'] ?? 'unknown';
+            if ($contents === false) {
+                return 'unknown';
+            }
+
+            $lockData = json_decode($contents, true);
+            $version = is_array($lockData) ? ($lockData['packages'][0]['version'] ?? null) : null;
+
+            return is_string($version) ? $version : 'unknown';
         }
 
         return 'unknown';
