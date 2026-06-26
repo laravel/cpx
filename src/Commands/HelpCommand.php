@@ -6,6 +6,7 @@ namespace Cpx\Commands;
 
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Command\HelpCommand as SymfonyHelpCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -13,10 +14,38 @@ use Symfony\Component\Console\Output\OutputInterface;
     name: 'help',
     description: 'Show the cpx help message',
 )]
-class HelpCommand extends Command
+class HelpCommand extends SymfonyHelpCommand
 {
+    private ?Command $commandForHelp = null;
+
+    protected function configure(): void
+    {
+        parent::configure();
+
+        $this->setDescription('Show the cpx help message');
+    }
+
+    public function setCommand(Command $command): void
+    {
+        $this->commandForHelp = $command;
+
+        parent::setCommand($command);
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        if ($this->commandForHelp !== null) {
+            try {
+                return parent::execute($input, $output);
+            } finally {
+                $this->commandForHelp = null;
+            }
+        }
+
+        if ($input->getArgument('command_name') !== 'help') {
+            return parent::execute($input, $output);
+        }
+
         self::render($output);
 
         return self::SUCCESS;
