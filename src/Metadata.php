@@ -66,9 +66,10 @@ class Metadata
     public function save(): void
     {
         $metadataFile = cpx_path('.cpx_metadata.json');
+        $dir = dirname($metadataFile);
 
-        if (! is_dir(dirname($metadataFile))) {
-            mkdir(dirname($metadataFile), 0755, true);
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
         }
 
         file_put_contents($metadataFile, json_encode($this->toArray(), JSON_PRETTY_PRINT));
