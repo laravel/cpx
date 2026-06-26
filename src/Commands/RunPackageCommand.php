@@ -46,20 +46,12 @@ class RunPackageCommand extends SymfonyCommand
             array_shift($tokens);
         }
 
-        ob_start();
-
         try {
             return $this->packageCommandRunner->run(PackageInvocation::fromRawTokens($tokens), $output);
         } catch (InvalidArgumentException $e) {
             $output->writeln("<error>{$e->getMessage()}</error>");
 
             return SymfonyCommand::FAILURE;
-        } finally {
-            $contents = ob_get_clean();
-
-            if ($contents !== false) {
-                $output->write($contents);
-            }
         }
     }
 }

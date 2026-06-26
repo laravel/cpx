@@ -8,6 +8,9 @@ use InvalidArgumentException;
 
 class PackageInvocation
 {
+    /** @var array<string, string|null|list<string|null>>|null */
+    private ?array $parsedOptions = null;
+
     /**
      * @param  list<string>  $forwardedTokens
      */
@@ -51,6 +54,10 @@ class PackageInvocation
         return array_key_exists($option, $this->options());
     }
 
+    /**
+     * Returns a single value for the option. When an option is repeated
+     * (e.g. --filter=one --filter=two) the first non-null value wins.
+     */
     public function option(string $option): ?string
     {
         $value = $this->options()[$option] ?? null;
@@ -71,6 +78,10 @@ class PackageInvocation
     /** @return array<string, string|null|list<string|null>> */
     private function options(): array
     {
+        if ($this->parsedOptions !== null) {
+            return $this->parsedOptions;
+        }
+
         $options = [];
         $tokens = $this->forwardedTokens;
 
@@ -95,7 +106,7 @@ class PackageInvocation
             $this->addOption($options, $matches['name'], $value);
         }
 
-        return $options;
+        return $this->parsedOptions = $options;
     }
 
     /**

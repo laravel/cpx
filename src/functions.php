@@ -76,15 +76,13 @@ if (! function_exists('composer_require')) {
 if (! function_exists('cpx_path')) {
     function cpx_path(string $path = ''): string
     {
-        $home = $_SERVER['COMPOSER_HOME'] ?? getenv('COMPOSER_HOME') ?: ($_SERVER['HOME'] ?? __DIR__);
+        $composerHome = $_SERVER['COMPOSER_HOME'] ?? getenv('COMPOSER_HOME');
 
-        return "{$home}/.cpx/".trim($path, '/');
-    }
-}
+        if (! is_string($composerHome) || $composerHome === '') {
+            $home = $_SERVER['HOME'] ?? null;
+            $composerHome = is_string($home) && $home !== '' ? $home : __DIR__;
+        }
 
-if (! function_exists('printColor')) {
-    function printColor(string $message, string $color = "\033[1;32m"): void
-    {
-        echo $color.$message."\033[0m".PHP_EOL;
+        return "{$composerHome}/.cpx/".trim($path, '/');
     }
 }

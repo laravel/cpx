@@ -14,27 +14,22 @@ class ComposerRunner
 
     /**
      * @param  list<string>  $arguments
-     * @return list<string>
      */
-    public static function run(array $arguments, ?string $directory = null): array
+    public static function run(array $arguments, ?string $directory = null): int
     {
-        $command = ['composer', ...$arguments, '--no-interaction', '--quiet'];
+        $command = ['composer', ...$arguments, '--no-interaction'];
 
         if ($directory !== null) {
             $command[] = "--working-dir={$directory}";
         }
 
-        $result = (new ProcessRunner)->capture($command);
+        $exitCode = (new ProcessRunner)->run($command);
 
-        if ($result['exitCode'] !== Command::SUCCESS) {
-            $message = trim($result['stderr']) ?: 'Composer command failed: '.implode(' ', $arguments);
-
-            throw new Exception($message);
+        if ($exitCode !== Command::SUCCESS) {
+            throw new Exception('Composer command failed: '.implode(' ', $arguments));
         }
 
-        $output = trim($result['stdout']);
-
-        return $output === '' ? [] : explode(PHP_EOL, $output);
+        return $exitCode;
     }
 
     /** @return list<string> */

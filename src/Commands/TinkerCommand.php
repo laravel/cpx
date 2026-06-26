@@ -27,17 +27,9 @@ class TinkerCommand extends Command
             return self::FAILURE;
         }
 
-        ob_start();
-
-        try {
-            return Package::parse('psy/psysh')->runCommand(PackageInvocation::fromRawTokens(['psysh', '--config', $psyshConfig]));
-        } finally {
-            $contents = ob_get_clean();
-
-            if ($contents !== false) {
-                $output->write($contents);
-            }
-        }
-
+        return Package::parse('psy/psysh')->runCommand(
+            PackageInvocation::fromRawTokens(['psysh', '--config', $psyshConfig]),
+            $output,
+        );
     }
 }

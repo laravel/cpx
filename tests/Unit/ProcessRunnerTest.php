@@ -11,19 +11,6 @@ test('it returns the child exit code when using inherited stdio', function () {
     expect((new ProcessRunner)->run([$binary]))->toBe(37);
 });
 
-test('it captures stdout and stderr for commands that need output', function () {
-    $directory = $this->temporaryDirectory('cpx-process');
-    $binary = "{$directory}/capture";
-
-    writeExecutable($binary, "#!/usr/bin/env php\n<?php fwrite(STDOUT, 'out'); fwrite(STDERR, 'err'); exit(0);\n");
-
-    $result = (new ProcessRunner)->capture([$binary]);
-
-    expect($result['exitCode'])->toBe(0)
-        ->and($result['stdout'])->toBe('out')
-        ->and($result['stderr'])->toBe('err');
-});
-
 test('it delivers shell metacharacters as literal argv tokens', function () {
     $directory = $this->temporaryDirectory('cpx-process');
     $binary = "{$directory}/argv";

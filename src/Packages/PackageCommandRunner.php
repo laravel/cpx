@@ -26,12 +26,12 @@ class PackageCommandRunner
         $aliases = PackageAliases::all();
 
         if (array_key_exists($invocation->target, $aliases)) {
-            return Package::parse($aliases[$invocation->target]->package)->runCommand($invocation);
+            return Package::parse($aliases[$invocation->target]->package)->runCommand($invocation, $output);
         }
 
         if (str_contains($invocation->target, '/')) {
             try {
-                return Package::parse($invocation->target)->runCommand($invocation);
+                return Package::parse($invocation->target)->runCommand($invocation, $output);
             } catch (InvalidArgumentException) {
                 $output->writeln("<error>Unrecognised command {$invocation->target}</error>");
 

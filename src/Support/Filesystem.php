@@ -7,6 +7,7 @@ namespace Cpx\Support;
 use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use RuntimeException;
 use SplFileInfo;
 
 class Filesystem
@@ -24,11 +25,16 @@ class Filesystem
 
         foreach ($files as $file) {
             /** @var SplFileInfo $file */
-            $file->isDir() && ! $file->isLink()
-                ? rmdir($file->getPathname())
-                : unlink($file->getPathname());
+            $path = $file->getPathname();
+            $removed = $file->isDir() && ! $file->isLink() ? rmdir($path) : unlink($path);
+
+            if (! $removed) {
+                throw new RuntimeException("Unable to remove {$path}.");
+            }
         }
 
-        rmdir($directory);
+        if (! rmdir($directory)) {
+            throw new RuntimeException("Unable to remove directory {$directory}.");
+        }
     }
 }

@@ -9,6 +9,8 @@ use Cpx\Support\Arr;
 
 class Metadata
 {
+    private const FILE = '.cpx_metadata.json';
+
     /**
      * @param  array<string, PackageMetadata>  $packages
      * @param  array<string, array{packages?: list<string>, last_updated?: int, last_run?: int}>  $execCache
@@ -20,7 +22,7 @@ class Metadata
 
     public static function open(): self
     {
-        $metadataFile = cpx_path('.cpx_metadata.json');
+        $metadataFile = cpx_path(self::FILE);
 
         if (! file_exists($metadataFile)) {
             return new self;
@@ -64,7 +66,7 @@ class Metadata
 
     public function save(): void
     {
-        $metadataFile = cpx_path('.cpx_metadata.json');
+        $metadataFile = cpx_path(self::FILE);
 
         if (! is_dir(dirname($metadataFile))) {
             mkdir(dirname($metadataFile), 0755, true);

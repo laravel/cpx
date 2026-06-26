@@ -13,47 +13,41 @@ class ProcessRunner
      */
     public function run(array $command): int
     {
-        $process = @proc_open($command, [STDIN, STDOUT, STDERR], $pipes);
 
-        if (! is_resource($process)) {
+        $stdin = fopen('php://fd/0', 'r');
+        $stdout = fopen('php://fd/1', 'w');
+        $stderr = fopen('php://fd/2', 'w');
+
+        if ($stdin === false || $stdout === false || $stderr === false) {
+            $this->closeAll($stdin, $stdout, $stderr);
+
             return self::COULD_NOT_EXECUTE;
         }
 
-        return proc_close($process);
+        try {
+            $process = @proc_open($command, [$stdin, $stdout, $stderr], $pipes);
+
+            if (! is_resource($process)) {
+                return self::COULD_NOT_EXECUTE;
+            }
+
+            $exitCode = proc_close($process);
+
+            return $exitCode === -1 ? self::COULD_NOT_EXECUTE : $exitCode;
+        } finally {
+            $this->closeAll($stdin, $stdout, $stderr);
+        }
     }
 
     /**
-     * @param  list<string>  $command
-     * @return array{exitCode: int, stdout: string, stderr: string}
+     * @param  resource|false  ...$streams
      */
-    public function capture(array $command): array
+    private function closeAll(...$streams): void
     {
-        $process = @proc_open($command, [
-            0 => ['pipe', 'r'],
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ], $pipes);
-
-        if (! is_resource($process)) {
-            return [
-                'exitCode' => self::COULD_NOT_EXECUTE,
-                'stdout' => '',
-                'stderr' => 'Failed to start process.',
-            ];
+        foreach ($streams as $stream) {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
         }
-
-        fclose($pipes[0]);
-
-        $stdout = stream_get_contents($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-
-        return [
-            'exitCode' => proc_close($process),
-            'stdout' => $stdout === false ? '' : $stdout,
-            'stderr' => $stderr === false ? '' : $stderr,
-        ];
     }
 }
