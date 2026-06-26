@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Cpx;
+namespace Cpx\Runtime;
 
 class PhpExecutionHelper
 {
@@ -20,7 +20,6 @@ class PhpExecutionHelper
         }
 
         $autoloadRootDirectory = $path;
-
         $autoloadFileSuffix = '/vendor/autoload.php';
         $autoloadFile = $autoloadRootDirectory.$autoloadFileSuffix;
 
@@ -39,34 +38,38 @@ class PhpExecutionHelper
             }
         }
 
-        if (file_exists($autoloadFile)) {
-            if ($shouldBeVerbose) {
-                echo "Found autoload file at '{$autoloadFile}'".PHP_EOL;
-            }
-
-            require_once $autoloadFile;
-
-            if ($shouldLoadLaravelBootstrap && file_exists($autoloadRootDirectory.'/bootstrap/app.php')) {
-                if ($shouldBeVerbose) {
-                    echo "Found Laravel bootstrap file at '{$autoloadRootDirectory}/bootstrap/app.php'".PHP_EOL;
-                }
-
-                if (! defined('LARAVEL_START')) {
-                    define('LARAVEL_START', microtime(true));
-                }
-
-                require_once $autoloadRootDirectory.'/bootstrap/app.php';
-            }
-
-            if ($shouldAliasClasses) {
-                if ($shouldBeVerbose) {
-                    echo 'Aliasing classes'.PHP_EOL;
-                }
-
-                static::getClassAliasAutoloader($shouldBeVerbose)->addAliases($autoloadRootDirectory);
-                spl_autoload_register(static::getClassAliasAutoloader($shouldBeVerbose)->aliasClass(...));
-            }
+        if (! file_exists($autoloadFile)) {
+            return;
         }
+
+        if ($shouldBeVerbose) {
+            echo "Found autoload file at '{$autoloadFile}'".PHP_EOL;
+        }
+
+        require_once $autoloadFile;
+
+        if ($shouldLoadLaravelBootstrap && file_exists($autoloadRootDirectory.'/bootstrap/app.php')) {
+            if ($shouldBeVerbose) {
+                echo "Found Laravel bootstrap file at '{$autoloadRootDirectory}/bootstrap/app.php'".PHP_EOL;
+            }
+
+            if (! defined('LARAVEL_START')) {
+                define('LARAVEL_START', microtime(true));
+            }
+
+            require_once $autoloadRootDirectory.'/bootstrap/app.php';
+        }
+
+        if (! $shouldAliasClasses) {
+            return;
+        }
+
+        if ($shouldBeVerbose) {
+            echo 'Aliasing classes'.PHP_EOL;
+        }
+
+        static::getClassAliasAutoloader($shouldBeVerbose)->addAliases($autoloadRootDirectory);
+        spl_autoload_register(static::getClassAliasAutoloader($shouldBeVerbose)->aliasClass(...));
     }
 
     public static function getClassAliasAutoloader(bool $shouldBeVerbose = false): ClassAliasAutoloader

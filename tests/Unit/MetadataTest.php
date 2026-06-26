@@ -1,7 +1,7 @@
 <?php
 
-use Cpx\Metadata;
-use Cpx\Package;
+use Cpx\Cache\Metadata;
+use Cpx\Packages\Package;
 
 test('it opens an empty metadata state when no metadata file exists', function () {
     $this->useIsolatedComposerHome();
@@ -16,8 +16,8 @@ test('it saves readable metadata json and round trips package timestamps', funct
     $this->useIsolatedComposerHome();
 
     Metadata::open()
-        ->updateLastCheckTime(Package::parse('laravel/pint'), 'updated')
-        ->updateLastCheckTime(Package::parse('laravel/pint'))
+        ->recordUpdate(Package::parse('laravel/pint'))
+        ->recordRun(Package::parse('laravel/pint'))
         ->save();
 
     $metadataFile = cpx_path('.cpx_metadata.json');
