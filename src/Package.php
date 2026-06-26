@@ -22,7 +22,7 @@ class Package
             throw new InvalidArgumentException('A package name must be provided.');
         }
 
-        if (preg_match('/\A(?<vendor>[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?)\/(?<name>[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?)(?::(?<version>[a-zA-Z0-9_.@~^*<>!=|,-]+))?\z/', $str, $matches) !== 1) {
+        if (preg_match('/\A(?<vendor>[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?)\/(?<name>[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?)(?::(?<version>[a-zA-Z0-9_.@~^*<>!=|,\/-]+))?\z/', $str, $matches) !== 1) {
             throw new InvalidArgumentException('A package name should be in the format "<vendor>/<package>[:version]".');
         }
 

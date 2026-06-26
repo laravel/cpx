@@ -21,6 +21,7 @@ test('it preserves version constraints and stability flags', function (string $t
     ['laravel/pint:^1.2', '^1.2'],
     ['laravel/pint:1.0.0', '1.0.0'],
     ['laravel/pint:dev-main', 'dev-main'],
+    ['laravel/pint:feat/new-cool-thing', 'feat/new-cool-thing'],
     ['laravel/pint:^1@dev', '^1@dev'],
 ]);
 
