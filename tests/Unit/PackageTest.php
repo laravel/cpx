@@ -1,6 +1,6 @@
 <?php
 
-use Cpx\Package;
+use Cpx\Packages\Package;
 
 test('it parses a package target without a version constraint', function () {
     $package = Package::parse('laravel/pint');
@@ -50,6 +50,8 @@ test('it rejects invalid package targets', function (string $target) {
     'laravel/pint|cat',
     'laravel/pint/name',
     'laravel/pint:',
+    'laravel/pint:.',
+    'laravel/pint:..',
 ])->throws(InvalidArgumentException::class);
 
 test('package cache keys are derived from validated identifiers or stable safe hashes')->todo(
