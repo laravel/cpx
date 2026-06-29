@@ -9,6 +9,10 @@ use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * Runs a non-built-in cpx target by resolving it to a local PHP file, a package
+ * alias, or a vendor/package and executing it.
+ */
 class PackageCommandRunner
 {
     public function run(Console $console, OutputInterface $output): int
