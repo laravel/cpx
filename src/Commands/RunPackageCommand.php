@@ -28,6 +28,8 @@ class RunPackageCommand extends SymfonyCommand
 
     protected function configure(): void
     {
+        // Let undeclared package args/options pass through instead of failing validation;
+        // execute() reads the raw tokens and forwards them to the package.
         $this->ignoreValidationErrors();
     }
 
