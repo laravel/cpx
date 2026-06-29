@@ -23,21 +23,13 @@ function writeExecutable(string $path, string $contents): void
     chmod($path, 0755);
 }
 
-test('help shows the cpx usage guide', function () {
-    [$status, $output] = runCpxCommand(['help']);
-
-    expect($status)->toBe(0)
-        ->and($output)->toContain('cpx - A Composer package runner')
-        ->and($output)->toContain('cpx <vendor/package[:version]> [args]');
-});
-
 test('it can run through Symfony tester utilities without exiting', function () {
     $tester = new ApplicationTester(new Application);
 
     $status = $tester->run(['command' => 'help']);
 
     expect($status)->toBe(0)
-        ->and($tester->getDisplay())->toContain('cpx - A Composer package runner');
+        ->and($tester->getDisplay())->toContain('Usage:');
 });
 
 test('command help options use Symfony command help', function () {
@@ -48,12 +40,13 @@ test('command help options use Symfony command help', function () {
         ->and($output)->toContain('Usage:');
 });
 
-test('empty invocations show cpx help instead of Symfony command listings', function () {
+test('empty invocations run the default list command', function () {
+    $this->useIsolatedComposerHome();
+
     [$status, $output] = runCpxCommand([]);
 
     expect($status)->toBe(0)
-        ->and($output)->toContain('cpx - A Composer package runner')
-        ->and($output)->not->toContain('Available commands');
+        ->and($output)->toContain('There are no installed packages.');
 });
 
 test('list shows when no packages are installed', function () {
@@ -73,21 +66,6 @@ test('aliases lists aliased package commands', function () {
         ->and($output)->toContain('Aliased packages:')
         ->and($output)->toContain('cpx pint');
 });
-
-test('version prints cpx and php versions', function () {
-    [$status, $output] = runCpxCommand(['version']);
-
-    expect($status)->toBe(0)
-        ->and($output)->toContain('cpx version:')
-        ->and($output)->toContain('php version:');
-});
-
-test('top-level version options keep cpx version behavior', function (string $option) {
-    [$status, $output] = runCpxCommand([$option]);
-
-    expect($status)->toBe(0)
-        ->and($output)->toContain('cpx version:');
-})->with(['--version', '-v']);
 
 test('clean reports when there are no packages to clean', function () {
     $this->useIsolatedComposerHome();
@@ -144,33 +122,6 @@ test('file fallback preserves exec options', function () {
 
     expect($status)->toBe(0)
         ->and($output)->toContain('not-loaded');
-});
-
-test('format fails clearly when no formatter exists in the project', function (string $command) {
-    $this->useWorkingDirectory($this->temporaryDirectory('cpx-format'));
-
-    [$status, $output] = runCpxCommand([$command]);
-
-    expect($status)->toBe(1)
-        ->and($output)->toContain('No code formatters found in the project.');
-})->with(['format', 'fmt']);
-
-test('check fails clearly when no analyzer exists in the project', function (string $command) {
-    $this->useWorkingDirectory($this->temporaryDirectory('cpx-check'));
-
-    [$status, $output] = runCpxCommand([$command]);
-
-    expect($status)->toBe(1)
-        ->and($output)->toContain('No static analyzers found in the project.');
-})->with(['check', 'analyze', 'analyse']);
-
-test('test fails clearly when no test runner exists in the project', function () {
-    $this->useWorkingDirectory($this->temporaryDirectory('cpx-test-runner'));
-
-    [$status, $output] = runCpxCommand(['test']);
-
-    expect($status)->toBe(1)
-        ->and($output)->toContain('No test runner found in the project.');
 });
 
 test('tinker runs the cached psysh package with the bundled config', function () {

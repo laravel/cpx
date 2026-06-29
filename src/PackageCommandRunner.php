@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Cpx;
 
 use Cpx\Commands\ExecCommand;
-use Cpx\Commands\HelpCommand;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -30,7 +29,7 @@ class PackageCommandRunner
             return SymfonyCommand::SUCCESS;
         }
 
-        HelpCommand::render($output, $console->command);
+        $output->writeln("<error>Unrecognised command {$console->command}</error>");
 
         return SymfonyCommand::FAILURE;
     }
