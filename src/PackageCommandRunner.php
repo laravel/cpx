@@ -47,7 +47,7 @@ class PackageCommandRunner
 
         foreach (['find-autoloader', 'load-laravel-bootstrap', 'alias-classes'] as $option) {
             if ($console->hasOption($option)) {
-                $input["--{$option}"] = $console->getOption($option) ?? true;
+                $input["--{$option}"] = filter_var($console->getOption($option), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true;
             }
         }
 

@@ -24,9 +24,9 @@ class ExecCommand extends Command
     {
         $this->addArgument('file', InputArgument::OPTIONAL, 'PHP file to invoke');
         $this->addOption('run', 'r', InputOption::VALUE_REQUIRED, 'Run PHP code without <?php ?> tags');
-        $this->addOption('find-autoloader', null, InputOption::VALUE_OPTIONAL, 'Find and load the nearest Composer autoloader', 'true');
-        $this->addOption('load-laravel-bootstrap', null, InputOption::VALUE_OPTIONAL, 'Load Laravel bootstrap files when available', 'true');
-        $this->addOption('alias-classes', null, InputOption::VALUE_OPTIONAL, 'Alias classes from loaded autoloaders', 'true');
+        $this->addOption('find-autoloader', null, InputOption::VALUE_NEGATABLE, 'Find and load the nearest Composer autoloader', true);
+        $this->addOption('load-laravel-bootstrap', null, InputOption::VALUE_NEGATABLE, 'Load Laravel bootstrap files when available', true);
+        $this->addOption('alias-classes', null, InputOption::VALUE_NEGATABLE, 'Alias classes from loaded autoloaders', true);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -110,23 +110,12 @@ class ExecCommand extends Command
 
     protected function autoload(string $directory, InputInterface $input, OutputInterface $output): void
     {
-        $shouldFindAutoloader = $this->booleanOption($input, 'find-autoloader', true);
-        $shouldLoadLaravelBootstrap = $this->booleanOption($input, 'load-laravel-bootstrap', true);
-        $shouldAliasClasses = $this->booleanOption($input, 'alias-classes', true);
+        $shouldFindAutoloader = $input->getOption('find-autoloader') === true;
+        $shouldLoadLaravelBootstrap = $input->getOption('load-laravel-bootstrap') === true;
+        $shouldAliasClasses = $input->getOption('alias-classes') === true;
         $shouldBeVerbose = $output->isVerbose();
 
         PhpExecutionHelper::init($directory, $shouldFindAutoloader, $shouldLoadLaravelBootstrap, $shouldAliasClasses, $shouldBeVerbose);
-    }
-
-    protected function booleanOption(InputInterface $input, string $option, bool $default): bool
-    {
-        $value = $input->getOption($option);
-
-        if ($value === null) {
-            return $default;
-        }
-
-        return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $default;
     }
 
     public function runFile(): void
