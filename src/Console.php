@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Cpx;
 
-use Cpx\Exceptions\ConsoleException;
-
 class Console
 {
     /**
@@ -170,26 +168,5 @@ class Console
     public function getFlagsString(): string
     {
         return implode(' ', $this->flags);
-    }
-
-    public function exec(bool $verbose = false): void
-    {
-        $descriptors = [
-            0 => STDIN,
-            1 => STDOUT,
-            2 => STDERR,
-        ];
-
-        if ($verbose) {
-            echo "\033[46m   Running command: '{$this}'   \033[0m";
-        }
-
-        $process = proc_open((string) $this, $descriptors, $pipes);
-
-        if (is_resource($process)) {
-            proc_close($process);
-        } else {
-            throw new ConsoleException("Failed to run command '{$this->getCommandInput()}'");
-        }
     }
 }
