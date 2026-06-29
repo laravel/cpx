@@ -25,8 +25,7 @@ class UpdateCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $target = $input->getArgument('target');
-        $target = is_string($target) ? $target : '';
+        $target = (string) $input->getArgument('target');
 
         match (true) {
             str_contains($target, '/') => $this->updatePackage(Package::parse($target), $output),
