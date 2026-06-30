@@ -18,6 +18,8 @@ class PackageInvocation
         public string $target,
         private array $forwardedTokens = [],
     ) {
+        $this->target = trim($this->target);
+
         if ($this->target === '') {
             throw new InvalidArgumentException('A package invocation target must be provided.');
         }

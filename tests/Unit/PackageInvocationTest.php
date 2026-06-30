@@ -61,3 +61,14 @@ test('it can consume the first forwarded token for multi-binary packages', funct
 test('it rejects empty invocations before package execution', function () {
     PackageInvocation::fromRawTokens([]);
 })->throws(InvalidArgumentException::class, 'A package invocation target must be provided.');
+
+test('it rejects whitespace-only targets before package execution', function () {
+    PackageInvocation::fromRawTokens(['   ']);
+})->throws(InvalidArgumentException::class, 'A package invocation target must be provided.');
+
+test('it trims surrounding whitespace from the target', function () {
+    $invocation = PackageInvocation::fromRawTokens(['  vendor/package  ', '--flag']);
+
+    expect($invocation->target)->toBe('vendor/package')
+        ->and($invocation->forwardedTokens())->toBe(['--flag']);
+});
