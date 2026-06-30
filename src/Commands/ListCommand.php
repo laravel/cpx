@@ -28,8 +28,8 @@ class ListCommand extends Command
 
         $output->writeln('Installed Packages:');
 
-        foreach ($metadata->packages as $packageKey => $packageMetadata) {
-            $output->writeln("<info>  {$packageMetadata->package->fullPackageString()}</info> (Last Run: ".($packageMetadata->lastRunAt ?? 'N/A').')');
+        foreach ($metadata->packages as $packageMetadata) {
+            $output->writeln("<info>  {$packageMetadata->package->fullPackageString()}</info> (Last Run: {$packageMetadata->lastRunForDisplay()})");
         }
 
         return self::SUCCESS;

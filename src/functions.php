@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Cpx\Cache\ExecSandboxMetadata;
 use Cpx\Cache\Metadata;
 use Cpx\Composer\ComposerRunner;
 use Cpx\Exceptions\ComposerInstallException;
@@ -19,10 +20,10 @@ if (! function_exists('composer_require')) {
     {
         sort($packages);
 
-        $hash = hash('sha256', implode(' ', $packages));
-        $sandboxDir = cpx_path(".exec_cache/{$hash}");
+        $key = hash('sha256', implode(' ', $packages));
+        $sandboxDir = cpx_path(".exec_cache/{$key}");
 
-        $metadata = Metadata::open();
+        $sandbox = Metadata::open()->execCache[$key] ?? new ExecSandboxMetadata(key: $key);
 
         if (! is_dir($sandboxDir)) {
             mkdir($sandboxDir, 0755, true);
@@ -34,30 +35,29 @@ if (! function_exists('composer_require')) {
                 ],
             ], JSON_PRETTY_PRINT));
 
-            // Run `composer require` for each package
             foreach ($packages as $package) {
                 try {
                     ComposerRunner::run(['require', $package], $sandboxDir);
-                    $metadata->execCache[$hash]['last_updated'] = time();
-                } catch (Exception $e) {
+                    $sandbox->lastUpdatedAt = time();
+                } catch (Exception) {
                     throw new ComposerInstallException("Failed to install package: {$package}.");
                 }
             }
-        } else {
-            if (isset($metadata->execCache[$hash]['last_updated']) && time() - $metadata->execCache[$hash]['last_updated'] >= 3600) {
-                // Composer update was not run within the last hour
-                try {
-                    ComposerRunner::run(['update'], $sandboxDir);
-                    $metadata->execCache[$hash]['last_updated'] = time();
-                } catch (Exception $e) {
-                    // Update failed, let's just use the existing folder.
-                }
+        } elseif ($sandbox->lastUpdatedAt !== null && time() - $sandbox->lastUpdatedAt >= Metadata::UPDATE_CHECK_INTERVAL) {
+            try {
+                ComposerRunner::run(['update'], $sandboxDir);
+                $sandbox->lastUpdatedAt = time();
+            } catch (Exception) {
+                // Update failed, keep using the existing sandbox.
             }
         }
 
-        $metadata->execCache[$hash]['packages'] = $packages;
-        $metadata->execCache[$hash]['last_run'] = time();
-        $metadata->save();
+        $sandbox->packages = $packages;
+        $sandbox->lastRunAt = time();
+
+        Metadata::transaction(function (Metadata $metadata) use ($key, $sandbox): void {
+            $metadata->execCache[$key] = $sandbox;
+        });
 
         $autoloadFile = "{$sandboxDir}/vendor/autoload.php";
 

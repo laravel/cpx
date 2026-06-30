@@ -27,6 +27,18 @@ function writeExecutable(string $path, string $contents): void
 }
 
 /**
+ * A fake `composer` that writes a working autoloader into the install directory it is given.
+ */
+function composerAutoloaderStub(): string
+{
+    return "#!/usr/bin/env php\n<?php\n"
+        ."\$dir = null;\n"
+        ."foreach (\$argv as \$arg) { if (strncmp(\$arg, '--working-dir=', 14) === 0) { \$dir = substr(\$arg, 14); } }\n"
+        ."if (\$dir !== null) { @mkdir(\$dir.'/vendor', 0755, true); file_put_contents(\$dir.'/vendor/autoload.php', '<?php'); }\n"
+        .'exit(0);'."\n";
+}
+
+/**
  * @param  list<string>  $bins
  * @param  array<string, string>  $executables
  */
@@ -37,6 +49,7 @@ function prepareCachedPackage(string $package, array $bins, array $executables =
 
     mkdir($packageDirectory, 0755, true);
     file_put_contents($packageDirectory.'/composer.json', json_encode(['bin' => $bins], JSON_THROW_ON_ERROR));
+    file_put_contents(cpx_path("{$vendor}/{$name}/latest/vendor/autoload.php"), '<?php');
 
     foreach ($executables as $bin => $contents) {
         writeExecutable("{$packageDirectory}/{$bin}", $contents);
