@@ -10,8 +10,6 @@ use Symfony\Component\Console\Command\Command;
 
 class ComposerRunner
 {
-    public const UNKNOWN_VERSION = 'unknown';
-
     /**
      * @param  list<string>  $arguments
      */
@@ -58,21 +56,23 @@ class ComposerRunner
 
     public static function getCurrentVersion(string $directory): string
     {
+        $unknown = 'unknown';
+
         $composerLock = "{$directory}/composer.lock";
 
         if (! file_exists($composerLock)) {
-            return self::UNKNOWN_VERSION;
+            return $unknown;
         }
 
         $contents = file_get_contents($composerLock);
 
         if ($contents === false) {
-            return self::UNKNOWN_VERSION;
+            return $unknown;
         }
 
         $lockData = json_decode($contents, true);
         $version = is_array($lockData) ? ($lockData['packages'][0]['version'] ?? null) : null;
 
-        return is_string($version) ? $version : self::UNKNOWN_VERSION;
+        return is_string($version) ? $version : $unknown;
     }
 }
