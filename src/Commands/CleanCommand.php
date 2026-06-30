@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cpx\Commands;
 
 use Cpx\Cache\Metadata;
+use Cpx\Cache\PackageMetadata;
 use Cpx\Support\Filesystem;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -58,7 +59,7 @@ class CleanCommand extends Command
         $removedAny = false;
 
         foreach ($metadata->packages as $key => $packageMetadata) {
-            if (! $all && ! $this->isStale($packageMetadata->lastRunAt, $timeLimit)) {
+            if (! $all && ! $this->isStale($packageMetadata, $timeLimit)) {
                 continue;
             }
 
@@ -145,15 +146,17 @@ class CleanCommand extends Command
         return $removedAny;
     }
 
-    private function isStale(?string $lastRunAt, int $timeLimit): bool
+    private function isStale(PackageMetadata $packageMetadata, int $timeLimit): bool
     {
-        if ($lastRunAt === null) {
+        $lastActivity = $packageMetadata->lastRunAt ?? $packageMetadata->lastUpdatedAt;
+
+        if ($lastActivity === null) {
             return true;
         }
 
-        $lastRun = strtotime($lastRunAt);
+        $timestamp = strtotime($lastActivity);
 
-        return $lastRun === false || $lastRun < $timeLimit;
+        return $timestamp === false || $timestamp < $timeLimit;
     }
 
     private function removeWithinRoot(string $path, OutputInterface $output): bool

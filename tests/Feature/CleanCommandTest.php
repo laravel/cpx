@@ -68,6 +68,54 @@ test('it preserves fresh tracked package cache directories', function () {
     expect(is_dir($packageDirectory))->toBeTrue();
 });
 
+test('it preserves a freshly installed package that was never run', function () {
+    $this->useIsolatedComposerHome();
+
+    $packageDirectory = cpx_path('laravel/pint/latest');
+
+    mkdir($packageDirectory.'/vendor', 0755, true);
+    file_put_contents($packageDirectory.'/vendor/autoload.php', '<?php');
+
+    file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
+        'packages' => [
+            'laravel/pint' => [
+                'last_updated' => date('Y-m-d H:i:s'),
+                'last_run' => null,
+            ],
+        ],
+        'execCache' => [],
+    ], JSON_THROW_ON_ERROR));
+
+    runCpxCommand(['clean']);
+
+    expect(is_dir($packageDirectory))->toBeTrue()
+        ->and(Metadata::open()->hasPackage('laravel/pint'))->toBeTrue();
+});
+
+test('it reclaims a package that was installed long ago and never run', function () {
+    $this->useIsolatedComposerHome();
+
+    $packageDirectory = cpx_path('laravel/pint/latest');
+
+    mkdir($packageDirectory.'/vendor', 0755, true);
+    file_put_contents($packageDirectory.'/vendor/autoload.php', '<?php');
+
+    file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
+        'packages' => [
+            'laravel/pint' => [
+                'last_updated' => '2024-01-01 00:00:00',
+                'last_run' => null,
+            ],
+        ],
+        'execCache' => [],
+    ], JSON_THROW_ON_ERROR));
+
+    runCpxCommand(['clean']);
+
+    expect(is_dir($packageDirectory))->toBeFalse()
+        ->and(Metadata::open()->hasPackage('laravel/pint'))->toBeFalse();
+});
+
 test('orphaned package directories are detected and cleaned', function () {
     $this->useIsolatedComposerHome();
 
