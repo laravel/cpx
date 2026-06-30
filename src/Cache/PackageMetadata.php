@@ -13,4 +13,14 @@ class PackageMetadata
         public ?string $lastUpdatedAt = null,
         public ?string $lastRunAt = null,
     ) {}
+
+    public function installPath(): string
+    {
+        return $this->package->installPath();
+    }
+
+    public function lastRunForDisplay(): string
+    {
+        return $this->lastRunAt ?? 'N/A';
+    }
 }

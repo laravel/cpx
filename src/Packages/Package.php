@@ -11,8 +11,10 @@ use Cpx\Process\ProcessRunner;
 use Cpx\Support\Arr;
 use Cpx\Support\Filesystem;
 use InvalidArgumentException;
+use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 
 class Package
 {
@@ -22,8 +24,6 @@ class Package
     private const PACKAGE_PATTERN = '/\A(?<vendor>[a-z0-9](?:[_.-]?[a-z0-9]+)*)\/(?<name>[a-z0-9](?:(?:[_.]?|-{0,2})[a-z0-9]+)*)(?::(?<version>(?![.]+\z)[a-zA-Z0-9_.@~^*<>!=|,-]+))?\z/';
 
     private const SCAFFOLD_VERSION = '1.0.0';
-
-    private const UPDATE_CHECK_INTERVAL = 60 * 60;
 
     protected function __construct(
         public string $vendor,
@@ -60,9 +60,21 @@ class Package
         return "{$this->vendor}/{$this->name}/{$this->versionName()}";
     }
 
+    public function installPath(): string
+    {
+        return cpx_path($this->folder());
+    }
+
     public function versionName(): string
     {
-        return $this->version ?? 'latest';
+        if ($this->version === null) {
+            return 'latest';
+        }
+
+        $slug = trim((string) preg_replace('/[^a-z0-9_.]+/i', '-', $this->version), '-');
+        $suffix = substr(hash('sha256', $this->version), 0, 12);
+
+        return $slug === '' ? $suffix : "{$slug}-{$suffix}";
     }
 
     public function fullPackageString(): string
@@ -73,7 +85,7 @@ class Package
 
     public function delete(): void
     {
-        Filesystem::deleteDirectory(cpx_path($this->folder()));
+        Filesystem::deleteDirectory($this->installPath());
     }
 
     public function runCommand(PackageInvocation $invocation, OutputInterface $output, bool $autoUpdate = true): int
@@ -105,7 +117,7 @@ class Package
             return Command::FAILURE;
         }
 
-        Metadata::open()->recordRun($this)->save();
+        Metadata::transaction(fn (Metadata $metadata) => $metadata->recordRun($this));
         $output->writeln('<info>Running '.basename($resolved->command)." from {$this}</info>");
 
         return (new ProcessRunner)->run([$binPath, ...$resolved->invocation->forwardedTokens()]);
@@ -113,19 +125,20 @@ class Package
 
     public function installOrUpdatePackage(OutputInterface $output, bool $updateCheck = true): string
     {
-        $installDir = cpx_path($this->folder());
-
-        if (! is_dir($installDir)) {
-            mkdir($installDir, 0755, true);
-        }
+        $installDir = $this->installPath();
 
         match (true) {
-            ! is_dir("{$installDir}/vendor") => $this->installPackage($output, $installDir),
+            ! $this->isInstalled() => $this->installPackage($output, $installDir),
             $updateCheck && $this->shouldCheckForUpdates() => $this->updatePackage($output, $installDir),
             default => $output->writeln("<info>{$this} is already installed and doesn't need updating.</info>"),
         };
 
         return $installDir;
+    }
+
+    public function isInstalled(): bool
+    {
+        return file_exists($this->installPath().'/vendor/autoload.php');
     }
 
     public function shouldCheckForUpdates(): bool
@@ -145,7 +158,7 @@ class Package
 
         $lastCheck = strtotime($lastUpdatedAt);
 
-        return $lastCheck === false || (time() - $lastCheck) > self::UPDATE_CHECK_INTERVAL;
+        return $lastCheck === false || (time() - $lastCheck) > Metadata::UPDATE_CHECK_INTERVAL;
     }
 
     /**
@@ -193,7 +206,33 @@ class Package
     private function installPackage(OutputInterface $output, string $installDir): void
     {
         $output->writeln("<info>Installing {$this}...</info>");
-        file_put_contents("{$installDir}/composer.json", json_encode([
+
+        $cacheRoot = cpx_path();
+
+        if (! is_dir($cacheRoot)) {
+            mkdir($cacheRoot, 0755, true);
+        }
+
+        $stagingDir = "{$installDir}.installing.".getmypid();
+        $this->stageInstall($stagingDir, $cacheRoot);
+
+        Filesystem::deleteDirectory($installDir);
+
+        if (! rename($stagingDir, $installDir)) {
+            Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
+
+            throw new RuntimeException("Unable to finalize the installation of {$this}.");
+        }
+
+        Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
+    }
+
+    private function stageInstall(string $stagingDir, string $cacheRoot): void
+    {
+        Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
+        mkdir($stagingDir, 0755, true);
+
+        file_put_contents("{$stagingDir}/composer.json", json_encode([
             'name' => "cpx-{$this->vendor}/cpx-{$this->name}",
             'version' => self::SCAFFOLD_VERSION,
             'config' => [
@@ -202,8 +241,13 @@ class Package
             ],
         ]));
 
-        ComposerRunner::run(['require', $this->fullPackageString()], $installDir);
-        Metadata::open()->recordUpdate($this)->save();
+        try {
+            ComposerRunner::run(['require', $this->fullPackageString()], $stagingDir);
+        } catch (Throwable $exception) {
+            Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
+
+            throw $exception;
+        }
     }
 
     private function updatePackage(OutputInterface $output, string $installDir): void
@@ -219,6 +263,6 @@ class Package
             $output->writeln("<info>{$this} is already up-to-date.</info>");
         }
 
-        Metadata::open()->recordUpdate($this)->save();
+        Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
     }
 }
