@@ -74,10 +74,10 @@ test('aliases lists aliased package commands', function () {
 test('clean reports when there are no packages to clean', function () {
     $this->useIsolatedComposerHome();
 
-    [$status, $output] = runCpxCommand(['clean']);
+    [$status] = runCpxCommand(['clean']);
 
     expect($status)->toBe(0)
-        ->and($output)->toContain('There were no packages to clean.');
+        ->and(promptOutput())->toContain('Nothing to clean');
 });
 
 test('update reports when there are no packages to update', function () {

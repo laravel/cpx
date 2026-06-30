@@ -7,12 +7,20 @@ namespace Cpx\Commands;
 use Cpx\Cache\Metadata;
 use Cpx\Cache\PackageMetadata;
 use Cpx\Support\Filesystem;
+use Laravel\Prompts\Elements\Element;
+use Laravel\Prompts\Support\Logger;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+
+use function Laravel\Prompts\callout;
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\number;
+use function Laravel\Prompts\select;
+use function Laravel\Prompts\task;
 
 #[AsCommand(
     name: 'clean',
@@ -22,89 +30,139 @@ class CleanCommand extends Command
 {
     private const SECONDS_PER_DAY = 24 * 60 * 60;
 
+    private const DEFAULT_DAYS = 30;
+
     protected function configure(): void
     {
-        $this->addOption('all', null, InputOption::VALUE_NONE, 'Clean all packages');
-        $this->addOption('days', null, InputOption::VALUE_REQUIRED, 'Clean packages older than this number of days', '30');
+        $this->addOption('all', null, InputOption::VALUE_NONE, 'Clean all cached packages and sandboxes');
+        $this->addOption('sandbox', null, InputOption::VALUE_NONE, 'Clean only sandbox (exec) caches');
+        $this->addOption('days', null, InputOption::VALUE_REQUIRED, 'Clean packages older than this number of days');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $all = $input->getOption('all') === true;
-        $timeLimit = time() - ((int) $input->getOption('days') * self::SECONDS_PER_DAY);
+        $days = $input->getOption('days');
 
-        $cleaned = Metadata::transaction(
-            fn (Metadata $metadata): bool => $this->clean($metadata, $all, $timeLimit, $output),
+        if ($days !== null) {
+            if (! is_numeric($days)) {
+                return $this->rejectInvalidDays();
+            }
+
+            $days = (int) $days;
+
+            if ($days < 0) {
+                return $this->rejectInvalidDays();
+            }
+        }
+
+        [$mode, $timeLimit] = $this->resolve($input, $days);
+
+        $result = task(
+            label: 'Cleaning cpx caches',
+            callback: fn (Logger $logger): CleanResult => Metadata::transaction(
+                fn (Metadata $metadata): CleanResult => $this->clean($metadata, $mode, $timeLimit, $logger),
+            ),
         );
 
-        if (! $cleaned) {
-            $output->writeln('<info>There were no packages to clean.</info>');
-        }
+        $this->renderSummary($result);
 
         return self::SUCCESS;
     }
 
-    private function clean(Metadata $metadata, bool $all, int $timeLimit, OutputInterface $output): bool
+    /**
+     * @return array{0: CleanMode, 1: int}
+     */
+    private function resolve(InputInterface $input, ?int $days): array
     {
-        $removed = [
-            $this->removeStalePackages($metadata, $all, $timeLimit, $output),
-            $this->removeStaleSandboxes($metadata, $all, $timeLimit, $output),
-            $this->removeOrphanPackages($metadata, $output),
-            $this->removeOrphanSandboxes($metadata, $output),
-        ];
-
-        return in_array(true, $removed);
+        return match (true) {
+            $input->getOption('all') === true => [CleanMode::All, $this->timeLimitForDays(self::DEFAULT_DAYS)],
+            $input->getOption('sandbox') === true => [CleanMode::Sandbox, $this->timeLimitForDays(self::DEFAULT_DAYS)],
+            $days !== null => [CleanMode::Period, $this->timeLimitForDays($days)],
+            default => $this->promptForMode(),
+        };
     }
 
-    private function removeStalePackages(Metadata $metadata, bool $all, int $timeLimit, OutputInterface $output): bool
+    /**
+     * @return array{0: CleanMode, 1: int}
+     */
+    private function promptForMode(): array
     {
-        $removedAny = false;
+        $choice = select(
+            label: 'What would you like to clean?',
+            options: [
+                'all' => 'All cached packages and sandboxes',
+                'sandbox' => 'Only sandbox (exec) caches',
+                'period' => 'Packages older than a number of days',
+            ],
+            default: 'period',
+        );
 
+        return match ($choice) {
+            'all' => [CleanMode::All, $this->timeLimitForDays(self::DEFAULT_DAYS)],
+            'sandbox' => [CleanMode::Sandbox, $this->timeLimitForDays(self::DEFAULT_DAYS)],
+            default => [CleanMode::Period, $this->timeLimitForDays($this->promptForDays())],
+        };
+    }
+
+    private function promptForDays(): int
+    {
+        return (int) number(
+            label: 'Remove packages older than how many days?',
+            default: (string) self::DEFAULT_DAYS,
+            min: 1,
+        );
+    }
+
+    private function clean(Metadata $metadata, CleanMode $mode, int $timeLimit, Logger $logger): CleanResult
+    {
+        $result = new CleanResult;
+
+        if ($mode->cleansPackages()) {
+            $this->removeStalePackages($metadata, $mode->removesAllPackages(), $timeLimit, $result, $logger);
+            $this->removeOrphanPackages($metadata, $result, $logger);
+        }
+
+        $this->removeStaleSandboxes($metadata, $mode->removesAllSandboxes(), $timeLimit, $result, $logger);
+        $this->removeOrphanSandboxes($metadata, $result, $logger);
+
+        return $result;
+    }
+
+    private function removeStalePackages(Metadata $metadata, bool $removeAll, int $timeLimit, CleanResult $result, Logger $logger): void
+    {
         foreach ($metadata->packages as $key => $packageMetadata) {
-            if (! $all && ! $this->isStale($packageMetadata, $timeLimit)) {
+            if (! $removeAll && ! $this->isStale($packageMetadata, $timeLimit)) {
                 continue;
             }
 
-            $output->writeln("<info>Removing unused package {$packageMetadata->package}...</info>");
+            $description = "package {$packageMetadata->package->fullPackageString()}";
 
-            if ($this->removeWithinRoot($packageMetadata->installPath(), $output)) {
+            if ($this->remove($packageMetadata->installPath(), $description, $result, $logger)) {
                 unset($metadata->packages[$key]);
-                $removedAny = true;
             }
         }
-
-        return $removedAny;
     }
 
-    private function removeStaleSandboxes(Metadata $metadata, bool $all, int $timeLimit, OutputInterface $output): bool
+    private function removeStaleSandboxes(Metadata $metadata, bool $removeAll, int $timeLimit, CleanResult $result, Logger $logger): void
     {
-        $removedAny = false;
-
         foreach ($metadata->execCache as $key => $sandbox) {
-            if (! $all && ($sandbox->lastRunAt ?? 0) >= $timeLimit) {
+            if (! $removeAll && ($sandbox->lastRunAt ?? 0) >= $timeLimit) {
                 continue;
             }
 
-            $output->writeln("<info>Removing exec sandbox cache {$key}...</info>");
-
-            if ($this->removeWithinRoot(cpx_path(".exec_cache/{$key}"), $output)) {
+            if ($this->remove(cpx_path(".exec_cache/{$key}"), "exec sandbox {$key}", $result, $logger)) {
                 unset($metadata->execCache[$key]);
-                $removedAny = true;
             }
         }
-
-        return $removedAny;
     }
 
-    private function removeOrphanPackages(Metadata $metadata, OutputInterface $output): bool
+    private function removeOrphanPackages(Metadata $metadata, CleanResult $result, Logger $logger): void
     {
         $tracked = [];
 
         foreach ($metadata->packages as $key => $packageMetadata) {
             $tracked[$packageMetadata->installPath()] = $key;
         }
-
-        $removedAny = false;
 
         foreach (glob(cpx_path('*/*/*'), GLOB_ONLYDIR) ?: [] as $directory) {
             $trackedKey = $tracked[$directory] ?? null;
@@ -113,39 +171,27 @@ class CleanCommand extends Command
                 continue;
             }
 
-            $output->writeln('<info>Removing orphaned package cache '.str_replace(cpx_path(), '', $directory).'...</info>');
+            $description = 'orphaned package '.str_replace(cpx_path(), '', $directory);
 
-            if (! $this->removeWithinRoot($directory, $output)) {
+            if (! $this->remove($directory, $description, $result, $logger)) {
                 continue;
             }
 
             if ($trackedKey !== null) {
                 unset($metadata->packages[$trackedKey]);
             }
-
-            $removedAny = true;
         }
-
-        return $removedAny;
     }
 
-    private function removeOrphanSandboxes(Metadata $metadata, OutputInterface $output): bool
+    private function removeOrphanSandboxes(Metadata $metadata, CleanResult $result, Logger $logger): void
     {
-        $removedAny = false;
-
         foreach (glob(cpx_path('.exec_cache/*'), GLOB_ONLYDIR) ?: [] as $directory) {
             if (array_key_exists(basename($directory), $metadata->execCache)) {
                 continue;
             }
 
-            $output->writeln('<info>Removing orphaned exec sandbox cache '.basename($directory).'...</info>');
-
-            if ($this->removeWithinRoot($directory, $output)) {
-                $removedAny = true;
-            }
+            $this->remove($directory, 'orphaned exec sandbox '.basename($directory), $result, $logger);
         }
-
-        return $removedAny;
     }
 
     private function isStale(PackageMetadata $packageMetadata, int $timeLimit): bool
@@ -161,16 +207,60 @@ class CleanCommand extends Command
         return $timestamp === false || $timestamp < $timeLimit;
     }
 
-    private function removeWithinRoot(string $path, OutputInterface $output): bool
+    private function remove(string $path, string $description, CleanResult $result, Logger $logger): bool
     {
+        $logger->line("Removing {$description}...");
+
         try {
             Filesystem::deleteDirectoryWithin($path, cpx_path());
 
+            $result->recordRemoval($description);
+
             return true;
         } catch (RuntimeException $exception) {
-            $output->writeln("<error>{$exception->getMessage()}</error>");
+            $logger->warning($exception->getMessage());
+            $result->recordFailure($exception->getMessage());
 
             return false;
         }
+    }
+
+    private function renderSummary(CleanResult $result): void
+    {
+        if ($result->isEmpty()) {
+            callout(label: 'Clean Summary', content: 'Nothing to clean.');
+
+            return;
+        }
+
+        $content = [];
+
+        if ($result->removed !== []) {
+            $content[] = Element::heading('Removed');
+            $content[] = Element::bulletedList($result->removed);
+        }
+
+        if ($result->failures !== []) {
+            $content[] = Element::heading('Could not remove');
+            $content[] = Element::bulletedList($result->failures);
+        }
+
+        callout(
+            label: 'Clean Summary',
+            content: $content,
+            type: $result->hasFailures() ? 'warning' : null,
+        );
+    }
+
+    private function timeLimitForDays(int $days): int
+    {
+        return time() - ($days * self::SECONDS_PER_DAY);
+    }
+
+    private function rejectInvalidDays(): int
+    {
+        error('The --days option must be a positive integer.');
+
+        return self::INVALID;
     }
 }
