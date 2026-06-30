@@ -23,6 +23,8 @@ class Package
 
     private const SCAFFOLD_VERSION = '1.0.0';
 
+    private const UPDATE_CHECK_INTERVAL = 60 * 60;
+
     protected function __construct(
         public string $vendor,
         public string $name,
@@ -143,7 +145,7 @@ class Package
 
         $lastCheck = strtotime($lastUpdatedAt);
 
-        return $lastCheck === false || (time() - $lastCheck) > 3600;
+        return $lastCheck === false || (time() - $lastCheck) > self::UPDATE_CHECK_INTERVAL;
     }
 
     /**
