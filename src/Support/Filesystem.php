@@ -12,6 +12,53 @@ use SplFileInfo;
 
 class Filesystem
 {
+    public static function writeAtomic(string $path, string $contents): void
+    {
+        $directory = dirname($path);
+
+        if (! is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        $temporaryPath = $path.'.'.getmypid().'.tmp';
+
+        if (file_put_contents($temporaryPath, $contents) === false) {
+            self::deleteFile($temporaryPath);
+
+            throw new RuntimeException("Unable to write to {$temporaryPath}.");
+        }
+
+        if (! rename($temporaryPath, $path)) {
+            self::deleteFile($temporaryPath);
+
+            throw new RuntimeException("Unable to move {$temporaryPath} to {$path}.");
+        }
+    }
+
+    public static function deleteDirectoryWithin(string $path, string $root): void
+    {
+        $resolvedRoot = realpath($root);
+
+        if ($resolvedRoot === false) {
+            throw new RuntimeException("Cache root {$root} does not exist.");
+        }
+
+        $resolvedPath = realpath($path);
+
+        if ($resolvedPath === false) {
+            return;
+        }
+
+        if (
+            $resolvedPath !== $resolvedRoot &&
+            ! str_starts_with($resolvedPath, $resolvedRoot.DIRECTORY_SEPARATOR)
+        ) {
+            throw new RuntimeException("Refusing to delete {$path} outside of the cpx cache root.");
+        }
+
+        self::deleteDirectory($resolvedPath);
+    }
+
     public static function deleteDirectory(string $directory): void
     {
         if (! is_dir($directory)) {
@@ -35,6 +82,13 @@ class Filesystem
 
         if (! rmdir($directory)) {
             throw new RuntimeException("Unable to remove directory {$directory}.");
+        }
+    }
+
+    private static function deleteFile(string $path): void
+    {
+        if (file_exists($path)) {
+            unlink($path);
         }
     }
 }
