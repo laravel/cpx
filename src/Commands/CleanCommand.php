@@ -20,6 +20,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 class CleanCommand extends Command
 {
+    private const SECONDS_PER_DAY = 24 * 60 * 60;
+
     protected function configure(): void
     {
         $this->addOption('all', null, InputOption::VALUE_NONE, 'Clean all packages');
@@ -29,7 +31,7 @@ class CleanCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $all = $input->getOption('all') === true;
-        $timeLimit = time() - ((int) $input->getOption('days') * 24 * 3600);
+        $timeLimit = time() - ((int) $input->getOption('days') * self::SECONDS_PER_DAY);
 
         $cleaned = Metadata::transaction(
             fn (Metadata $metadata): bool => $this->clean($metadata, $all, $timeLimit, $output),
