@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Cpx\Composer;
+use Cpx\Cache\Metadata;
+use Cpx\Composer\ComposerRunner;
 use Cpx\Exceptions\ComposerInstallException;
-use Cpx\Metadata;
-use Cpx\PhpExecutionHelper;
+use Cpx\Runtime\PhpExecutionHelper;
 
 if (! function_exists('composer_require')) {
     /**
@@ -37,7 +37,7 @@ if (! function_exists('composer_require')) {
             // Run `composer require` for each package
             foreach ($packages as $package) {
                 try {
-                    Composer::runCommand("require {$package} --no-interaction --quiet", $sandboxDir);
+                    ComposerRunner::run(['require', $package], $sandboxDir);
                     $metadata->execCache[$hash]['last_updated'] = time();
                 } catch (Exception $e) {
                     throw new ComposerInstallException("Failed to install package: {$package}.");
@@ -47,7 +47,7 @@ if (! function_exists('composer_require')) {
             if (isset($metadata->execCache[$hash]['last_updated']) && time() - $metadata->execCache[$hash]['last_updated'] >= 3600) {
                 // Composer update was not run within the last hour
                 try {
-                    Composer::runCommand('update --no-interaction --quiet', $sandboxDir);
+                    ComposerRunner::run(['update'], $sandboxDir);
                     $metadata->execCache[$hash]['last_updated'] = time();
                 } catch (Exception $e) {
                     // Update failed, let's just use the existing folder.
@@ -76,15 +76,13 @@ if (! function_exists('composer_require')) {
 if (! function_exists('cpx_path')) {
     function cpx_path(string $path = ''): string
     {
-        $home = $_SERVER['HOME'] ?? __DIR__;
+        $composerHome = $_SERVER['COMPOSER_HOME'] ?? getenv('COMPOSER_HOME');
 
-        return "{$home}/.cpx/".trim($path, '/');
-    }
-}
+        if (! is_string($composerHome) || $composerHome === '') {
+            $home = $_SERVER['HOME'] ?? null;
+            $composerHome = is_string($home) && $home !== '' ? $home : __DIR__;
+        }
 
-if (! function_exists('printColor')) {
-    function printColor(string $message, string $color = "\033[1;32m"): void
-    {
-        echo $color.$message."\033[0m".PHP_EOL;
+        return "{$composerHome}/.cpx/".trim($path, '/');
     }
 }

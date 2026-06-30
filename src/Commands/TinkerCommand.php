@@ -4,21 +4,32 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
-use Cpx\Console;
-use Cpx\Package;
+use Cpx\Input\PackageInvocation;
+use Cpx\Packages\Package;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'tinker',
+    description: 'Open an interactive REPL',
+)]
 class TinkerCommand extends Command
 {
-    public function __invoke(): void
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $psyshConfig = realpath(__DIR__.'/../../files/psysh-config.php');
 
         if ($psyshConfig === false) {
-            $this->error('Unable to find the PsySH configuration file.');
+            $output->writeln('<error>Unable to find the PsySH configuration file.</error>');
 
-            return;
+            return self::FAILURE;
         }
 
-        Package::parse('psy/psysh')->runCommand(Console::parse("psysh --config {$psyshConfig}"));
+        return Package::parse('psy/psysh')->runCommand(
+            PackageInvocation::fromRawTokens(['psysh', '--config', $psyshConfig]),
+            $output,
+        );
     }
 }

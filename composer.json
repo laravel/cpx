@@ -34,7 +34,8 @@
         }
     },
     "require": {
-        "php": "^8.3"
+        "php": "^8.3",
+        "symfony/console": "^7.4|^8.0"
     },
     "require-dev": {
         "laravel/pao": "^1.1",

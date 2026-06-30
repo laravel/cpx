@@ -37,24 +37,6 @@ Behind the scenes, cpx will install the package into a separate directory and ru
 
 ---
 
-As different projects may use different tools to do the same job, cpx provides a set of commands to normalise common tasks, using the packages a project has installed; `cpx check`, `cpx format` and `cpx test`.
-
-For each of these commands, you can continue to pass through additional arguments and flags to the underlying tool as if you were running it directly.
-
-### cpx check
-
-`cpx check` (or the aliases `cpx analyze` or `cpx analyse`) runs a static analysis tool on your codebase (e.g. PHPStan, Psalm or Phan).
-
-### cpx format
-
-`cpx format` (or the alias `cpx fmt`) Runs a code formatting tool on your codebase (e.g. PHP-CS-Fixer, Pint or PHP_CodeSniffer).
-
-You can pass the `--dry-run` flag to see what changes would be made without actually making them.
-
-### cpx test
-
-`cpx test` runs a testing framework on your codebase (e.g. Pest, PHPUnit or Codeception).
-
 ### cpx aliases
 
 `cpx aliases` will show a list of popular packages that have been aliased to make them easier to run. You can use these aliases to run a package without needing to remember the full vendor, package and command name.
@@ -94,7 +76,7 @@ When using these commands, you get the following benefits:
 
 ### cpx help
 
-`cpx help` will show a list of all the commands available in cpx.
+`cpx help` shows usage information, and `cpx help <command>` shows help for a specific command.
 
 ## FAQ:
 

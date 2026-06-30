@@ -1,6 +1,6 @@
 <?php
 
-use Cpx\PhpExecutionHelper;
+use Cpx\Runtime\PhpExecutionHelper;
 
 require_once __DIR__.'/../vendor/autoload.php';
 

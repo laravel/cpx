@@ -15,6 +15,25 @@
         "global_namespace_import": {
             "import_classes": true
         },
+        "ordered_class_elements": {
+            "order": [
+                "use_trait",
+                "case",
+                "constant_public",
+                "constant_protected",
+                "constant_private",
+                "property_public",
+                "property_protected",
+                "property_private",
+                "construct",
+                "destruct",
+                "magic",
+                "method_public",
+                "method_protected",
+                "method_private"
+            ],
+            "sort_algorithm": "none"
+        },
         "trailing_comma_in_multiline": {
             "elements": [
                 "arguments",
