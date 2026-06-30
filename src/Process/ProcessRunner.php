@@ -13,7 +13,6 @@ class ProcessRunner
      */
     public function run(array $command): int
     {
-
         $stdin = fopen('php://fd/0', 'r');
         $stdout = fopen('php://fd/1', 'w');
         $stderr = fopen('php://fd/2', 'w');

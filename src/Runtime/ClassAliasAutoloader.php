@@ -15,7 +15,9 @@ class ClassAliasAutoloader
 
     public function __construct(
         protected bool $shouldBeVerbose = false,
-    ) {}
+    ) {
+        //
+    }
 
     public function addAliases(string $autoloadRootDirectory): void
     {

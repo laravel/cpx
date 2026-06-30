@@ -11,5 +11,7 @@ readonly class PackageAlias
         public string $description,
         public string $command,
         public string $package,
-    ) {}
+    ) {
+        //
+    }
 }

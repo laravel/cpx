@@ -27,7 +27,9 @@ class Package
         public string $vendor,
         public string $name,
         public ?string $version = null,
-    ) {}
+    ) {
+        //
+    }
 
     public function __toString(): string
     {

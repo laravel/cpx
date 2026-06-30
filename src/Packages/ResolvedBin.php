@@ -11,5 +11,7 @@ readonly class ResolvedBin
     public function __construct(
         public string $command,
         public PackageInvocation $invocation,
-    ) {}
+    ) {
+        //
+    }
 }
