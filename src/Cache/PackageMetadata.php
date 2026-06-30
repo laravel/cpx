@@ -10,8 +10,8 @@ class PackageMetadata
 {
     public function __construct(
         public readonly Package $package,
-        public ?string $lastUpdatedAt = null,
-        public ?string $lastRunAt = null,
+        public ?int $lastUpdatedAt = null,
+        public ?int $lastRunAt = null,
     ) {}
 
     public function installPath(): string
@@ -21,6 +21,6 @@ class PackageMetadata
 
     public function lastRunForDisplay(): string
     {
-        return $this->lastRunAt ?? 'N/A';
+        return $this->lastRunAt === null ? 'N/A' : date('Y-m-d H:i:s', $this->lastRunAt);
     }
 }

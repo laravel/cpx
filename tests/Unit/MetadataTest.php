@@ -16,10 +16,9 @@ test('it opens an empty metadata state when no metadata file exists', function (
 test('it saves readable metadata json and round trips package timestamps', function () {
     $this->useIsolatedComposerHome();
 
-    Metadata::open()
+    Metadata::transaction(fn (Metadata $metadata) => $metadata
         ->recordUpdate(Package::parse('laravel/pint'))
-        ->recordRun(Package::parse('laravel/pint'))
-        ->save();
+        ->recordRun(Package::parse('laravel/pint')));
 
     $metadataFile = cpx_path('.cpx_metadata.json');
     $contents = file_get_contents($metadataFile);
@@ -84,7 +83,7 @@ test('it loads a legacy metadata file without a version or aliases section', fun
 
     $metadata = Metadata::open();
 
-    expect($metadata->packages['laravel/pint']->lastUpdatedAt)->toBe('2024-01-01 00:00:00')
+    expect($metadata->packages['laravel/pint']->lastUpdatedAt)->toBe(strtotime('2024-01-01 00:00:00'))
         ->and($metadata->execCache['sandbox'])->toBeInstanceOf(ExecSandboxMetadata::class)
         ->and($metadata->execCache['sandbox']->lastRunAt)->toBe(1)
         ->and($metadata->aliases)->toBe([]);

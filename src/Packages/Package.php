@@ -156,9 +156,7 @@ class Package
             return true;
         }
 
-        $lastCheck = strtotime($lastUpdatedAt);
-
-        return $lastCheck === false || (time() - $lastCheck) > Metadata::UPDATE_CHECK_INTERVAL;
+        return (time() - $lastUpdatedAt) > Metadata::UPDATE_CHECK_INTERVAL;
     }
 
     /**
@@ -208,10 +206,7 @@ class Package
         $output->writeln("<info>Installing {$this}...</info>");
 
         $cacheRoot = cpx_path();
-
-        if (! is_dir($cacheRoot)) {
-            mkdir($cacheRoot, 0755, true);
-        }
+        Filesystem::ensureDirectory($cacheRoot);
 
         $stagingDir = "{$installDir}.installing.".getmypid();
         $this->stageInstall($stagingDir, $cacheRoot);
@@ -230,7 +225,7 @@ class Package
     private function stageInstall(string $stagingDir, string $cacheRoot): void
     {
         Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
-        mkdir($stagingDir, 0755, true);
+        Filesystem::ensureDirectory($stagingDir);
 
         file_put_contents("{$stagingDir}/composer.json", json_encode([
             'name' => "cpx-{$this->vendor}/cpx-{$this->name}",

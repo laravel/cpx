@@ -15,4 +15,19 @@ class ExecSandboxMetadata
         public ?int $lastUpdatedAt = null,
         public ?int $lastRunAt = null,
     ) {}
+
+    public static function rootPath(): string
+    {
+        return cpx_path('.exec_cache');
+    }
+
+    public static function pathFor(string $key): string
+    {
+        return cpx_path(".exec_cache/{$key}");
+    }
+
+    public function path(): string
+    {
+        return self::pathFor($this->key);
+    }
 }

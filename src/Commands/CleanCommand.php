@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
+use Cpx\Cache\ExecSandboxMetadata;
 use Cpx\Cache\Metadata;
-use Cpx\Cache\PackageMetadata;
 use Cpx\Support\Filesystem;
 use Laravel\Prompts\Elements\Element;
 use Laravel\Prompts\Support\Logger;
@@ -66,7 +66,7 @@ class CleanCommand extends Command
 
         $this->renderSummary($result);
 
-        return self::SUCCESS;
+        return $result->hasFailures() ? self::FAILURE : self::SUCCESS;
     }
 
     /**
@@ -131,7 +131,7 @@ class CleanCommand extends Command
     private function removeStalePackages(Metadata $metadata, bool $removeAll, int $timeLimit, CleanResult $result, Logger $logger): void
     {
         foreach ($metadata->packages as $key => $packageMetadata) {
-            if (! $removeAll && ! $this->isStale($packageMetadata, $timeLimit)) {
+            if (! $removeAll && ! $this->isStale($packageMetadata->lastRunAt, $packageMetadata->lastUpdatedAt, $timeLimit)) {
                 continue;
             }
 
@@ -146,11 +146,11 @@ class CleanCommand extends Command
     private function removeStaleSandboxes(Metadata $metadata, bool $removeAll, int $timeLimit, CleanResult $result, Logger $logger): void
     {
         foreach ($metadata->execCache as $key => $sandbox) {
-            if (! $removeAll && ($sandbox->lastRunAt ?? 0) >= $timeLimit) {
+            if (! $removeAll && ! $this->isStale($sandbox->lastRunAt, $sandbox->lastUpdatedAt, $timeLimit)) {
                 continue;
             }
 
-            if ($this->remove(cpx_path(".exec_cache/{$key}"), "exec sandbox {$key}", $result, $logger)) {
+            if ($this->remove($sandbox->path(), "exec sandbox {$key}", $result, $logger)) {
                 unset($metadata->execCache[$key]);
             }
         }
@@ -185,7 +185,7 @@ class CleanCommand extends Command
 
     private function removeOrphanSandboxes(Metadata $metadata, CleanResult $result, Logger $logger): void
     {
-        foreach (glob(cpx_path('.exec_cache/*'), GLOB_ONLYDIR) ?: [] as $directory) {
+        foreach (glob(ExecSandboxMetadata::rootPath().'/*', GLOB_ONLYDIR) ?: [] as $directory) {
             if (array_key_exists(basename($directory), $metadata->execCache)) {
                 continue;
             }
@@ -194,17 +194,11 @@ class CleanCommand extends Command
         }
     }
 
-    private function isStale(PackageMetadata $packageMetadata, int $timeLimit): bool
+    private function isStale(?int $lastRunAt, ?int $lastUpdatedAt, int $timeLimit): bool
     {
-        $lastActivity = $packageMetadata->lastRunAt ?? $packageMetadata->lastUpdatedAt;
+        $lastActivity = $lastRunAt ?? $lastUpdatedAt;
 
-        if ($lastActivity === null) {
-            return true;
-        }
-
-        $timestamp = strtotime($lastActivity);
-
-        return $timestamp === false || $timestamp < $timeLimit;
+        return $lastActivity === null || $lastActivity < $timeLimit;
     }
 
     private function remove(string $path, string $description, CleanResult $result, Logger $logger): bool

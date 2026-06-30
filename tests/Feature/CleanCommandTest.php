@@ -323,7 +323,7 @@ test('cleanup refuses to delete paths outside the cpx cache root', function () {
 
     [$status] = runCpxCommand(['clean']);
 
-    expect($status)->toBe(0)
+    expect($status)->toBe(1)
         ->and(is_dir($outside))->toBeTrue()
         ->and(file_exists($outside.'/keep.txt'))->toBeTrue()
         ->and(promptOutput())->toContain('Could not remove');

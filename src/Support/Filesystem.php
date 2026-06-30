@@ -12,13 +12,20 @@ use SplFileInfo;
 
 class Filesystem
 {
+    public static function ensureDirectory(string $directory): void
+    {
+        if (is_dir($directory)) {
+            return;
+        }
+
+        if (! @mkdir($directory, 0755, true) && ! is_dir($directory)) {
+            throw new RuntimeException("Unable to create directory {$directory}.");
+        }
+    }
+
     public static function writeAtomic(string $path, string $contents): void
     {
-        $directory = dirname($path);
-
-        if (! is_dir($directory)) {
-            mkdir($directory, 0755, true);
-        }
+        self::ensureDirectory(dirname($path));
 
         $temporaryPath = $path.'.'.getmypid().'.tmp';
 

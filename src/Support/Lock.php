@@ -17,11 +17,7 @@ class Lock
      */
     public static function run(string $path, Closure $callback): mixed
     {
-        $directory = dirname($path);
-
-        if (! is_dir($directory)) {
-            mkdir($directory, 0755, true);
-        }
+        Filesystem::ensureDirectory(dirname($path));
 
         $handle = fopen($path, 'c');
 

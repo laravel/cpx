@@ -48,24 +48,36 @@ class Metadata
 
         return new self(
             packages: Arr::mapWithKeys(
-                fn (string $key, array $value): array => [
-                    $key => new PackageMetadata(
-                        package: Package::parse($key),
-                        lastUpdatedAt: $value['last_updated'] ?? null,
-                        lastRunAt: $value['last_run'] ?? null,
-                    ),
-                ],
+                function (string $key, mixed $value): array {
+                    if (! is_array($value)) {
+                        return [];
+                    }
+
+                    return [
+                        $key => new PackageMetadata(
+                            package: Package::parse($key),
+                            lastUpdatedAt: self::normalizeTimestamp($value['last_updated'] ?? null),
+                            lastRunAt: self::normalizeTimestamp($value['last_run'] ?? null),
+                        ),
+                    ];
+                },
                 is_array($json['packages'] ?? null) ? $json['packages'] : [],
             ),
             execCache: Arr::mapWithKeys(
-                fn (string $key, array $value): array => [
-                    $key => new ExecSandboxMetadata(
-                        key: $key,
-                        packages: is_array($value['packages'] ?? null) ? array_values($value['packages']) : [],
-                        lastUpdatedAt: $value['last_updated'] ?? null,
-                        lastRunAt: $value['last_run'] ?? null,
-                    ),
-                ],
+                function (string $key, mixed $value): array {
+                    if (! is_array($value)) {
+                        return [];
+                    }
+
+                    return [
+                        $key => new ExecSandboxMetadata(
+                            key: $key,
+                            packages: is_array($value['packages'] ?? null) ? array_values($value['packages']) : [],
+                            lastUpdatedAt: self::normalizeTimestamp($value['last_updated'] ?? null),
+                            lastRunAt: self::normalizeTimestamp($value['last_run'] ?? null),
+                        ),
+                    ];
+                },
                 is_array($json['execCache'] ?? null) ? $json['execCache'] : [],
             ),
             aliases: is_array($json['aliases'] ?? null) ? $json['aliases'] : [],
@@ -91,23 +103,16 @@ class Metadata
 
     public function recordRun(Package $package): self
     {
-        $this->forPackage($package)->lastRunAt = date('Y-m-d H:i:s');
+        $this->forPackage($package)->lastRunAt = time();
 
         return $this;
     }
 
     public function recordUpdate(Package $package): self
     {
-        $this->forPackage($package)->lastUpdatedAt = date('Y-m-d H:i:s');
+        $this->forPackage($package)->lastUpdatedAt = time();
 
         return $this;
-    }
-
-    public function save(): void
-    {
-        Lock::run(cpx_path(self::LOCK_FILE), function (): void {
-            $this->writeToDisk();
-        });
     }
 
     public function hasPackage(string|Package $package): bool
@@ -123,7 +128,7 @@ class Metadata
      * @return array{
      *     version: int,
      *     aliases: array<string, mixed>,
-     *     packages: array<string, array{last_updated: string|null, last_run: string|null}>,
+     *     packages: array<string, array{last_updated: int|null, last_run: int|null}>,
      *     execCache: array<string, array{packages: list<string>, last_updated: int|null, last_run: int|null}>
      * }
      */
@@ -162,5 +167,20 @@ class Metadata
     private function forPackage(Package $package): PackageMetadata
     {
         return $this->packages[$package->fullPackageString()] ??= new PackageMetadata($package);
+    }
+
+    private static function normalizeTimestamp(mixed $value): ?int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && $value !== '') {
+            $timestamp = strtotime($value);
+
+            return $timestamp === false ? null : $timestamp;
+        }
+
+        return null;
     }
 }
