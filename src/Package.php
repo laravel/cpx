@@ -79,14 +79,14 @@ class Package
 
             foreach ($possibleCommands as $possibleCommand) {
                 if (in_array($possibleCommand, $binScripts)) {
-                    if ($console->arguments[0] ?? null === $possibleCommand) {
+                    if (($console->arguments[0] ?? null) === $possibleCommand) {
                         unset($console->arguments[0]);
                         $console->arguments = array_values($console->arguments);
                     }
                     $command = $possibleCommand;
                     break;
                 } elseif (array_key_exists($possibleCommand, $binScripts)) {
-                    if ($console->arguments[0] ?? null === $possibleCommand) {
+                    if (($console->arguments[0] ?? null) === $possibleCommand) {
                         unset($console->arguments[0]);
                         $console->arguments = array_values($console->arguments);
                     }
