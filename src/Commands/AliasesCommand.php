@@ -8,14 +8,14 @@ use Cpx\Packages\Package;
 use Cpx\Packages\PackageAlias;
 use Cpx\Packages\PackageAliases;
 use Cpx\Packages\UserAliases;
+use Laravel\Prompts\Elements\Element;
 use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-use function Laravel\Prompts\info;
-use function Laravel\Prompts\table;
+use function Laravel\Prompts\callout;
 
 #[AsCommand(
     name: 'aliases',
@@ -41,16 +41,12 @@ class AliasesCommand extends Command
         if ($userAliases !== []) {
             ksort($userAliases);
 
-            info('Your aliases:');
-
-            table(
-                headers: ['Alias', 'Package'],
-                rows: array_map(
-                    fn (string $name, Package $package): array => ['cpx '.$name, $package->fullPackageString()],
-                    array_keys($userAliases),
-                    $userAliases,
-                ),
-            );
+            callout('Your aliases:', [
+                Element::keyValueList(array_combine(
+                    array_map(fn (string $name): string => 'cpx '.$name, array_keys($userAliases)),
+                    array_map(fn (Package $package): string => $package->fullPackageString(), $userAliases),
+                )),
+            ]);
         }
 
         return self::SUCCESS;
