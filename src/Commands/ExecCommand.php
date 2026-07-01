@@ -38,9 +38,7 @@ class ExecCommand extends Command
         } finally {
             $contents = ob_get_clean();
 
-            if ($contents !== false) {
-                $output->write($contents);
-            }
+            $output->write($contents);
         }
     }
 
