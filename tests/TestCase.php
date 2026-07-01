@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase as BaseTestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionProperty;
+use Symfony\Component\Console\Output\NullOutput;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -27,6 +28,7 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         Prompt::interactive(false);
+        Prompt::setOutput(new NullOutput);
 
         (new ReflectionProperty(Prompt::class, 'terminal'))->setValue(null, new Terminal);
     }

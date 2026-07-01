@@ -2,8 +2,6 @@
 
 use Cpx\Composer\ComposerRunner;
 use Cpx\Packages\Package;
-use Laravel\Prompts\Prompt;
-use Symfony\Component\Console\Output\NullOutput;
 
 test('it passes composer arguments as argv tokens', function () {
     $binDirectory = $this->temporaryDirectory('cpx-composer-bin');
@@ -43,7 +41,6 @@ test('package installation calls composer with argv arrays', function () {
     writeExecutable($binDirectory.'/composer', "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n");
     $this->setEnvironmentVariable('PATH', $binDirectory.PATH_SEPARATOR.getenv('PATH'));
 
-    Prompt::setOutput(new NullOutput);
     Package::parse('vendor/package:^1@dev')->installOrUpdatePackage(updateCheck: false);
 
     expect(json_decode((string) file_get_contents($logFile), true))->toContain('vendor/package:^1@dev')

@@ -2,10 +2,6 @@
 
 use Cpx\Cache\Metadata;
 use Cpx\Packages\Package;
-use Laravel\Prompts\Prompt;
-use Symfony\Component\Console\Output\NullOutput;
-
-beforeEach(fn () => Prompt::setOutput(new NullOutput));
 
 test('a failed install leaves no final dir, no staging residue, and records nothing', function () {
     $this->useIsolatedComposerHome();
