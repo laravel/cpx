@@ -14,7 +14,9 @@ class ExecSandboxMetadata
         public array $packages = [],
         public ?int $lastUpdatedAt = null,
         public ?int $lastRunAt = null,
-    ) {}
+    ) {
+        //
+    }
 
     public static function rootPath(): string
     {

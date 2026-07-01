@@ -29,7 +29,9 @@ class Metadata
         public array $packages = [],
         public array $execCache = [],
         public array $aliases = [],
-    ) {}
+    ) {
+        //
+    }
 
     public static function open(): self
     {

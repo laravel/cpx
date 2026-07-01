@@ -12,7 +12,9 @@ class PackageMetadata
         public readonly Package $package,
         public ?int $lastUpdatedAt = null,
         public ?int $lastRunAt = null,
-    ) {}
+    ) {
+        //
+    }
 
     public function installPath(): string
     {
