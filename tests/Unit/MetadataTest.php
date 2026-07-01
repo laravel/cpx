@@ -54,7 +54,7 @@ test('a transaction persists and round-trips package timestamps', function () {
         ->and($metadata->packages['laravel/pint']->lastRunAt)->not->toBeNull();
 });
 
-test('it writes the schema version, round-trips an empty aliases section, and exposes the install path', function () {
+test('it writes the schema version and exposes the install path', function () {
     $this->useIsolatedComposerHome();
 
     Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate(Package::parse('laravel/pint')));
@@ -63,12 +63,10 @@ test('it writes the schema version, round-trips an empty aliases section, and ex
     $metadata = Metadata::open();
 
     expect($decoded['version'])->toBe(2)
-        ->and($decoded['aliases'])->toBe([])
-        ->and($metadata->aliases)->toBe([])
         ->and($metadata->packages['laravel/pint']->installPath())->toBe(cpx_path('laravel/pint/latest'));
 });
 
-test('it loads a legacy metadata file without a version or aliases section', function () {
+test('it loads a legacy metadata file without a version section', function () {
     $this->useIsolatedComposerHome();
 
     mkdir(dirname(cpx_path('.cpx_metadata.json')), 0755, true);
@@ -85,8 +83,7 @@ test('it loads a legacy metadata file without a version or aliases section', fun
 
     expect($metadata->packages['laravel/pint']->lastUpdatedAt)->toBe(strtotime('2024-01-01 00:00:00'))
         ->and($metadata->execCache['sandbox'])->toBeInstanceOf(ExecSandboxMetadata::class)
-        ->and($metadata->execCache['sandbox']->lastRunAt)->toBe(1)
-        ->and($metadata->aliases)->toBe([]);
+        ->and($metadata->execCache['sandbox']->lastRunAt)->toBe(1);
 });
 
 test('interleaved transactions keep every update and leave valid json', function () {

@@ -38,7 +38,6 @@ test('the all option removes every tracked package and exec cache directory', fu
         ->and(is_dir($execDirectory))->toBeFalse()
         ->and(json_decode((string) file_get_contents(cpx_path('.cpx_metadata.json')), true))->toBe([
             'version' => 2,
-            'aliases' => [],
             'packages' => [],
             'execCache' => [],
         ]);

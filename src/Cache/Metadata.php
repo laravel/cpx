@@ -23,12 +23,10 @@ class Metadata
     /**
      * @param  array<string, PackageMetadata>  $packages
      * @param  array<string, ExecSandboxMetadata>  $execCache
-     * @param  array<string, mixed>  $aliases
      */
     protected function __construct(
         public array $packages = [],
         public array $execCache = [],
-        public array $aliases = [],
     ) {
         //
     }
@@ -82,7 +80,6 @@ class Metadata
                 },
                 is_array($json['execCache'] ?? null) ? $json['execCache'] : [],
             ),
-            aliases: is_array($json['aliases'] ?? null) ? $json['aliases'] : [],
         );
     }
 
@@ -129,7 +126,6 @@ class Metadata
     /**
      * @return array{
      *     version: int,
-     *     aliases: array<string, mixed>,
      *     packages: array<string, array{last_updated: int|null, last_run: int|null}>,
      *     execCache: array<string, array{packages: list<string>, last_updated: int|null, last_run: int|null}>
      * }
@@ -138,7 +134,6 @@ class Metadata
     {
         return [
             'version' => self::VERSION,
-            'aliases' => $this->aliases,
             'packages' => Arr::mapWithKeys(
                 fn (string $key, PackageMetadata $packageMetadata): array => [
                     $packageMetadata->package->fullPackageString() => [
