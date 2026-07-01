@@ -9,6 +9,7 @@ use Cpx\Cache\Metadata;
 use Cpx\Support\Filesystem;
 use InvalidArgumentException;
 use Laravel\Prompts\Elements\Element;
+use Laravel\Prompts\Prompt;
 use Laravel\Prompts\Support\Logger;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -42,6 +43,8 @@ class CleanCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        Prompt::setOutput($output);
+
         try {
             $days = $this->resolveDays($input->getOption('days'));
         } catch (InvalidArgumentException) {

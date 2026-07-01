@@ -2,7 +2,6 @@
 
 namespace Tests;
 
-use Laravel\Prompts\Output\BufferedConsoleOutput;
 use Laravel\Prompts\Prompt;
 use Laravel\Prompts\Terminal;
 use PHPUnit\Framework\TestCase as BaseTestCase;
@@ -28,7 +27,6 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         Prompt::interactive(false);
-        Prompt::setOutput(new BufferedConsoleOutput);
 
         (new ReflectionProperty(Prompt::class, 'terminal'))->setValue(null, new Terminal);
     }

@@ -98,10 +98,10 @@ test('the sandbox option removes exec caches but preserves package caches', func
 test('the sandbox option is a no-op when there are no sandboxes', function () {
     $this->useIsolatedComposerHome();
 
-    [$status] = runCpxCommand(['clean', '--sandbox']);
+    [$status, $output] = runCpxCommand(['clean', '--sandbox']);
 
     expect($status)->toBe(0)
-        ->and(promptOutput())->toContain('Nothing to clean');
+        ->and($output)->toContain('Nothing to clean');
 });
 
 test('a days window of zero reclaims everything older than now', function () {
@@ -169,10 +169,10 @@ test('an invalid days value is rejected before any cleanup runs', function () {
         'execCache' => [],
     ], JSON_THROW_ON_ERROR));
 
-    [$status] = runCpxCommand(['clean', '--days=abc']);
+    [$status, $output] = runCpxCommand(['clean', '--days=abc']);
 
     expect($status)->not->toBe(0)
-        ->and(promptOutput())->toContain('positive integer')
+        ->and($output)->toContain('positive integer')
         ->and(is_dir($packageDirectory))->toBeTrue();
 });
 
@@ -193,10 +193,10 @@ test('a negative days value is rejected before any cleanup runs', function () {
         'execCache' => [],
     ], JSON_THROW_ON_ERROR));
 
-    [$status] = runCpxCommand(['clean', '--days=-5']);
+    [$status, $output] = runCpxCommand(['clean', '--days=-5']);
 
     expect($status)->not->toBe(0)
-        ->and(promptOutput())->toContain('positive integer')
+        ->and($output)->toContain('positive integer')
         ->and(is_dir($packageDirectory))->toBeTrue();
 });
 
@@ -282,11 +282,11 @@ test('orphaned package directories are detected and cleaned', function () {
         'execCache' => [],
     ], JSON_THROW_ON_ERROR));
 
-    [$status] = runCpxCommand(['clean']);
+    [$status, $output] = runCpxCommand(['clean']);
 
     expect($status)->toBe(0)
         ->and(is_dir($orphan))->toBeFalse()
-        ->and(promptOutput())->toContain('orphan/package/latest');
+        ->and($output)->toContain('orphan/package/latest');
 });
 
 test('incomplete install directories are treated as orphaned and removed', function () {
@@ -341,12 +341,12 @@ test('cleanup refuses to delete paths outside the cpx cache root', function () {
         'execCache' => [],
     ], JSON_THROW_ON_ERROR));
 
-    [$status] = runCpxCommand(['clean']);
+    [$status, $output] = runCpxCommand(['clean']);
 
     expect($status)->toBe(1)
         ->and(is_dir($outside))->toBeTrue()
         ->and(file_exists($outside.'/keep.txt'))->toBeTrue()
-        ->and(promptOutput())->toContain('Could not remove');
+        ->and($output)->toContain('Could not remove');
 });
 
 test('the summary lists the caches that were removed', function () {
@@ -363,10 +363,10 @@ test('the summary lists the caches that were removed', function () {
         'execCache' => [],
     ], JSON_THROW_ON_ERROR));
 
-    [$status] = runCpxCommand(['clean']);
+    [$status, $output] = runCpxCommand(['clean']);
 
     expect($status)->toBe(0)
-        ->and(promptOutput())
+        ->and($output)
         ->toContain('Clean Summary')
         ->toContain('Removed')
         ->toContain('laravel/pint');
@@ -377,9 +377,9 @@ test('the interactive prompt shows the available clean options', function () {
 
     Prompt::fake([Key::ENTER, Key::ENTER]);
 
-    runCpxCommand(['clean']);
+    [$status, $output] = runCpxCommand(['clean']);
 
-    expect(promptOutput())
+    expect($output)
         ->toContain('What would you like to clean?')
         ->toContain('All cached packages and sandboxes')
         ->toContain('Only sandbox (exec) caches')
@@ -492,9 +492,9 @@ test('the interactive number prompt rejects values below one and re-prompts', fu
     // Confirm "period", clear "30", submit invalid "0" (rejected), then enter "5".
     Prompt::fake([Key::ENTER, Key::BACKSPACE, Key::BACKSPACE, '0', Key::ENTER, Key::BACKSPACE, '5', Key::ENTER]);
 
-    runCpxCommand(['clean']);
+    [$status, $output] = runCpxCommand(['clean']);
 
-    expect(promptOutput())->toContain('Must be at least 1')
+    expect($output)->toContain('Must be at least 1')
         ->and(is_dir($idle))->toBeFalse()
         ->and(Metadata::open()->hasPackage('laravel/pint'))->toBeFalse();
 });
