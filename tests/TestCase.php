@@ -2,9 +2,13 @@
 
 namespace Tests;
 
+use Laravel\Prompts\Output\BufferedConsoleOutput;
+use Laravel\Prompts\Prompt;
+use Laravel\Prompts\Terminal;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use ReflectionProperty;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -18,6 +22,16 @@ abstract class TestCase extends BaseTestCase
     private array $temporaryDirectories = [];
 
     private ?string $workingDirectory = null;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Prompt::interactive(false);
+        Prompt::setOutput(new BufferedConsoleOutput);
+
+        (new ReflectionProperty(Prompt::class, 'terminal'))->setValue(null, new Terminal);
+    }
 
     protected function tearDown(): void
     {

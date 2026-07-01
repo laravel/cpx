@@ -46,6 +46,25 @@ test('list shows when no packages are installed', function () {
         ->and($output)->not->toContain('Available commands');
 });
 
+test('list renders installed packages with their last run timestamp', function () {
+    $this->useIsolatedComposerHome();
+
+    mkdir(dirname(cpx_path('.cpx_metadata.json')), 0755, true);
+    file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
+        'packages' => [
+            'laravel/pint' => ['last_updated' => '2024-01-02 03:04:05', 'last_run' => '2024-01-02 03:04:05'],
+        ],
+        'execCache' => [],
+    ], JSON_THROW_ON_ERROR));
+
+    [$status, $output] = runCpxCommand(['list']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Installed Packages:')
+        ->and($output)->toContain('laravel/pint')
+        ->and($output)->toContain('Last Run: 2024-01-02 03:04:05');
+});
+
 test('aliases lists aliased package commands', function () {
     [$status, $output] = runCpxCommand(['aliases']);
 
@@ -97,10 +116,10 @@ test('forget removes a user-defined alias so the built-in alias resolves again',
 test('clean reports when there are no packages to clean', function () {
     $this->useIsolatedComposerHome();
 
-    [$status, $output] = runCpxCommand(['clean']);
+    [$status] = runCpxCommand(['clean']);
 
     expect($status)->toBe(0)
-        ->and($output)->toContain('There were no packages to clean.');
+        ->and(promptOutput())->toContain('Nothing to clean');
 });
 
 test('update reports when there are no packages to update', function () {
@@ -157,6 +176,7 @@ test('tinker runs the cached psysh package with the bundled config', function ()
     $packageDirectory = cpx_path('psy/psysh/latest/vendor/psy/psysh');
     mkdir($packageDirectory, 0755, true);
 
+    file_put_contents(cpx_path('psy/psysh/latest/vendor/autoload.php'), '<?php');
     file_put_contents($packageDirectory.'/composer.json', json_encode([
         'bin' => ['psysh'],
     ], JSON_THROW_ON_ERROR));

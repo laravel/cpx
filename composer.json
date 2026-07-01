@@ -35,12 +35,14 @@
     },
     "require": {
         "php": "^8.3",
+        "laravel/prompts": "^0.3.21",
         "symfony/console": "^7.4|^8.0"
     },
     "require-dev": {
         "laravel/pao": "^1.1",
         "laravel/pint": "^1.29",
         "laravel/prompts": "^0.3.21",
+        "mockery/mockery": "^1.6",
         "pestphp/pest": "^4.7",
         "pestphp/pest-plugin-type-coverage": "^4.0",
         "phpstan/phpstan": "^2.2"
