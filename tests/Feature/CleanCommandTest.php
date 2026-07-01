@@ -43,6 +43,27 @@ test('the all option removes every tracked package and exec cache directory', fu
         ]);
 });
 
+test('cleaning a package prunes the now-empty vendor directories', function () {
+    $this->useIsolatedComposerHome();
+
+    mkdir(cpx_path('laravel/pint/latest'), 0755, true);
+
+    file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
+        'packages' => [
+            'laravel/pint' => [
+                'last_updated' => '2024-01-01 00:00:00',
+                'last_run' => '2024-01-01 00:00:00',
+            ],
+        ],
+    ], JSON_THROW_ON_ERROR));
+
+    runCpxCommand(['clean', '--all']);
+
+    expect(is_dir(cpx_path('laravel/pint/latest')))->toBeFalse()
+        ->and(is_dir(cpx_path('laravel/pint')))->toBeFalse()
+        ->and(is_dir(cpx_path('laravel')))->toBeFalse();
+});
+
 test('the sandbox option removes exec caches but preserves package caches', function () {
     $this->useIsolatedComposerHome();
 

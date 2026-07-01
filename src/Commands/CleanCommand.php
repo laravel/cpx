@@ -219,6 +219,7 @@ class CleanCommand extends Command
 
         try {
             Filesystem::deleteDirectoryWithin($path, cpx_path());
+            Filesystem::pruneEmptyParents($path, cpx_path());
 
             $result->recordRemoval($description);
 

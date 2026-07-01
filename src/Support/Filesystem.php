@@ -66,6 +66,29 @@ class Filesystem
         self::deleteDirectory($resolvedPath);
     }
 
+    public static function pruneEmptyParents(string $path, string $root): void
+    {
+        $resolvedRoot = realpath($root);
+
+        if ($resolvedRoot === false) {
+            return;
+        }
+
+        $parent = realpath(dirname($path));
+
+        while (
+            $parent !== false &&
+            $parent !== $resolvedRoot &&
+            str_starts_with($parent, $resolvedRoot.DIRECTORY_SEPARATOR)
+        ) {
+            if (! @rmdir($parent)) {
+                return;
+            }
+
+            $parent = realpath(dirname($parent));
+        }
+    }
+
     public static function deleteDirectory(string $directory): void
     {
         if (! is_dir($directory)) {

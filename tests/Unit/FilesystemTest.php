@@ -67,3 +67,60 @@ test('deleteDirectoryWithin refuses to follow a symlink escaping the root', func
     expect(is_dir($outside))->toBeTrue()
         ->and(file_exists("{$outside}/keep.txt"))->toBeTrue();
 });
+
+test('pruneEmptyParents removes empty parent directories up to the root', function () {
+    $root = $this->temporaryDirectory('cpx-prune');
+    $leaf = "{$root}/laravel/pint/latest";
+
+    mkdir($leaf, 0755, true);
+    Filesystem::deleteDirectory($leaf);
+
+    Filesystem::pruneEmptyParents($leaf, $root);
+
+    expect(is_dir("{$root}/laravel/pint"))->toBeFalse()
+        ->and(is_dir("{$root}/laravel"))->toBeFalse()
+        ->and(is_dir($root))->toBeTrue();
+});
+
+test('pruneEmptyParents keeps a parent that still holds another version', function () {
+    $root = $this->temporaryDirectory('cpx-prune');
+    $removed = "{$root}/laravel/pint/latest";
+    $sibling = "{$root}/laravel/pint/3.0";
+
+    mkdir($removed, 0755, true);
+    mkdir($sibling, 0755, true);
+    Filesystem::deleteDirectory($removed);
+
+    Filesystem::pruneEmptyParents($removed, $root);
+
+    expect(is_dir($sibling))->toBeTrue()
+        ->and(is_dir("{$root}/laravel/pint"))->toBeTrue()
+        ->and(is_dir("{$root}/laravel"))->toBeTrue();
+});
+
+test('pruneEmptyParents never removes the cache root', function () {
+    $root = $this->temporaryDirectory('cpx-prune');
+    $leaf = "{$root}/vendor/name";
+
+    mkdir($leaf, 0755, true);
+    Filesystem::deleteDirectory($leaf);
+
+    Filesystem::pruneEmptyParents($leaf, $root);
+
+    expect(is_dir("{$root}/vendor"))->toBeFalse()
+        ->and(is_dir($root))->toBeTrue();
+});
+
+test('pruneEmptyParents leaves directories outside the root untouched', function () {
+    $base = $this->temporaryDirectory('cpx-prune');
+    $root = "{$base}/root";
+    $outside = "{$base}/outside/child";
+
+    mkdir($root, 0755, true);
+    mkdir($outside, 0755, true);
+    Filesystem::deleteDirectory($outside);
+
+    Filesystem::pruneEmptyParents($outside, $root);
+
+    expect(is_dir("{$base}/outside"))->toBeTrue();
+});
