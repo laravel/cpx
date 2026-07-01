@@ -2,10 +2,8 @@
 
 declare(strict_types=1);
 
-use Cpx\Cache\Metadata;
-use Cpx\Composer\ComposerRunner;
 use Cpx\Exceptions\ComposerInstallException;
-use Cpx\Runtime\PhpExecutionHelper;
+use Cpx\Packages\ExecSandbox;
 
 if (! function_exists('composer_require')) {
     /**
@@ -13,63 +11,11 @@ if (! function_exists('composer_require')) {
      *
      * @param  string  ...$packages  List of packages to require in the format vendor/package[:version].
      *
-     * @throws Exception If the Composer require command fails.
+     * @throws ComposerInstallException If the Composer require command fails.
      */
     function composer_require(string ...$packages): void
     {
-        sort($packages);
-
-        $hash = hash('sha256', implode(' ', $packages));
-        $sandboxDir = cpx_path(".exec_cache/{$hash}");
-
-        $metadata = Metadata::open();
-
-        if (! is_dir($sandboxDir)) {
-            mkdir($sandboxDir, 0755, true);
-
-            file_put_contents($sandboxDir.'/composer.json', json_encode([
-                'require' => new stdClass,
-                'config' => [
-                    'vendor-dir' => './vendor',
-                ],
-            ], JSON_PRETTY_PRINT));
-
-            // Run `composer require` for each package
-            foreach ($packages as $package) {
-                try {
-                    ComposerRunner::run(['require', $package], $sandboxDir);
-                    $metadata->execCache[$hash]['last_updated'] = time();
-                } catch (Exception $e) {
-                    throw new ComposerInstallException("Failed to install package: {$package}.");
-                }
-            }
-        } else {
-            if (isset($metadata->execCache[$hash]['last_updated']) && time() - $metadata->execCache[$hash]['last_updated'] >= 3600) {
-                // Composer update was not run within the last hour
-                try {
-                    ComposerRunner::run(['update'], $sandboxDir);
-                    $metadata->execCache[$hash]['last_updated'] = time();
-                } catch (Exception $e) {
-                    // Update failed, let's just use the existing folder.
-                }
-            }
-        }
-
-        $metadata->execCache[$hash]['packages'] = $packages;
-        $metadata->execCache[$hash]['last_run'] = time();
-        $metadata->save();
-
-        $autoloadFile = "{$sandboxDir}/vendor/autoload.php";
-
-        if (! file_exists($autoloadFile)) {
-            throw new Exception("Autoload file not found in {$sandboxDir}/vendor/. Composer installation may have failed.");
-        }
-
-        if (isset(PhpExecutionHelper::$classAliasAutoloader)) {
-            PhpExecutionHelper::$classAliasAutoloader->addAliases($sandboxDir);
-        }
-
-        require_once $autoloadFile;
+        ExecSandbox::forPackages($packages)->load();
     }
 }
 
