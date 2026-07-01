@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Cpx;
 
+use Cpx\Commands\AliasCommand;
 use Cpx\Commands\AliasesCommand;
 use Cpx\Commands\CleanCommand;
 use Cpx\Commands\ExecCommand;
+use Cpx\Commands\ForgetCommand;
 use Cpx\Commands\ListCommand;
 use Cpx\Commands\RunPackageCommand;
 use Cpx\Commands\TinkerCommand;
@@ -52,7 +54,9 @@ class Application extends SymfonyApplication
     {
         $this->addCommands([
             new ListCommand,
+            new AliasCommand,
             new AliasesCommand,
+            new ForgetCommand,
             new CleanCommand,
             new UpdateCommand,
             new UpgradeCommand,

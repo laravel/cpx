@@ -23,6 +23,12 @@ class PackageCommandRunner
             return (new ExecCommand)->run($this->fileInput($invocation), $output);
         }
 
+        $userAlias = UserAliases::open()->find($invocation->target);
+
+        if ($userAlias !== null) {
+            return $userAlias->runCommand($invocation, $output);
+        }
+
         $aliases = PackageAliases::all();
 
         if (array_key_exists($invocation->target, $aliases)) {

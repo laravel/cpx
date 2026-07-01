@@ -2,7 +2,9 @@
 
 use Cpx\Application;
 use Cpx\Input\PackageInvocation;
+use Cpx\Packages\Package;
 use Cpx\Packages\PackageCommandRunner;
+use Cpx\Packages\UserAliases;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -50,6 +52,46 @@ test('aliases lists aliased package commands', function () {
     expect($status)->toBe(0)
         ->and($output)->toContain('Aliased packages:')
         ->and($output)->toContain('cpx pint');
+});
+
+test('aliases lists user-defined aliases alongside built-in aliases', function () {
+    $this->useIsolatedComposerHome();
+
+    UserAliases::open()->put('mypint', Package::parse('laravel/pint'))->save();
+
+    [$status, $output] = runCpxCommand(['aliases']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Your aliases:')
+        ->and($output)->toContain('cpx mypint')
+        ->and($output)->toContain('laravel/pint');
+});
+
+test('a user-defined alias takes priority over a colliding built-in alias', function () {
+    $this->useIsolatedComposerHome();
+
+    $packageDirectory = prepareCachedPackage('vendor/custom-pint', ['pint']);
+    writeExecutable($packageDirectory.'/pint', "#!/usr/bin/env php\n<?php exit(0);\n");
+    UserAliases::open()->put('pint', Package::parse('vendor/custom-pint'))->save();
+
+    [$status, $output] = runCpxCommand(['pint']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Running pint from vendor/custom-pint');
+});
+
+test('forget removes a user-defined alias so the built-in alias resolves again', function () {
+    $this->useIsolatedComposerHome();
+
+    $packageDirectory = prepareCachedPackage('vendor/custom-pint', ['pint']);
+    writeExecutable($packageDirectory.'/pint', "#!/usr/bin/env php\n<?php exit(0);\n");
+    UserAliases::open()->put('pint', Package::parse('vendor/custom-pint'))->save();
+
+    [$forgetStatus, $forgetOutput] = runCpxCommand(['forget', 'pint']);
+
+    expect($forgetStatus)->toBe(0)
+        ->and($forgetOutput)->toContain('Alias "pint" removed.')
+        ->and(UserAliases::open()->has('pint'))->toBeFalse();
 });
 
 test('clean reports when there are no packages to clean', function () {
