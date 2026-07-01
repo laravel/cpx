@@ -171,18 +171,18 @@ class Metadata
         return $this->packages[$package->fullPackageString()] ??= new PackageMetadata($package);
     }
 
-    private static function normalizeTimestamp(mixed $value): ?int
+    private static function normalizeTimestamp(int|string|null $value): ?int
     {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
         if (is_int($value)) {
             return $value;
         }
 
-        if (is_string($value) && $value !== '') {
-            $timestamp = strtotime($value);
+        $timestamp = strtotime($value);
 
-            return $timestamp === false ? null : $timestamp;
-        }
-
-        return null;
+        return $timestamp === false ? null : $timestamp;
     }
 }
