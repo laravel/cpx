@@ -87,7 +87,7 @@ class CleanCommand extends Command
 
         $days = (int) $days;
 
-        if ($days < 1) {
+        if ($days < 0) {
             throw new InvalidArgumentException;
         }
 
