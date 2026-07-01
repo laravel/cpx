@@ -118,9 +118,9 @@ There are a few reasons you might want to run a one-off command with cpx:
 
 Yes, cpx will manage the package versions for you, so you can run any version of the package you want.
 
-### Why does the source code of cpx have no dependencies?
+### Will cpx conflict with my global Composer dependencies?
 
-The code is deliberately written in a way that it doesn't need any dependencies to run, so it has no chance of conflicting with your global composer dependencies if you use them for other things, as this is one of the problems cpx is trying to solve.
+No. cpx installs every package you run into a separate, isolated directory — never into your project or global Composer setup — so the tools you run through it can't clash with each other or with your own dependencies. cpx keeps its own dependencies minimal for the same reason.
 
 ## Credits
 - [Liam Hammett](https://github.com/imliam)
