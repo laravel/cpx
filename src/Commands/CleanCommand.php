@@ -7,6 +7,7 @@ namespace Cpx\Commands;
 use Cpx\Cache\ExecSandboxMetadata;
 use Cpx\Cache\Metadata;
 use Cpx\Support\Filesystem;
+use InvalidArgumentException;
 use Laravel\Prompts\Elements\Element;
 use Laravel\Prompts\Support\Logger;
 use RuntimeException;
@@ -41,18 +42,10 @@ class CleanCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $days = $input->getOption('days');
-
-        if ($days !== null) {
-            if (! is_numeric($days)) {
-                return $this->rejectInvalidDays();
-            }
-
-            $days = (int) $days;
-
-            if ($days < 0) {
-                return $this->rejectInvalidDays();
-            }
+        try {
+            $days = $this->resolveDays($input->getOption('days'));
+        } catch (InvalidArgumentException) {
+            return $this->rejectInvalidDays();
         }
 
         [$mode, $timeLimit] = $this->resolve($input, $days);
@@ -80,6 +73,25 @@ class CleanCommand extends Command
             $days !== null => [CleanMode::Period, $this->timeLimitForDays($days)],
             default => $this->promptForMode(),
         };
+    }
+
+    private function resolveDays(mixed $days): ?int
+    {
+        if ($days === null) {
+            return null;
+        }
+
+        if (! is_numeric($days)) {
+            throw new InvalidArgumentException;
+        }
+
+        $days = (int) $days;
+
+        if ($days < 1) {
+            throw new InvalidArgumentException;
+        }
+
+        return $days;
     }
 
     /**
