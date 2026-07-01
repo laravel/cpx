@@ -3,6 +3,7 @@
 test('it runs a local vendor bin before installing an isolated package', function () {
     $this->useIsolatedComposerHome();
     $root = $this->prepareLocalProject();
+    $this->installLocalPackage($root, 'laravel/pint', ['pint']);
     $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
     $this->writeLocalBinary($root, 'pint', argvLoggingBinary($logFile));
 
@@ -30,6 +31,7 @@ test('it runs a local bin for a bare package name', function () {
 test('it discovers a custom composer bin-dir before remote package resolution', function () {
     $this->useIsolatedComposerHome();
     $root = $this->prepareLocalProject('tools');
+    $this->installLocalPackage($root, 'laravel/pint', ['pint']);
     $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
     $this->writeLocalBinary($root, 'pint', argvLoggingBinary($logFile), 'tools');
 
@@ -43,6 +45,7 @@ test('it discovers a custom composer bin-dir before remote package resolution', 
 test('local binary execution preserves forwarded arguments and exit codes', function () {
     $this->useIsolatedComposerHome();
     $root = $this->prepareLocalProject();
+    $this->installLocalPackage($root, 'laravel/pint', ['pint']);
     $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
     $this->writeLocalBinary($root, 'pint', argvLoggingBinary($logFile, 42));
 
@@ -60,6 +63,7 @@ test('local binary execution preserves forwarded arguments and exit codes', func
 test('a failing local binary makes cpx exit non-zero', function () {
     $this->useIsolatedComposerHome();
     $root = $this->prepareLocalProject();
+    $this->installLocalPackage($root, 'laravel/pint', ['pint']);
     $this->writeLocalBinary($root, 'pint', "#!/usr/bin/env php\n<?php exit(17);\n");
 
     [$status] = runCpxCommand(['pint']);
@@ -174,6 +178,7 @@ test('the --remote flag is consumed by cpx and not forwarded to the binary', fun
 test('a trailing --remote is not a bypass and is forwarded to the local bin verbatim', function () {
     $this->useIsolatedComposerHome();
     $root = $this->prepareLocalProject();
+    $this->installLocalPackage($root, 'laravel/pint', ['pint']);
     $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
     $this->writeLocalBinary($root, 'pint', argvLoggingBinary($logFile));
 
@@ -189,6 +194,23 @@ test('the --remote flag without a target exits non-zero with an actionable messa
 
     expect($status)->toBe(1)
         ->and($output)->toContain('A package invocation target must be provided.');
+});
+
+test('an alias with a local bin but no installed backing package falls back to isolated resolution', function () {
+    $this->useIsolatedComposerHome();
+    $root = $this->prepareLocalProject();
+    $localLog = $this->temporaryDirectory('cpx-log').'/local.json';
+    $this->writeLocalBinary($root, 'pint', argvLoggingBinary($localLog));
+
+    $isolatedLog = $this->temporaryDirectory('cpx-log').'/isolated.json';
+    prepareCachedPackage('laravel/pint', ['pint'], ['pint' => argvLoggingBinary($isolatedLog)]);
+
+    [$status, $output] = runCpxCommand(['pint']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('from laravel/pint')
+        ->and(file_exists($isolatedLog))->toBeTrue()
+        ->and(file_exists($localLog))->toBeFalse();
 });
 
 test('an alias with no local bin falls back to isolated resolution', function () {
@@ -219,6 +241,7 @@ test('running outside any composer project falls back to isolated resolution', f
 test('a bin-dir entry that is a directory is ignored and cpx falls back', function () {
     $this->useIsolatedComposerHome();
     $root = $this->prepareLocalProject();
+    $this->installLocalPackage($root, 'laravel/pint', ['pint']);
     mkdir("{$root}/vendor/bin/pint", 0755, true);
     $isolatedLog = $this->temporaryDirectory('cpx-log').'/isolated.json';
     prepareCachedPackage('laravel/pint', ['pint'], ['pint' => argvLoggingBinary($isolatedLog)]);

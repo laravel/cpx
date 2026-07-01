@@ -9,6 +9,7 @@ use Cpx\Packages\LocalBinaryResolver;
 use Cpx\Packages\Package;
 use Cpx\Packages\PackageAliases;
 use Cpx\Packages\ResolvedBin;
+use Cpx\Packages\TargetKind;
 use Cpx\Process\ProcessRunner;
 use InvalidArgumentException;
 use Laravel\Prompts\Prompt;
@@ -88,23 +89,25 @@ class RunCommand extends SymfonyCommand
             return $this->runLocal($resolved);
         }
 
-        $aliases = PackageAliases::all();
+        return match (TargetKind::of($invocation->target)) {
+            TargetKind::Alias => Package::parse(PackageAliases::all()[$invocation->target]->package)->runCommand($invocation),
+            TargetKind::Package => $this->runPackage($invocation),
+            TargetKind::Bare => $this->unrecognised($invocation->target),
+        };
+    }
 
-        if (array_key_exists($invocation->target, $aliases)) {
-            return Package::parse($aliases[$invocation->target]->package)->runCommand($invocation);
+    private function runPackage(PackageInvocation $invocation): int
+    {
+        try {
+            return Package::parse($invocation->target)->runCommand($invocation);
+        } catch (InvalidArgumentException) {
+            return $this->unrecognised($invocation->target);
         }
+    }
 
-        if (str_contains($invocation->target, '/')) {
-            try {
-                return Package::parse($invocation->target)->runCommand($invocation);
-            } catch (InvalidArgumentException) {
-                error("Unrecognised command {$invocation->target}");
-
-                return SymfonyCommand::FAILURE;
-            }
-        }
-
-        error("Unrecognised command {$invocation->target}");
+    private function unrecognised(string $target): int
+    {
+        error("Unrecognised command {$target}");
 
         return SymfonyCommand::FAILURE;
     }

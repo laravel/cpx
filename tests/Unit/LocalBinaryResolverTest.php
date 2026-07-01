@@ -33,6 +33,17 @@ test('it returns null when the package is not installed locally', function () {
     expect((new LocalBinaryResolver)->resolve(new PackageInvocation('laravel/pint')))->toBeNull();
 });
 
+test('it resolves an alias only when its backing package is installed locally', function () {
+    $root = $this->prepareLocalProject();
+    $binPath = $this->writeLocalBinary($root, 'pint', "#!/usr/bin/env php\n<?php exit(0);\n");
+
+    expect((new LocalBinaryResolver)->resolve(new PackageInvocation('pint')))->toBeNull();
+
+    $this->installLocalPackage($root, 'laravel/pint', ['pint']);
+
+    expect((new LocalBinaryResolver)->resolve(new PackageInvocation('pint'))?->command)->toBe($binPath);
+});
+
 test('it selects a declared bin by the first forwarded token for multi-bin packages', function () {
     $root = $this->prepareLocalProject();
     $this->installLocalPackage($root, 'vendor/package', ['foo', 'bar']);

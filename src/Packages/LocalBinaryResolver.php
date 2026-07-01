@@ -20,16 +20,29 @@ class LocalBinaryResolver
             return null;
         }
 
-        return str_contains($invocation->target, '/')
-            ? $this->resolvePackage($project, $invocation)
-            : $this->resolveNamed($project, $invocation);
+        return match (TargetKind::of($invocation->target)) {
+            TargetKind::Package => $this->resolvePackage($project, $invocation),
+            TargetKind::Alias, TargetKind::Bare => $this->resolveNamed($project, $invocation),
+        };
     }
 
     private function resolveNamed(LocalProject $project, PackageInvocation $invocation): ?ResolvedBin
     {
-        $aliases = PackageAliases::all();
-        $name = $aliases[$invocation->target]->command ?? $invocation->target;
-        $path = $project->binaryPath($name);
+        $alias = PackageAliases::all()[$invocation->target] ?? null;
+
+        if ($alias !== null) {
+            $package = Package::parse($alias->package);
+
+            if ($project->installedPackageDir($package->vendor, $package->name) === null) {
+                return null;
+            }
+
+            $path = $project->binaryPath($alias->command);
+
+            return $path === null ? null : new ResolvedBin($path, $invocation);
+        }
+
+        $path = $project->binaryPath($invocation->target);
 
         return $path === null ? null : new ResolvedBin($path, $invocation);
     }
