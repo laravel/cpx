@@ -37,6 +37,23 @@ Behind the scenes, cpx will install the package into a separate directory and ru
 
 ---
 
+### Local binaries first
+
+Before installing anything, cpx looks for the tool in your project's Composer bin directory (`vendor/bin` by default, or whatever `config.bin-dir` points to). It searches upward from the current directory for the nearest `composer.json`, and if the binary is already installed there, cpx runs that copy so you get the version your project pins:
+
+```bash
+# Runs ./vendor/bin/pint when the project already has laravel/pint installed
+cpx pint
+```
+
+This works for aliases (`cpx pint`), bare command names (`cpx phpunit`), and full package names (`cpx laravel/pint`). For a versioned target like `cpx laravel/pint:^2.0`, cpx uses the local copy only when the installed version satisfies the constraint; otherwise it falls back to a fresh isolated install.
+
+To skip the local lookup and force the isolated version, pass the `--remote` flag before the target:
+
+```bash
+cpx --remote pint
+```
+
 ### cpx aliases
 
 `cpx aliases` will show a list of popular packages that have been aliased to make them easier to run. You can use these aliases to run a package without needing to remember the full vendor, package and command name.

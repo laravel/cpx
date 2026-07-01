@@ -1,11 +1,6 @@
 <?php
 
 use Cpx\Application;
-use Cpx\Input\PackageInvocation;
-use Cpx\Packages\PackageCommandRunner;
-use Symfony\Component\Console\Input\ArgvInput;
-use Symfony\Component\Console\Output\BufferedOutput;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Tester\ApplicationTester;
 
 test('it can run through Symfony tester utilities without exiting', function () {
@@ -156,43 +151,26 @@ test('tinker runs the cached psysh package with the bundled config', function ()
 });
 
 test('unknown package targets route to the package fallback command', function () {
-    $runner = new class extends PackageCommandRunner
-    {
-        public ?PackageInvocation $invocation = null;
+    $this->useIsolatedComposerHome();
+    $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
+    prepareCachedPackage('vendor/package', ['package'], [
+        'package' => argvLoggingBinary($logFile),
+    ]);
 
-        public function run(PackageInvocation $invocation, OutputInterface $output): int
-        {
-            $this->invocation = $invocation;
-
-            return 0;
-        }
-    };
-    $application = new Application($runner);
-
-    $status = $application->run(new ArgvInput(['cpx', 'vendor/package', '--flag', 'value']), new BufferedOutput);
+    [$status] = runCpxCommand(['vendor/package', '--flag', 'value']);
 
     expect($status)->toBe(0)
-        ->and($runner->invocation)->toBeInstanceOf(PackageInvocation::class)
-        ->and($runner->invocation?->target)->toBe('vendor/package')
-        ->and($runner->invocation?->forwardedTokens())->toBe(['--flag', 'value']);
+        ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['--flag', 'value']);
 });
 
 test('package fallback accepts arbitrary package options without Symfony validation errors', function () {
-    $runner = new class extends PackageCommandRunner
-    {
-        public ?PackageInvocation $invocation = null;
+    $this->useIsolatedComposerHome();
+    $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
+    prepareCachedPackage('vendor/package', ['package'], [
+        'package' => argvLoggingBinary($logFile),
+    ]);
 
-        public function run(PackageInvocation $invocation, OutputInterface $output): int
-        {
-            $this->invocation = $invocation;
-
-            return 0;
-        }
-    };
-    $application = new Application($runner);
-
-    $status = $application->run(new ArgvInput([
-        'cpx',
+    [$status] = runCpxCommand([
         'vendor/package',
         '--unknown',
         'value',
@@ -201,11 +179,10 @@ test('package fallback accepts arbitrary package options without Symfony validat
         '--filter=two',
         '--',
         '--literal',
-    ]), new BufferedOutput);
+    ]);
 
     expect($status)->toBe(0)
-        ->and($runner->invocation?->target)->toBe('vendor/package')
-        ->and($runner->invocation?->forwardedTokens())->toBe([
+        ->and(json_decode((string) file_get_contents($logFile), true))->toBe([
             '--unknown',
             'value',
             '-x',
@@ -217,26 +194,18 @@ test('package fallback accepts arbitrary package options without Symfony validat
 });
 
 test('package-target version options are forwarded instead of rendering cpx version', function () {
-    $runner = new class extends PackageCommandRunner
-    {
-        public ?PackageInvocation $invocation = null;
+    $this->useIsolatedComposerHome();
+    $this->useWorkingDirectory($this->temporaryDirectory('cpx-noproject'));
+    $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
+    prepareCachedPackage('laravel/pint', ['pint'], [
+        'pint' => argvLoggingBinary($logFile),
+    ]);
 
-        public function run(PackageInvocation $invocation, OutputInterface $output): int
-        {
-            $this->invocation = $invocation;
-
-            return 0;
-        }
-    };
-    $application = new Application($runner);
-    $output = new BufferedOutput;
-
-    $status = $application->run(new ArgvInput(['cpx', 'pint', '--version']), $output);
+    [$status, $output] = runCpxCommand(['pint', '--version']);
 
     expect($status)->toBe(0)
-        ->and($runner->invocation?->target)->toBe('pint')
-        ->and($runner->invocation?->forwardedTokens())->toBe(['--version'])
-        ->and($output->fetch())->not->toContain('cpx version:');
+        ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['--version'])
+        ->and($output)->not->toContain('cpx version:');
 });
 
 test('package-looking values with shell metacharacters fail before composer execution', function () {

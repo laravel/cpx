@@ -8,11 +8,10 @@ use Cpx\Commands\AliasesCommand;
 use Cpx\Commands\CleanCommand;
 use Cpx\Commands\ExecCommand;
 use Cpx\Commands\ListCommand;
-use Cpx\Commands\RunPackageCommand;
+use Cpx\Commands\RunCommand;
 use Cpx\Commands\TinkerCommand;
 use Cpx\Commands\UpdateCommand;
 use Cpx\Commands\UpgradeCommand;
-use Cpx\Packages\PackageCommandRunner;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputInterface;
@@ -20,12 +19,12 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class Application extends SymfonyApplication
 {
-    public function __construct(?PackageCommandRunner $packageCommandRunner = null)
+    public function __construct()
     {
         parent::__construct('cpx', $this->resolveVersion());
         $this->setAutoExit(false);
 
-        $this->registerCommands($packageCommandRunner ?? new PackageCommandRunner);
+        $this->registerCommands();
     }
 
     public function run(?InputInterface $input = null, ?OutputInterface $output = null): int
@@ -33,7 +32,7 @@ class Application extends SymfonyApplication
         $input ??= new ArgvInput;
 
         if ($input instanceof ArgvInput && $this->shouldRunPackageFallback($input)) {
-            $input = new ArgvInput(['cpx', RunPackageCommand::NAME, '--', ...$input->getRawTokens()]);
+            $input = new ArgvInput(['cpx', RunCommand::NAME, '--', ...$input->getRawTokens()]);
         }
 
         return parent::run($input, $output);
@@ -45,10 +44,10 @@ class Application extends SymfonyApplication
 
         return $command === null || $this->has($command)
             ? $command
-            : RunPackageCommand::NAME;
+            : RunCommand::NAME;
     }
 
-    private function registerCommands(PackageCommandRunner $packageCommandRunner): void
+    private function registerCommands(): void
     {
         $this->addCommands([
             new ListCommand,
@@ -58,7 +57,7 @@ class Application extends SymfonyApplication
             new UpgradeCommand,
             new ExecCommand,
             new TinkerCommand,
-            new RunPackageCommand($packageCommandRunner),
+            new RunCommand,
         ]);
     }
 

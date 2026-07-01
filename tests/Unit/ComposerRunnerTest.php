@@ -2,6 +2,7 @@
 
 use Cpx\Composer\ComposerRunner;
 use Cpx\Packages\Package;
+use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Output\NullOutput;
 
 test('it passes composer arguments as argv tokens', function () {
@@ -42,7 +43,8 @@ test('package installation calls composer with argv arrays', function () {
     writeExecutable($binDirectory.'/composer', "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n");
     $this->setEnvironmentVariable('PATH', $binDirectory.PATH_SEPARATOR.getenv('PATH'));
 
-    Package::parse('vendor/package:^1@dev')->installOrUpdatePackage(new NullOutput, updateCheck: false);
+    Prompt::setOutput(new NullOutput);
+    Package::parse('vendor/package:^1@dev')->installOrUpdatePackage(updateCheck: false);
 
     expect(json_decode((string) file_get_contents($logFile), true))->toContain('vendor/package:^1@dev')
         ->and(json_decode((string) file_get_contents($logFile), true))->not->toContain('vendor/package:^1@dev --no-interaction');

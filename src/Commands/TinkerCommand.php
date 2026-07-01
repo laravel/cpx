@@ -6,6 +6,7 @@ namespace Cpx\Commands;
 
 use Cpx\Input\PackageInvocation;
 use Cpx\Packages\Package;
+use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -19,6 +20,8 @@ class TinkerCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        Prompt::setOutput($output);
+
         $psyshConfig = realpath(__DIR__.'/../../files/psysh-config.php');
 
         if ($psyshConfig === false) {
@@ -29,7 +32,6 @@ class TinkerCommand extends Command
 
         return Package::parse('psy/psysh')->runCommand(
             PackageInvocation::fromRawTokens(['psysh', '--config', $psyshConfig]),
-            $output,
         );
     }
 }

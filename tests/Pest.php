@@ -1,6 +1,7 @@
 <?php
 
 use Cpx\Application;
+use Cpx\Packages\Package;
 use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -33,6 +34,14 @@ function writeExecutable(string $path, string $contents): void
 }
 
 /**
+ * A PHP binary that logs its forwarded argv tokens to $logFile and exits with $exitCode.
+ */
+function argvLoggingBinary(string $logFile, int $exitCode = 0): string
+{
+    return "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit({$exitCode});\n";
+}
+
+/**
  * A fake `composer` that writes a working autoloader into the install directory it is given.
  */
 function composerAutoloaderStub(): string
@@ -48,14 +57,16 @@ function composerAutoloaderStub(): string
  * @param  list<string>  $bins
  * @param  array<string, string>  $executables
  */
-function prepareCachedPackage(string $package, array $bins, array $executables = []): string
+function prepareCachedPackage(string $package, array $bins, array $executables = [], ?string $version = null): string
 {
+    $target = $version === null ? $package : "{$package}:{$version}";
+    $folder = Package::parse($target)->folder();
     [$vendor, $name] = explode('/', $package);
-    $packageDirectory = cpx_path("{$vendor}/{$name}/latest/vendor/{$vendor}/{$name}");
+    $packageDirectory = cpx_path("{$folder}/vendor/{$vendor}/{$name}");
 
     mkdir($packageDirectory, 0755, true);
     file_put_contents($packageDirectory.'/composer.json', json_encode(['bin' => $bins], JSON_THROW_ON_ERROR));
-    file_put_contents(cpx_path("{$vendor}/{$name}/latest/vendor/autoload.php"), '<?php');
+    file_put_contents(cpx_path("{$folder}/vendor/autoload.php"), '<?php');
 
     foreach ($executables as $bin => $contents) {
         writeExecutable("{$packageDirectory}/{$bin}", $contents);
@@ -63,7 +74,7 @@ function prepareCachedPackage(string $package, array $bins, array $executables =
 
     file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
         'packages' => [
-            $package => [
+            $target => [
                 'last_updated' => date('Y-m-d H:i:s'),
                 'last_run' => date('Y-m-d H:i:s'),
             ],
