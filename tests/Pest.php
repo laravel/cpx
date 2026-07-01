@@ -32,7 +32,7 @@ function writeExecutable(string $path, string $contents): void
  */
 function argvLoggingBinary(string $logFile, int $exitCode = 0): string
 {
-    return "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit({$exitCode});\n";
+    return "#!/usr/bin/env php\n<?php file_put_contents(".var_export($logFile, true).", json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit({$exitCode});\n";
 }
 
 /**
