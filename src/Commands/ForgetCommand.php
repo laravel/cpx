@@ -67,6 +67,7 @@ class ForgetCommand extends Command
             label: 'Which alias would you like to forget?',
             options: array_keys($aliases->all()),
             required: 'An alias name must be provided.',
+            info: fn (string $name): string => (string) $aliases->find($name),
         );
     }
 }
