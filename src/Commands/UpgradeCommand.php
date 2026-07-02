@@ -19,8 +19,7 @@ class UpgradeCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln('Updating <info>cpx</info>');
-        ComposerRunner::run(['global', 'update', 'cpx/cpx']);
 
-        return self::SUCCESS;
+        return ComposerRunner::run(['global', 'update', 'cpx/cpx']);
     }
 }

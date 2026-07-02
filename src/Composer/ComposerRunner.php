@@ -4,30 +4,49 @@ declare(strict_types=1);
 
 namespace Cpx\Composer;
 
-use Cpx\Process\ProcessRunner;
+use Closure;
+use Composer\Console\Application;
 use Exception;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\ArgvInput;
 
 class ComposerRunner
 {
+    /** @var (Closure(list<string>): int)|null */
+    private static ?Closure $fake = null;
+
     /**
      * @param  list<string>  $arguments
      */
     public static function run(array $arguments, ?string $directory = null): int
     {
-        $command = ['composer', ...$arguments, '--no-interaction'];
+        $command = [...$arguments, '--no-interaction'];
 
         if ($directory !== null) {
             $command[] = "--working-dir={$directory}";
         }
 
-        $exitCode = (new ProcessRunner)->run($command);
+        $runner = self::$fake ?? self::execute(...);
+        $exitCode = $runner($command);
 
         if ($exitCode !== Command::SUCCESS) {
             throw new Exception('Composer command failed: '.implode(' ', $arguments));
         }
 
         return $exitCode;
+    }
+
+    /**
+     * @param  Closure(list<string>): int  $runner
+     */
+    public static function fake(Closure $runner): void
+    {
+        self::$fake = $runner;
+    }
+
+    public static function clearFake(): void
+    {
+        self::$fake = null;
     }
 
     /** @return list<string> */
@@ -74,5 +93,25 @@ class ComposerRunner
         $version = is_array($lockData) ? ($lockData['packages'][0]['version'] ?? null) : null;
 
         return is_string($version) ? $version : $unknown;
+    }
+
+    /**
+     * @param  list<string>  $command
+     */
+    private static function execute(array $command): int
+    {
+        $workingDirectory = getcwd();
+
+        try {
+            $application = new Application;
+            $application->setAutoExit(false);
+            $application->setCatchExceptions(true);
+
+            return $application->run(new ArgvInput(['composer', ...$command]));
+        } finally {
+            if ($workingDirectory !== false) {
+                chdir($workingDirectory);
+            }
+        }
     }
 }

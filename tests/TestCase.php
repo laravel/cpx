@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Cpx\Composer\ComposerRunner;
 use Laravel\Prompts\Output\BufferedConsoleOutput;
 use Laravel\Prompts\Prompt;
 use Laravel\Prompts\Terminal;
@@ -35,6 +36,8 @@ abstract class TestCase extends BaseTestCase
 
     protected function tearDown(): void
     {
+        ComposerRunner::clearFake();
+
         if ($this->workingDirectory !== null) {
             chdir($this->workingDirectory);
         }
@@ -103,6 +106,36 @@ abstract class TestCase extends BaseTestCase
         $this->workingDirectory ??= getcwd() ?: null;
 
         chdir($directory);
+    }
+
+    /**
+     * Build a staging dir that resolves the given packages from local path repos (offline, no Packagist).
+     *
+     * @param  list<string>  $packages
+     */
+    protected function stagingWithPathPackages(array $packages): string
+    {
+        $repositories = [];
+
+        foreach ($packages as $package) {
+            $fixture = $this->temporaryDirectory('cpx-fixture');
+            file_put_contents("{$fixture}/composer.json", json_encode([
+                'name' => $package,
+                'version' => '1.0.0',
+            ], JSON_THROW_ON_ERROR));
+
+            $repositories[] = ['type' => 'path', 'url' => $fixture, 'options' => ['symlink' => false]];
+        }
+
+        $repositories[] = ['packagist.org' => false];
+
+        $staging = $this->temporaryDirectory('cpx-staging');
+        file_put_contents("{$staging}/composer.json", json_encode([
+            'repositories' => $repositories,
+            'config' => ['allow-plugins' => true],
+        ], JSON_THROW_ON_ERROR));
+
+        return $staging;
     }
 
     private function deleteDirectory(string $directory): void
