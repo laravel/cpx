@@ -65,13 +65,27 @@ test('it allows an alias name that collides with a built-in package alias', func
         ->and(UserAliases::open()->find('pint')?->fullPackageString())->toBe('vendor/custom-pint');
 });
 
-test('it silently overwrites an existing user alias of the same name', function () {
+test('it warns and leaves an existing alias unchanged when the overwrite is not confirmed', function () {
     $this->useIsolatedComposerHome();
 
     UserAliases::open()->put('tool', Package::parse('vendor/one'))->save();
 
     $tester = aliasCommandTester();
     $status = $tester->execute(['package' => 'vendor/two', 'name' => 'tool']);
+
+    expect($status)->toBe(0)
+        ->and($tester->getDisplay())->toContain('The alias "tool" already runs vendor/one.')
+        ->and($tester->getDisplay())->toContain('Alias "tool" was left unchanged.')
+        ->and(UserAliases::open()->find('tool')?->fullPackageString())->toBe('vendor/one');
+});
+
+test('it overwrites an existing user alias when --force is passed', function () {
+    $this->useIsolatedComposerHome();
+
+    UserAliases::open()->put('tool', Package::parse('vendor/one'))->save();
+
+    $tester = aliasCommandTester();
+    $status = $tester->execute(['package' => 'vendor/two', 'name' => 'tool', '--force' => true]);
 
     expect($status)->toBe(0)
         ->and(UserAliases::open()->find('tool')?->fullPackageString())->toBe('vendor/two');

@@ -13,11 +13,14 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\text;
+use function Laravel\Prompts\warning;
 
 #[AsCommand(
     name: 'alias',
@@ -29,6 +32,7 @@ class AliasCommand extends Command
     {
         $this->addArgument('package', InputArgument::OPTIONAL, 'The package to alias, e.g. <vendor>/<package>[:version]');
         $this->addArgument('name', InputArgument::OPTIONAL, 'The alias name to run the package as, e.g. "cpx <name>"');
+        $this->addOption('force', 'f', InputOption::VALUE_NONE, 'Overwrite an existing alias without confirmation');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -44,11 +48,33 @@ class AliasCommand extends Command
             return self::FAILURE;
         }
 
-        UserAliases::open()->put($name, $package)->save();
+        $aliases = UserAliases::open();
+
+        if ($aliases->has($name) && ! $this->confirmOverwrite($input, $name, $aliases->find($name))) {
+            info("Alias \"{$name}\" was left unchanged.");
+
+            return self::SUCCESS;
+        }
+
+        $aliases->put($name, $package)->save();
 
         info("Alias created: cpx {$name} now runs {$package}.");
 
         return self::SUCCESS;
+    }
+
+    private function confirmOverwrite(InputInterface $input, string $name, ?Package $current): bool
+    {
+        if ($input->getOption('force')) {
+            return true;
+        }
+
+        warning("The alias \"{$name}\" already runs {$current}.");
+
+        return confirm(
+            label: "Do you want to overwrite the \"{$name}\" alias?",
+            default: true,
+        );
     }
 
     private function resolvePackage(InputInterface $input): Package
