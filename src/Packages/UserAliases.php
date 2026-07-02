@@ -65,7 +65,7 @@ class UserAliases
 
     public function save(): void
     {
-        Filesystem::writeAtomic(cpx_path(self::FILE), json_encode($this->toArray(), JSON_PRETTY_PRINT));
+        Filesystem::writeAtomic(cpx_path(self::FILE), (string) json_encode($this->toArray(), JSON_PRETTY_PRINT));
     }
 
     /** @return array<string, string> */
