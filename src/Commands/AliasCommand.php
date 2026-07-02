@@ -54,6 +54,10 @@ class AliasCommand extends Command
     private function resolvePackage(InputInterface $input): Package
     {
         if ($package = $input->getArgument('package')) {
+            if ($error = $this->validatePackage($package)) {
+                throw new InvalidArgumentException($error);
+            }
+
             return Package::parse($package);
         }
 
