@@ -34,6 +34,6 @@ if (! function_exists('cpx_path')) {
             throw new RuntimeException('Unable to determine the home directory; set the HOME or CPX_HOME environment variable.');
         }
 
-        return "{$home}/.cpx/".trim($path, '/');
+        return rtrim("{$home}/.cpx/".trim($path, '/'), '/');
     }
 }

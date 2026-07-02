@@ -53,6 +53,14 @@ test('cpx_path with no argument does not produce a trailing slash with CPX_HOME'
     expect(cpx_path())->toBe($cpxHome);
 });
 
+test('cpx_path with no argument does not produce a trailing slash with HOME', function () {
+    $home = $this->temporaryDirectory('cpx-home');
+    $this->setEnvironmentVariable('HOME', $home);
+    $this->setEnvironmentVariable('CPX_HOME', '');
+
+    expect(cpx_path())->toBe("{$home}/.cpx");
+});
+
 test('it fails loudly when neither CPX_HOME nor the home directory can be resolved', function () {
     $this->setEnvironmentVariable('CPX_HOME', '');
     $this->setEnvironmentVariable('HOME', '');
