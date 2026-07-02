@@ -42,11 +42,6 @@ test('only the process runner calls proc_open', function () {
     expect($offenders)->toBe([]);
 });
 
-test('the composer runner runs in-process and no longer spawns a composer subprocess', function () {
-    expect(sourceFilesContaining('ProcessRunner'))
-        ->not->toContain('src/Composer/ComposerRunner.php');
-});
-
 /**
  * @return list<string>
  */

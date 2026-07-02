@@ -109,8 +109,6 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Build a staging dir that resolves the given packages from local path repos (offline, no Packagist).
-     *
      * @param  list<string>  $packages
      */
     protected function stagingWithPathPackages(array $packages): string
@@ -136,6 +134,58 @@ abstract class TestCase extends BaseTestCase
         ], JSON_THROW_ON_ERROR));
 
         return $staging;
+    }
+
+    /**
+     * @return array{staging: string, package: string, pluginClass: string}
+     */
+    protected function stagingWithPluginPackage(): array
+    {
+        $suffix = bin2hex(random_bytes(6));
+        $package = "cpx-fixture/plugin-{$suffix}";
+        $pluginClass = "CpxFixture\\Plugin{$suffix}";
+
+        $fixture = $this->temporaryDirectory('cpx-plugin');
+        mkdir("{$fixture}/src", 0755, true);
+
+        file_put_contents("{$fixture}/composer.json", json_encode([
+            'name' => $package,
+            'version' => '1.0.0',
+            'type' => 'composer-plugin',
+            'require' => ['composer-plugin-api' => '^2.0'],
+            'extra' => ['class' => $pluginClass],
+            'autoload' => ['psr-4' => ['CpxFixture\\' => 'src/']],
+        ], JSON_THROW_ON_ERROR));
+
+        file_put_contents("{$fixture}/src/Plugin{$suffix}.php", <<<PHP
+        <?php
+
+        namespace CpxFixture;
+
+        use Composer\\Composer;
+        use Composer\\IO\\IOInterface;
+        use Composer\\Plugin\\PluginInterface;
+
+        class Plugin{$suffix} implements PluginInterface
+        {
+            public function activate(Composer \$composer, IOInterface \$io): void {}
+
+            public function deactivate(Composer \$composer, IOInterface \$io): void {}
+
+            public function uninstall(Composer \$composer, IOInterface \$io): void {}
+        }
+        PHP);
+
+        $staging = $this->temporaryDirectory('cpx-plugin-staging');
+        file_put_contents("{$staging}/composer.json", json_encode([
+            'repositories' => [
+                ['type' => 'path', 'url' => $fixture, 'options' => ['symlink' => false]],
+                ['packagist.org' => false],
+            ],
+            'config' => ['allow-plugins' => [$package => true]],
+        ], JSON_THROW_ON_ERROR));
+
+        return ['staging' => $staging, 'package' => $package, 'pluginClass' => $pluginClass];
     }
 
     private function deleteDirectory(string $directory): void

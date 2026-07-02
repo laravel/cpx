@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Cpx\Composer;
 
 use Closure;
-use Composer\Console\Application;
-use Exception;
+use Composer\InstalledVersions;
+use Cpx\Exceptions\ComposerCommandException;
+use Cpx\Process\ProcessRunner;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\ArgvInput;
 
 class ComposerRunner
 {
@@ -16,7 +16,11 @@ class ComposerRunner
     private static ?Closure $fake = null;
 
     /**
+     * Run a Composer command in an isolated cpx child process.
+     *
      * @param  list<string>  $arguments
+     *
+     * @throws ComposerCommandException
      */
     public static function run(array $arguments, ?string $directory = null): int
     {
@@ -26,11 +30,12 @@ class ComposerRunner
             $command[] = "--working-dir={$directory}";
         }
 
-        $runner = self::$fake ?? self::execute(...);
-        $exitCode = $runner($command);
+        $exitCode = self::$fake !== null
+            ? (self::$fake)($command)
+            : (new ProcessRunner)->run([PHP_BINARY, self::composerBinary(), ...$command]);
 
         if ($exitCode !== Command::SUCCESS) {
-            throw new Exception('Composer command failed: '.implode(' ', $arguments));
+            throw new ComposerCommandException('Composer command failed: '.implode(' ', $arguments));
         }
 
         return $exitCode;
@@ -95,23 +100,14 @@ class ComposerRunner
         return is_string($version) ? $version : $unknown;
     }
 
-    /**
-     * @param  list<string>  $command
-     */
-    private static function execute(array $command): int
+    private static function composerBinary(): string
     {
-        $workingDirectory = getcwd();
+        $path = InstalledVersions::getInstallPath('composer/composer');
 
-        try {
-            $application = new Application;
-            $application->setAutoExit(false);
-            $application->setCatchExceptions(true);
-
-            return $application->run(new ArgvInput(['composer', ...$command]));
-        } finally {
-            if ($workingDirectory !== false) {
-                chdir($workingDirectory);
-            }
+        if ($path === null) {
+            throw new ComposerCommandException('Unable to locate the bundled Composer binary.');
         }
+
+        return "{$path}/bin/composer";
     }
 }

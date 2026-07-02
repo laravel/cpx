@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Cpx\Composer\ComposerRunner;
+use Cpx\Exceptions\ComposerCommandException;
 
 test('it assembles arguments with no-interaction and working-dir and returns the runner exit code', function () {
     $captured = null;
@@ -41,21 +42,21 @@ test('it throws a uniform message when the runner reports a failure', function (
     ComposerRunner::fake(fn (array $command): int => 12);
 
     ComposerRunner::run(['update']);
-})->throws(Exception::class, 'Composer command failed: update');
+})->throws(ComposerCommandException::class, 'Composer command failed: update');
 
-test('it runs an offline composer command in-process and returns success', function () {
+test('it runs an offline composer command in an isolated child process and returns success', function () {
     $this->useIsolatedComposerHome();
 
     expect(ComposerRunner::run(['about', '--quiet']))->toBe(0);
 });
 
-test('it throws the uniform message when an unknown composer command fails in-process', function () {
+test('it throws the uniform message when an unknown composer command fails in the child', function () {
     $this->useIsolatedComposerHome();
 
     ComposerRunner::run(['this-command-does-not-exist', '--quiet']);
-})->throws(Exception::class, 'Composer command failed: this-command-does-not-exist');
+})->throws(ComposerCommandException::class, 'Composer command failed: this-command-does-not-exist');
 
-test('it installs a package in-process from a local path repository without network', function () {
+test('it installs a package from a local path repository without network', function () {
     $this->useIsolatedComposerHome();
 
     $staging = $this->stagingWithPathPackages(['cpx-fixture/pkg']);
@@ -67,19 +68,19 @@ test('it installs a package in-process from a local path repository without netw
         ->and(file_exists("{$staging}/vendor/cpx-fixture/pkg/composer.json"))->toBeTrue();
 });
 
-test('it restores the working directory even when a working-dir command fails', function () {
+test('it leaves the calling process working directory untouched when a working-dir command fails', function () {
     $this->useIsolatedComposerHome();
 
     $before = getcwd();
     $staging = $this->temporaryDirectory('cpx-cwd');
 
     expect(fn () => ComposerRunner::run(['this-command-does-not-exist', '--quiet'], $staging))
-        ->toThrow(Exception::class);
+        ->toThrow(ComposerCommandException::class);
 
     expect(getcwd())->toBe($before);
 });
 
-test('it installs multiple packages sequentially in the same process', function () {
+test('it installs multiple packages across isolated child processes', function () {
     $this->useIsolatedComposerHome();
 
     $staging = $this->stagingWithPathPackages(['cpx-fixture/one', 'cpx-fixture/two']);
@@ -91,7 +92,19 @@ test('it installs multiple packages sequentially in the same process', function 
         ->and(file_exists("{$staging}/vendor/cpx-fixture/two/composer.json"))->toBeTrue();
 });
 
-test('it runs global composer commands in-process against COMPOSER_HOME', function () {
+test('it activates package plugins in the child without loading them into the cpx process', function () {
+    $this->useIsolatedComposerHome();
+
+    ['staging' => $staging, 'package' => $package, 'pluginClass' => $pluginClass] = $this->stagingWithPluginPackage();
+
+    $exitCode = ComposerRunner::run(['require', "{$package}:*", '--quiet'], $staging);
+
+    expect($exitCode)->toBe(0)
+        ->and(file_exists("{$staging}/vendor/{$package}/composer.json"))->toBeTrue()
+        ->and(class_exists($pluginClass, autoload: false))->toBeFalse();
+});
+
+test('it runs global composer commands in the child against COMPOSER_HOME', function () {
     $composerHome = $this->useIsolatedComposerHome();
 
     ComposerRunner::run(['global', 'config', 'sort-packages', 'true', '--quiet']);
