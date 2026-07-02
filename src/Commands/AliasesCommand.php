@@ -27,16 +27,22 @@ class AliasesCommand extends Command
     {
         Prompt::setOutput($output);
 
-        $output->writeln('Aliased packages:'.PHP_EOL);
-        $packages = PackageAliases::all();
+        $userAliases = UserAliases::open()->all();
+
+        $packages = array_filter(
+            PackageAliases::all(),
+            fn (PackageAlias $package): bool => ! array_key_exists($package->command, $userAliases),
+        );
         usort($packages, fn (PackageAlias $a, PackageAlias $b): int => strcmp($a->command, $b->command));
 
-        foreach ($packages as $package) {
-            $paddedCommand = str_pad($package->command, 15);
-            $output->writeln('  <info>cpx '.$paddedCommand.'</info>   '.$package->description);
+        if ($packages !== []) {
+            callout('Aliased packages:', [
+                Element::keyValueList(array_combine(
+                    array_map(fn (PackageAlias $package): string => 'cpx '.$package->command, $packages),
+                    array_map(fn (PackageAlias $package): string => $package->package, $packages),
+                )),
+            ]);
         }
-
-        $userAliases = UserAliases::open()->all();
 
         if ($userAliases !== []) {
             ksort($userAliases);
