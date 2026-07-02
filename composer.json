@@ -35,7 +35,6 @@
     },
     "require": {
         "php": "^8.3",
-        "laravel/prompts": "^0.3.21",
         "symfony/console": "^7.4|^8.0"
     },
     "require-dev": {

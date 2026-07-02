@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cpx\Packages;
 
+use Cpx\Support\Filesystem;
+
 class UserAliases
 {
     private const FILE = 'aliases.json';
@@ -63,13 +65,7 @@ class UserAliases
 
     public function save(): void
     {
-        $aliasesFile = cpx_path(self::FILE);
-
-        if (! is_dir(dirname($aliasesFile))) {
-            mkdir(dirname($aliasesFile), 0755, true);
-        }
-
-        file_put_contents($aliasesFile, json_encode($this->toArray(), JSON_PRETTY_PRINT));
+        Filesystem::writeAtomic(cpx_path(self::FILE), json_encode($this->toArray(), JSON_PRETTY_PRINT));
     }
 
     /** @return array<string, string> */
