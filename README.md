@@ -120,5 +120,6 @@ Yes, cpx will manage the package versions for you, so you can run any version of
 The code is deliberately written in a way that it doesn't need any dependencies to run, so it has no chance of conflicting with your global composer dependencies if you use them for other things, as this is one of the problems cpx is trying to solve.
 
 ## Credits
+
 - [Liam Hammett](https://github.com/imliam)
 - [All Contributors](https://github.com/imliam/cpx/contributors)
