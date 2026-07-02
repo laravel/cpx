@@ -25,7 +25,7 @@ if (! function_exists('cpx_path')) {
         $home = $_SERVER['HOME'] ?? getenv('HOME');
 
         if (! is_string($home) || $home === '') {
-            $home = __DIR__;
+            throw new RuntimeException('Unable to determine the home directory; set the HOME environment variable.');
         }
 
         return "{$home}/.cpx/".trim($path, '/');

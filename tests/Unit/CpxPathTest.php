@@ -14,3 +14,10 @@ test('it resolves cpx state independently of composer home', function () {
 
     expect(cpx_path('metadata.json'))->toBe("{$home}/.cpx/metadata.json");
 });
+
+test('it fails loudly when the home directory cannot be resolved', function () {
+    $this->setEnvironmentVariable('HOME', '');
+
+    expect(fn () => cpx_path('metadata.json'))
+        ->toThrow(RuntimeException::class, 'Unable to determine the home directory; set the HOME environment variable.');
+});
