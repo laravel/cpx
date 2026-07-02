@@ -15,7 +15,9 @@ class UserAliases
      */
     protected function __construct(
         protected array $aliases = [],
-    ) {}
+    ) {
+        //
+    }
 
     public static function open(): self
     {
