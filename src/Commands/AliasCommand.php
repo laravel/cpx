@@ -79,20 +79,25 @@ class AliasCommand extends Command
 
     private function resolvePackage(InputInterface $input): Package
     {
+        return Package::parse($this->resolvePackageName($input));
+    }
+
+    private function resolvePackageName(InputInterface $input): string
+    {
         if ($package = $input->getArgument('package')) {
             if ($error = $this->validatePackage($package)) {
                 throw new InvalidArgumentException($error);
             }
 
-            return Package::parse($package);
+            return $package;
         }
 
-        return Package::parse(text(
+        return text(
             label: 'Which package would you like to alias?',
             placeholder: '<vendor>/<package>[:version]',
             required: 'A package name must be provided.',
             validate: $this->validatePackage(...),
-        ));
+        );
     }
 
     private function validatePackage(string $value): ?string
