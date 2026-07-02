@@ -89,19 +89,41 @@ test('update reports when there are no packages to update', function () {
         ->and($output)->toContain('There are no packages to update.');
 });
 
-test('upgrade runs the composer global update command', function () {
-    $binDirectory = $this->temporaryDirectory('cpx-bin');
-    $logFile = $this->temporaryDirectory('cpx-log').'/composer.log';
-
-    writeExecutable($binDirectory.'/composer', "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', implode(' ', array_slice(\$argv, 1))); exit(0);\n");
-
-    $this->setEnvironmentVariable('PATH', $binDirectory.PATH_SEPARATOR.getenv('PATH'));
+test('upgrade runs the composer global update command in-process', function () {
+    $calls = [];
+    fakeComposer($calls);
 
     [$status, $output] = runCpxCommand(['upgrade']);
 
     expect($status)->toBe(0)
         ->and($output)->toContain('Updating')
-        ->and(file_get_contents($logFile))->toContain('global update cpx/cpx');
+        ->and($calls)->toBe([['global', 'update', 'cpx/cpx', '--no-interaction']]);
+});
+
+test('upgrade surfaces a non-zero status when the composer update fails', function () {
+    $calls = [];
+    fakeComposer($calls, exitCode: 1);
+
+    [$status] = runCpxCommand(['upgrade']);
+
+    expect($status)->not->toBe(0)
+        ->and($calls)->toBe([['global', 'update', 'cpx/cpx', '--no-interaction']]);
+});
+
+test('update requests a composer update for each installed package directory', function () {
+    $this->useIsolatedComposerHome();
+
+    prepareCachedPackage('laravel/pint', ['pint']);
+
+    $calls = [];
+    fakeComposer($calls);
+
+    [$status] = runCpxCommand(['update']);
+
+    expect($status)->toBe(0)
+        ->and($calls)->toHaveCount(1)
+        ->and($calls[0][0])->toBe('update')
+        ->and($calls[0])->toContain('--working-dir='.cpx_path('laravel/pint/latest'));
 });
 
 test('exec runs inline php code', function () {
@@ -240,17 +262,14 @@ test('package-target version options are forwarded instead of rendering cpx vers
 });
 
 test('package-looking values with shell metacharacters fail before composer execution', function () {
-    $binDirectory = $this->temporaryDirectory('cpx-bin');
-    $logFile = $this->temporaryDirectory('cpx-log').'/composer.log';
-
-    writeExecutable($binDirectory.'/composer', "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', 'called'); exit(0);\n");
-    $this->setEnvironmentVariable('PATH', $binDirectory.PATH_SEPARATOR.getenv('PATH'));
+    $calls = [];
+    fakeComposer($calls);
 
     [$status, $output] = runCpxCommand(['vendor/package;touch injected']);
 
     expect($status)->toBe(1)
         ->and($output)->toContain('Unrecognised command vendor/package;touch injected')
-        ->and(file_exists($logFile))->toBeFalse();
+        ->and($calls)->toBe([]);
 });
 
 test('invalid fallback commands return a failure status with help output', function () {
