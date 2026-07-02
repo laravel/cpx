@@ -31,15 +31,17 @@ class AliasesCommand extends Command
 
         $userAliases = UserAliases::open()->all();
 
-        if ($userAliases !== []) {
-            ksort($userAliases);
+        if ($userAliases === []) {
+            return self::SUCCESS;
+        }
 
-            $output->writeln(PHP_EOL.'Your aliases:'.PHP_EOL);
+        ksort($userAliases);
 
-            foreach ($userAliases as $name => $package) {
-                $paddedCommand = str_pad($name, 15);
-                $output->writeln('  <info>cpx '.$paddedCommand.'</info>   '.$package->fullPackageString());
-            }
+        $output->writeln(PHP_EOL.'Your aliases:'.PHP_EOL);
+
+        foreach ($userAliases as $name => $package) {
+            $paddedCommand = str_pad($name, 15);
+            $output->writeln('  <info>cpx '.$paddedCommand.'</info>   '.$package->fullPackageString());
         }
 
         return self::SUCCESS;
