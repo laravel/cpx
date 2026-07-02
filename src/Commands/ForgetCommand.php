@@ -66,7 +66,7 @@ class ForgetCommand extends Command
             return $name;
         }
 
-        return select(
+        return (string) select(
             label: 'Which alias would you like to forget?',
             options: array_keys($aliases->all()),
             required: 'An alias name must be provided.',
