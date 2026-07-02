@@ -22,13 +22,12 @@ if (! function_exists('composer_require')) {
 if (! function_exists('cpx_path')) {
     function cpx_path(string $path = ''): string
     {
-        $composerHome = $_SERVER['COMPOSER_HOME'] ?? getenv('COMPOSER_HOME');
+        $home = $_SERVER['HOME'] ?? getenv('HOME');
 
-        if (! is_string($composerHome) || $composerHome === '') {
-            $home = $_SERVER['HOME'] ?? null;
-            $composerHome = is_string($home) && $home !== '' ? $home : __DIR__;
+        if (! is_string($home) || $home === '') {
+            $home = __DIR__;
         }
 
-        return "{$composerHome}/.cpx/".trim($path, '/');
+        return "{$home}/.cpx/".trim($path, '/');
     }
 }
