@@ -46,6 +46,13 @@ test('it falls back to the user home when CPX_HOME is empty', function () {
     expect(cpx_path('metadata.json'))->toBe("{$home}/.cpx/metadata.json");
 });
 
+test('cpx_path with no argument does not produce a trailing slash with CPX_HOME', function () {
+    $cpxHome = $this->temporaryDirectory('cpx-home-override');
+    $this->setEnvironmentVariable('CPX_HOME', $cpxHome);
+
+    expect(cpx_path())->toBe($cpxHome);
+});
+
 test('it fails loudly when neither CPX_HOME nor the home directory can be resolved', function () {
     $this->setEnvironmentVariable('CPX_HOME', '');
     $this->setEnvironmentVariable('HOME', '');

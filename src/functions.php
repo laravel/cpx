@@ -25,7 +25,7 @@ if (! function_exists('cpx_path')) {
         $cpxHome = $_SERVER['CPX_HOME'] ?? getenv('CPX_HOME');
 
         if (is_string($cpxHome) && $cpxHome !== '') {
-            return rtrim($cpxHome, '/').'/'.trim($path, '/');
+            return rtrim(rtrim($cpxHome, '/').'/'.trim($path, '/'), '/');
         }
 
         $home = $_SERVER['HOME'] ?? getenv('HOME');
