@@ -83,6 +83,7 @@ abstract class TestCase extends BaseTestCase
 
         $this->setEnvironmentVariable('HOME', $home);
         $this->setEnvironmentVariable('COMPOSER_HOME', $composerHome);
+        $this->setEnvironmentVariable('CPX_HOME', '');
 
         return $composerHome;
     }

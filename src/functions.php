@@ -22,10 +22,16 @@ if (! function_exists('composer_require')) {
 if (! function_exists('cpx_path')) {
     function cpx_path(string $path = ''): string
     {
+        $cpxHome = $_SERVER['CPX_HOME'] ?? getenv('CPX_HOME');
+
+        if (is_string($cpxHome) && $cpxHome !== '') {
+            return rtrim($cpxHome, '/').'/'.trim($path, '/');
+        }
+
         $home = $_SERVER['HOME'] ?? getenv('HOME');
 
         if (! is_string($home) || $home === '') {
-            throw new RuntimeException('Unable to determine the home directory; set the HOME environment variable.');
+            throw new RuntimeException('Unable to determine the home directory; set the HOME or CPX_HOME environment variable.');
         }
 
         return "{$home}/.cpx/".trim($path, '/');
