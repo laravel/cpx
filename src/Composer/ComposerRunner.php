@@ -8,6 +8,7 @@ use Closure;
 use Composer\InstalledVersions;
 use Cpx\Exceptions\ComposerCommandException;
 use Cpx\Process\ProcessRunner;
+use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 
 class ComposerRunner
@@ -35,7 +36,7 @@ class ComposerRunner
             : (new ProcessRunner)->run([PHP_BINARY, self::composerBinary(), ...$command]);
 
         if ($exitCode !== Command::SUCCESS) {
-            throw new ComposerCommandException('Composer command failed: '.implode(' ', $arguments));
+            throw new ComposerCommandException($arguments);
         }
 
         return $exitCode;
@@ -105,7 +106,7 @@ class ComposerRunner
         $path = InstalledVersions::getInstallPath('composer/composer');
 
         if ($path === null) {
-            throw new ComposerCommandException('Unable to locate the bundled Composer binary.');
+            throw new RuntimeException('Unable to locate the bundled Composer binary.');
         }
 
         return "{$path}/bin/composer";
