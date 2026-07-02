@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace Cpx\Composer;
 
 use Closure;
-use Composer\InstalledVersions;
 use Cpx\Exceptions\ComposerCommandException;
 use Cpx\Process\ProcessRunner;
-use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 
 class ComposerRunner
@@ -17,13 +15,11 @@ class ComposerRunner
     private static ?Closure $fake = null;
 
     /**
-     * Run a Composer command in an isolated cpx child process.
-     *
      * @param  list<string>  $arguments
      *
      * @throws ComposerCommandException
      */
-    public static function run(array $arguments, ?string $directory = null): int
+    public static function run(array $arguments, ?string $directory = null, ComposerSource $source = ComposerSource::Bundled): int
     {
         $command = [...$arguments, '--no-interaction'];
 
@@ -33,7 +29,7 @@ class ComposerRunner
 
         $exitCode = self::$fake !== null
             ? (self::$fake)($command)
-            : (new ProcessRunner)->run([PHP_BINARY, self::composerBinary(), ...$command]);
+            : (new ProcessRunner)->run([...$source->binary(), ...$command]);
 
         if ($exitCode !== Command::SUCCESS) {
             throw new ComposerCommandException($arguments);
@@ -99,16 +95,5 @@ class ComposerRunner
         $version = is_array($lockData) ? ($lockData['packages'][0]['version'] ?? null) : null;
 
         return is_string($version) ? $version : $unknown;
-    }
-
-    private static function composerBinary(): string
-    {
-        $path = InstalledVersions::getInstallPath('composer/composer');
-
-        if ($path === null) {
-            throw new RuntimeException('Unable to locate the bundled Composer binary.');
-        }
-
-        return "{$path}/bin/composer";
     }
 }
