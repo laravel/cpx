@@ -8,10 +8,18 @@ cpx is to Composer what npx is to npm.
 
 ## Installation
 
-Using [Composer](https://getcomposer.org/doc/00-intro.md), you can install cpx by running:
+cpx ships as a standalone PHAR. Download the latest release, make it executable, and move it onto your `PATH`:
 
 ```bash
-composer global require cpx/cpx
+curl -L https://github.com/laravel/cpx/releases/latest/download/cpx -o cpx
+chmod +x cpx
+mv cpx /usr/local/bin/cpx
+```
+
+Once installed, upgrade to the latest release at any time by running:
+
+```bash
+cpx upgrade
 ```
 
 ## Usage
@@ -109,9 +117,9 @@ There are a few reasons you might want to run a one-off command with cpx:
 
 Yes, cpx will manage the package versions for you, so you can run any version of the package you want.
 
-### Why does the source code of cpx have no dependencies?
+### Does cpx conflict with my project or global Composer dependencies?
 
-The code is deliberately written in a way that it doesn't need any dependencies to run, so it has no chance of conflicting with your global composer dependencies if you use them for other things, as this is one of the problems cpx is trying to solve.
+No. cpx ships as a self-contained PHAR with its own runtime dependencies bundled and isolated inside it, kept separate from both your project and your global Composer setup. Avoiding those conflicts is one of the problems cpx is built to solve.
 
 ## Credits
 
