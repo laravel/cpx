@@ -55,6 +55,9 @@
         "analyse": [
             "phpstan analyse"
         ],
+        "build": [
+            "bash scripts/build.sh"
+        ],
         "lint": [
             "pint --parallel"
         ],
