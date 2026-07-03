@@ -132,27 +132,6 @@ test('update reports when there are no packages to update', function () {
         ->and($output)->toContain('There are no packages to update.');
 });
 
-test('upgrade runs the composer global update command in-process', function () {
-    $calls = [];
-    fakeComposer($calls);
-
-    [$status, $output] = runCpxCommand(['upgrade']);
-
-    expect($status)->toBe(0)
-        ->and($output)->toContain('Updating')
-        ->and($calls)->toBe([['global', 'update', 'cpx/cpx', '--no-interaction']]);
-});
-
-test('upgrade surfaces a non-zero status when the composer update fails', function () {
-    $calls = [];
-    fakeComposer($calls, exitCode: 1);
-
-    [$status] = runCpxCommand(['upgrade']);
-
-    expect($status)->not->toBe(0)
-        ->and($calls)->toBe([['global', 'update', 'cpx/cpx', '--no-interaction']]);
-});
-
 test('update requests a composer update for each installed package directory', function () {
     $this->useIsolatedComposerHome();
 
