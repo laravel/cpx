@@ -1,7 +1,7 @@
 {
     "name": "cpx/cpx",
     "description": "Run any command from any composer package, even if it's not installed in your project.",
-    "type": "library",
+    "type": "project",
     "license": "MIT",
     "keywords": [
         "composer",
@@ -34,18 +34,19 @@
         }
     },
     "require": {
-        "php": "^8.3",
-        "composer/composer": "^2.8",
-        "laravel/prompts": "^0.3.21",
-        "symfony/console": "^7.4|^8.0"
+        "php": "^8.3"
     },
     "require-dev": {
+        "composer/composer": "^2.8",
+        "laravel-zero/phar-updater": "^1.4",
         "laravel/pao": "^1.1",
         "laravel/pint": "^1.29",
+        "laravel/prompts": "^0.3.21",
         "mockery/mockery": "^1.6",
         "pestphp/pest": "^4.7",
         "pestphp/pest-plugin-type-coverage": "^4.0",
-        "phpstan/phpstan": "^2.2"
+        "phpstan/phpstan": "^2.2",
+        "symfony/console": "^7.4|^8.0"
     },
     "bin": [
         "cpx"
