@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Cpx\Composer\ComposerRunner;
 use Cpx\Composer\ComposerSource;
 use Cpx\Exceptions\ComposerCommandException;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 test('it assembles arguments with no-interaction and working-dir and returns the runner exit code', function () {
     $captured = null;
@@ -44,6 +45,18 @@ test('it throws a uniform message when the runner reports a failure', function (
 
     ComposerRunner::run(['update']);
 })->throws(ComposerCommandException::class, 'Composer command failed: update');
+
+test('it boots composer in-process and returns the exit code', function () {
+    $this->useIsolatedComposerHome();
+
+    expect(ComposerRunner::boot(['about', '--quiet'], new BufferedOutput))->toBe(0);
+});
+
+test('it returns a non-zero exit code when the booted composer command fails', function () {
+    $this->useIsolatedComposerHome();
+
+    expect(ComposerRunner::boot(['this-command-does-not-exist', '--quiet'], new BufferedOutput))->toBe(1);
+});
 
 test('it runs an offline composer command in an isolated child process and returns success', function () {
     $this->useIsolatedComposerHome();

@@ -14,6 +14,7 @@ use Cpx\Commands\TinkerCommand;
 use Cpx\Commands\UnaliasCommand;
 use Cpx\Commands\UpdateCommand;
 use Cpx\Commands\UpgradeCommand;
+use Cpx\Composer\ComposerRunner;
 use Cpx\Packages\PackageCommandRunner;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Input\ArgvInput;
@@ -34,8 +35,16 @@ class Application extends SymfonyApplication
     {
         $input ??= new ArgvInput;
 
-        if ($input instanceof ArgvInput && $this->shouldRunPackageFallback($input)) {
-            $input = new ArgvInput(['cpx', RunPackageCommand::NAME, '--', ...$input->getRawTokens()]);
+        if ($input instanceof ArgvInput) {
+            $tokens = $input->getRawTokens();
+
+            if (($tokens[0] ?? null) === ComposerRunner::REINVOKE_TOKEN) {
+                return ComposerRunner::boot(array_slice($tokens, 1), $output);
+            }
+
+            if ($this->shouldRunPackageFallback($input)) {
+                $input = new ArgvInput(['cpx', RunPackageCommand::NAME, '--', ...$tokens]);
+            }
         }
 
         return parent::run($input, $output);

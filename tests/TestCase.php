@@ -3,6 +3,7 @@
 namespace Tests;
 
 use Cpx\Composer\ComposerRunner;
+use Cpx\Runtime\Environment;
 use Laravel\Prompts\Output\BufferedConsoleOutput;
 use Laravel\Prompts\Prompt;
 use Laravel\Prompts\Terminal;
@@ -37,6 +38,7 @@ abstract class TestCase extends BaseTestCase
     protected function tearDown(): void
     {
         ComposerRunner::clearFake();
+        Environment::clearFakePharPath();
 
         if ($this->workingDirectory !== null) {
             chdir($this->workingDirectory);

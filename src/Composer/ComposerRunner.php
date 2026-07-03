@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace Cpx\Composer;
 
 use Closure;
+use Composer\Console\Application as ComposerApplication;
 use Cpx\Exceptions\ComposerCommandException;
 use Cpx\Process\ProcessRunner;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class ComposerRunner
 {
+    public const REINVOKE_TOKEN = '__cpx_run_composer';
+
     /** @var (Closure(list<string>): int)|null */
     private static ?Closure $fake = null;
 
@@ -36,6 +41,17 @@ class ComposerRunner
         }
 
         return $exitCode;
+    }
+
+    /**
+     * @param  list<string>  $arguments
+     */
+    public static function boot(array $arguments, ?OutputInterface $output = null): int
+    {
+        $composer = new ComposerApplication;
+        $composer->setAutoExit(false);
+
+        return $composer->run(new ArgvInput(['composer', ...$arguments]), $output);
     }
 
     /**

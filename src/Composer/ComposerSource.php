@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cpx\Composer;
 
 use Composer\InstalledVersions;
+use Cpx\Runtime\Environment;
 use RuntimeException;
 
 enum ComposerSource
@@ -16,9 +17,19 @@ enum ComposerSource
     public function binary(): array
     {
         return match ($this) {
-            self::Bundled => [PHP_BINARY, self::bundledComposerPath()],
+            self::Bundled => self::bundledBinary(),
             self::Device => ['composer'],
         };
+    }
+
+    /** @return list<string> */
+    private static function bundledBinary(): array
+    {
+        $pharPath = Environment::pharPath();
+
+        return $pharPath === ''
+            ? [PHP_BINARY, self::bundledComposerPath()]
+            : [PHP_BINARY, $pharPath, ComposerRunner::REINVOKE_TOKEN];
     }
 
     private static function bundledComposerPath(): string
