@@ -49,13 +49,13 @@ test('it throws a uniform message when the runner reports a failure', function (
 test('it boots composer in-process and returns the exit code', function () {
     $this->useIsolatedComposerHome();
 
-    expect(ComposerRunner::boot(['about', '--quiet'], new BufferedOutput))->toBe(0);
+    expect(ComposerRunner::runInProcess(['about', '--quiet'], new BufferedOutput))->toBe(0);
 });
 
 test('it returns a non-zero exit code when the booted composer command fails', function () {
     $this->useIsolatedComposerHome();
 
-    expect(ComposerRunner::boot(['this-command-does-not-exist', '--quiet'], new BufferedOutput))->toBe(1);
+    expect(ComposerRunner::runInProcess(['this-command-does-not-exist', '--quiet'], new BufferedOutput))->toBe(1);
 });
 
 test('it runs an offline composer command in an isolated child process and returns success', function () {

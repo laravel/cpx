@@ -38,8 +38,9 @@ class Application extends SymfonyApplication
         if ($input instanceof ArgvInput) {
             $tokens = $input->getRawTokens();
 
+            // Bundled Composer re-invokes the phar with this token
             if (($tokens[0] ?? null) === ComposerRunner::REINVOKE_TOKEN) {
-                return ComposerRunner::boot(array_slice($tokens, 1), $output);
+                return ComposerRunner::runInProcess(array_slice($tokens, 1), $output);
             }
 
             if ($this->shouldRunPackageFallback($input)) {

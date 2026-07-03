@@ -46,7 +46,7 @@ class ComposerRunner
     /**
      * @param  list<string>  $arguments
      */
-    public static function boot(array $arguments, ?OutputInterface $output = null): int
+    public static function runInProcess(array $arguments, ?OutputInterface $output = null): int
     {
         $composer = new ComposerApplication;
         $composer->setAutoExit(false);
