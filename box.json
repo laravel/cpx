@@ -2,7 +2,6 @@
     "main": "cpx",
     "output": "builds/cpx",
     "chmod": "0755",
-    "git-version": "git_version",
     "directories": [
         "src",
         "files",

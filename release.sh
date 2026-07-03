@@ -15,14 +15,15 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 RESET='\033[0m'
 
-TAG_CREATED=""
+VERSION_FILE="src/Version.php"
+VERSION_BACKUP=""
 
 cleanup() {
     rm -f "$BOX_PHAR"
 
-    # Roll back the local tag if we created it but never published the release.
-    if [ -n "$TAG_CREATED" ]; then
-        git tag -d "$TAG_CREATED" >/dev/null 2>&1 || true
+    # Restore the version placeholder if the build was interrupted after we replaced it.
+    if [ -n "$VERSION_BACKUP" ] && [ -f "$VERSION_BACKUP" ]; then
+        mv "$VERSION_BACKUP" "$VERSION_FILE"
     fi
 }
 trap cleanup EXIT
@@ -119,16 +120,21 @@ if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-# Tag first so Box's git-version placeholder bakes the exact release tag into the phar.
-info "Tagging $NEW_TAG..."
-git tag -a "$NEW_TAG" -m "$NEW_TAG"
-TAG_CREATED="$NEW_TAG"
+# Bake the release version into the binary, mirroring Laravel Zero's app:build --build-version.
+info "Baking version $NEW_TAG..."
+VERSION_BACKUP="${VERSION_FILE}.bak"
+cp "$VERSION_FILE" "$VERSION_BACKUP"
+sed "s/@git_version@/${NEW_TAG}/" "$VERSION_BACKUP" > "$VERSION_FILE"
 
 info "Downloading Box..."
 curl -sSL -o "$BOX_PHAR" "$BOX_URL"
 
 info "Building binary..."
 php -d phar.readonly=0 "$BOX_PHAR" compile
+
+# Restore the source placeholder now that the version is baked into the phar.
+mv "$VERSION_BACKUP" "$VERSION_FILE"
+VERSION_BACKUP=""
 
 info "Smoke testing binary..."
 
@@ -152,15 +158,9 @@ rm -rf "$SMOKE_HOME"
 
 success "Smoke test passed: $SMOKE_VERSION"
 
-# Publish the source tag and attach the phar as the release asset consumed by 'cpx upgrade'.
-info "Pushing $NEW_TAG..."
-git push origin "$NEW_TAG"
-
+# Create the tag and attach the phar as the release asset consumed by 'cpx upgrade'.
 info "Creating release $NEW_TAG..."
-gh release create "$NEW_TAG" builds/cpx --title "$NEW_TAG" --generate-notes
-
-# The release published successfully; keep the tag we created.
-TAG_CREATED=""
+gh release create "$NEW_TAG" builds/cpx --title "$NEW_TAG" --target "$RELEASE_BRANCH" --generate-notes
 
 REMOTE_URL=$(git remote get-url origin)
 REPO_PATH=$(echo "$REMOTE_URL" | sed -E 's|.*github\.com[:/]||;s|\.git$||')
