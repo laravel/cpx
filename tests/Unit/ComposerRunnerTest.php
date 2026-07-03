@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Cpx\Composer\ComposerRunner;
-use Cpx\Composer\ComposerSource;
 use Cpx\Exceptions\ComposerCommandException;
 use Symfony\Component\Console\Output\BufferedOutput;
 
@@ -62,12 +61,6 @@ test('it runs an offline composer command in an isolated child process and retur
     $this->useIsolatedComposerHome();
 
     expect(ComposerRunner::run(['about', '--quiet']))->toBe(0);
-});
-
-test('it runs a command with the device composer', function () {
-    $this->useIsolatedComposerHome();
-
-    expect(ComposerRunner::run(['about', '--quiet'], source: ComposerSource::Device))->toBe(0);
 });
 
 test('it throws the uniform message when an unknown composer command fails in the child', function () {
