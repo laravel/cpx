@@ -41,7 +41,7 @@ class AliasesCommand extends Command
 
         foreach ($userAliases as $name => $package) {
             $paddedCommand = str_pad($name, 15);
-            $output->writeln('  <info>cpx '.$paddedCommand.'</info>   '.$package->fullPackageString());
+            $output->writeln('  <info>cpx '.$paddedCommand.'</info>   '.$package->displayString());
         }
 
         return self::SUCCESS;

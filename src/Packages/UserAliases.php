@@ -28,7 +28,7 @@ class UserAliases
         $json = json_decode((string) file_get_contents($file), true);
 
         return new self(array_map(
-            fn (string $value): Package => Package::parse($value),
+            fn (array $value): Package => Package::parse($value['package'])->withBin($value['bin']),
             $json,
         ));
     }
@@ -68,11 +68,14 @@ class UserAliases
         Filesystem::writeAtomic(cpx_path(self::FILE), (string) json_encode($this->toArray(), JSON_PRETTY_PRINT));
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, array{package: string, bin: string|null}> */
     public function toArray(): array
     {
         return array_map(
-            fn (Package $package): string => $package->fullPackageString(),
+            fn (Package $package): array => [
+                'package' => $package->fullPackageString(),
+                'bin' => $package->bin,
+            ],
             $this->aliases,
         );
     }

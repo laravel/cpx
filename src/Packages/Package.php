@@ -29,6 +29,7 @@ class Package
         public string $vendor,
         public string $name,
         public ?string $version = null,
+        public ?string $bin = null,
     ) {
         //
     }
@@ -83,6 +84,42 @@ class Package
             .($this->version ? ':'.$this->version : '');
     }
 
+    public function displayString(): string
+    {
+        $result = $this->fullPackageString();
+
+        if (! is_null($this->bin)) {
+            $result .= " ({$this->bin})";
+        }
+
+        return $result;
+    }
+
+    public function withBin(?string $bin): self
+    {
+        $clone = clone $this;
+        $clone->bin = $bin;
+
+        return $clone;
+    }
+
+    public function packagePath(string $installDir): string
+    {
+        return "{$installDir}/vendor/{$this->vendor}/{$this->name}";
+    }
+
+    /**
+     * The package's declared binaries, keyed by their basename.
+     *
+     * @return array<string, string>
+     */
+    public function binaries(string $installDir): array
+    {
+        $binScripts = ComposerRunner::detectBinFromComposer($this->packagePath($installDir));
+
+        return Arr::mapWithKeys(fn (int $_, string $value): array => [basename($value) => $value], $binScripts);
+    }
+
     public function delete(): void
     {
         Filesystem::deleteDirectory($this->installPath());
@@ -91,8 +128,8 @@ class Package
     public function runCommand(PackageInvocation $invocation, OutputInterface $output, bool $autoUpdate = true): int
     {
         $installDir = $this->installOrUpdatePackage($output, $autoUpdate);
-        $packageDir = "{$installDir}/vendor/{$this->vendor}/{$this->name}";
-        $binScripts = ComposerRunner::detectBinFromComposer($packageDir);
+        $packageDir = $this->packagePath($installDir);
+        $binScripts = $this->binaries($installDir);
 
         if (empty($binScripts)) {
             $output->writeln("<error>No bin command found in {$this}.</error>");
@@ -100,7 +137,6 @@ class Package
             return Command::FAILURE;
         }
 
-        $binScripts = Arr::mapWithKeys(fn (int $_, string $value): array => [basename($value) => $value], $binScripts);
         $resolved = $this->resolveBinCommand($binScripts, $invocation);
 
         if ($resolved === null) {
@@ -164,6 +200,10 @@ class Package
      */
     private function resolveBinCommand(array $binScripts, PackageInvocation $invocation): ?ResolvedBin
     {
+        if ($this->bin !== null && ($command = $this->matchBin($binScripts, $this->bin)) !== null) {
+            return new ResolvedBin($command, $invocation);
+        }
+
         if (count($binScripts) === 1) {
             return new ResolvedBin($binScripts[array_key_first($binScripts)], $invocation);
         }

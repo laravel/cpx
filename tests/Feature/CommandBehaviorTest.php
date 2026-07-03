@@ -66,6 +66,8 @@ test('list renders installed packages with their last run timestamp', function (
 });
 
 test('aliases lists aliased package commands', function () {
+    $this->useIsolatedComposerHome();
+
     [$status, $output] = runCpxCommand(['aliases']);
 
     expect($status)->toBe(0)
@@ -282,6 +284,7 @@ test('package-target version options are forwarded instead of rendering cpx vers
 });
 
 test('package-looking values with shell metacharacters fail before composer execution', function () {
+    $this->useIsolatedComposerHome();
     $binDirectory = $this->temporaryDirectory('cpx-bin');
     $logFile = $this->temporaryDirectory('cpx-log').'/composer.log';
 
@@ -296,6 +299,8 @@ test('package-looking values with shell metacharacters fail before composer exec
 });
 
 test('invalid fallback commands return a failure status with help output', function () {
+    $this->useIsolatedComposerHome();
+
     [$status, $output] = runCpxCommand(['not-a-package']);
 
     expect($status)->toBe(1)
