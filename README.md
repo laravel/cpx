@@ -37,12 +37,6 @@ Behind the scenes, cpx will install the package into a separate directory and ru
 
 ---
 
-### cpx aliases
-
-`cpx aliases` will show a list of popular packages that have been aliased to make them easier to run. You can use these aliases to run a package without needing to remember the full vendor, package and command name.
-
-For example, `cpx php-cs-fixer` is an alias for `cpx friendsofphp/php-cs-fixer`, and `cpx laravel` is an alias for `cpx laravel/installer`.
-
 ### cpx alias
 
 `cpx alias` lets you create your own shortcut for a package, so you don't have to remember or type its full vendor/package name every time.
@@ -53,7 +47,7 @@ cpx alias laravel/pint pint
 
 Both arguments are optional — if you leave either one out, cpx will prompt you for it. Leaving out the name defaults it to the package's short name, so `cpx alias laravel/pint` alone is enough to create the `pint` alias above.
 
-Your aliases are saved under `~/.cpx/` and shown alongside the built-in ones under `cpx aliases`. They take priority over the built-in aliases, so you can also use `cpx alias` to point an existing alias like `pint` at a different package.
+Your aliases are saved under `~/.cpx/` and can be listed with `cpx aliases`.
 
 Use `cpx unalias <name>` to remove one of your aliases, e.g. `cpx unalias pint`. Leave off the name and cpx will prompt you for it.
 
