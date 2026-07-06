@@ -74,7 +74,7 @@ test('it warns before overwriting an existing alias of the same name', function 
     $status = $tester->execute(['package' => 'vendor/two', 'name' => 'tool']);
 
     expect($status)->toBe(0)
-        ->and($tester->getDisplay())->toContain('The alias "tool" already runs vendor/one.')
+        ->and($tester->getDisplay())->toContain('The alias "tool" is currently mapped to vendor/one.')
         ->and(UserAliases::open()->find('tool')?->fullPackageString())->toBe('vendor/two');
 });
 
