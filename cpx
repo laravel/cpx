@@ -19,4 +19,19 @@ if (isset($GLOBALS['_composer_autoload_path'])) {
     unset($file);
 }
 
+if (! class_exists(\Symfony\Component\Console\Application::class)) {
+    fwrite(STDERR, <<<'MESSAGE'
+        cpx is distributed as a standalone PHAR and can no longer be installed through Composer.
+
+        Install the latest release:
+
+          curl -L https://github.com/laravel/cpx/releases/latest/download/cpx -o cpx
+          chmod +x cpx
+          mv cpx /usr/local/bin/cpx
+
+        MESSAGE . PHP_EOL);
+
+    exit(1);
+}
+
 exit((new Application)->run());
