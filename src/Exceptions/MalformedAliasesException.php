@@ -10,6 +10,6 @@ class MalformedAliasesException extends Exception
 {
     public function __construct(string $file)
     {
-        parent::__construct("The aliases file at {$file} is malformed. Expected a JSON object mapping alias names to packages.");
+        parent::__construct("The aliases file at {$file} is malformed.");
     }
 }
