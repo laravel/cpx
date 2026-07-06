@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Cpx\Packages;
 
+use Cpx\Exceptions\MalformedAliasesException;
+use Cpx\Support\Filesystem;
+
 class UserAliases
 {
     private const FILE = 'aliases.json';
@@ -15,6 +18,9 @@ class UserAliases
         protected array $aliases = [],
     ) {}
 
+    /**
+     * @throws MalformedAliasesException
+     */
     public static function open(): self
     {
         $file = cpx_path(self::FILE);
@@ -25,10 +31,28 @@ class UserAliases
 
         $json = json_decode((string) file_get_contents($file), true);
 
-        return new self(array_map(
-            fn (string $value): Package => Package::parse($value),
-            $json,
-        ));
+        if (! is_array($json)) {
+            throw new MalformedAliasesException($file);
+        }
+
+        $aliases = [];
+
+        foreach ($json as $name => $value) {
+            if (! is_string($name) || ! is_array($value)) {
+                throw new MalformedAliasesException($file);
+            }
+
+            $package = $value['package'] ?? null;
+            $bin = $value['bin'] ?? null;
+
+            if (! is_string($package) || (! is_string($bin) && $bin !== null)) {
+                throw new MalformedAliasesException($file);
+            }
+
+            $aliases[$name] = Package::parse($package)->withBin($bin);
+        }
+
+        return new self($aliases);
     }
 
     /** @return array<string, Package> */
@@ -63,20 +87,17 @@ class UserAliases
 
     public function save(): void
     {
-        $aliasesFile = cpx_path(self::FILE);
-
-        if (! is_dir(dirname($aliasesFile))) {
-            mkdir(dirname($aliasesFile), 0755, true);
-        }
-
-        file_put_contents($aliasesFile, json_encode($this->toArray(), JSON_PRETTY_PRINT));
+        Filesystem::writeAtomic(cpx_path(self::FILE), (string) json_encode($this->toArray(), JSON_PRETTY_PRINT));
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, array{package: string, bin: string|null}> */
     public function toArray(): array
     {
         return array_map(
-            fn (Package $package): string => $package->fullPackageString(),
+            fn (Package $package): array => [
+                'package' => $package->fullPackageString(),
+                'bin' => $package->bin,
+            ],
             $this->aliases,
         );
     }

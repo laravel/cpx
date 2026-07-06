@@ -19,7 +19,7 @@ test('it saves and reloads a user alias', function () {
     $aliases = UserAliases::open();
 
     expect($contents)->not->toBeFalse()
-        ->and(json_decode((string) $contents, true))->toBe(['mypint' => 'laravel/pint'])
+        ->and(json_decode((string) $contents, true))->toBe(['mypint' => ['package' => 'laravel/pint', 'bin' => null]])
         ->and($aliases->has('mypint'))->toBeTrue()
         ->and($aliases->find('mypint')?->fullPackageString())->toBe('laravel/pint');
 });

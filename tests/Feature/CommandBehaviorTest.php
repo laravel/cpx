@@ -46,15 +46,35 @@ test('list shows when no packages are installed', function () {
         ->and($output)->not->toContain('Available commands');
 });
 
-test('aliases lists aliased package commands', function () {
+test('list renders installed packages with their last run timestamp', function () {
+    $this->useIsolatedComposerHome();
+
+    mkdir(dirname(cpx_path('.cpx_metadata.json')), 0755, true);
+    file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
+        'packages' => [
+            'laravel/pint' => ['last_updated' => '2024-01-02 03:04:05', 'last_run' => '2024-01-02 03:04:05'],
+        ],
+        'execCache' => [],
+    ], JSON_THROW_ON_ERROR));
+
+    [$status, $output] = runCpxCommand(['list']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Installed Packages:')
+        ->and($output)->toContain('laravel/pint')
+        ->and($output)->toContain('Last Run: 2024-01-02 03:04:05');
+});
+
+test('aliases reports when no aliases have been created', function () {
+    $this->useIsolatedComposerHome();
+
     [$status, $output] = runCpxCommand(['aliases']);
 
     expect($status)->toBe(0)
-        ->and($output)->toContain('Aliased packages:')
-        ->and($output)->toContain('cpx pint');
+        ->and($output)->toContain('You have no aliases.');
 });
 
-test('aliases lists user-defined aliases alongside built-in aliases', function () {
+test('aliases lists user-defined aliases', function () {
     $this->useIsolatedComposerHome();
 
     UserAliases::open()->put('mypint', Package::parse('laravel/pint'))->save();
@@ -67,7 +87,7 @@ test('aliases lists user-defined aliases alongside built-in aliases', function (
         ->and($output)->toContain('laravel/pint');
 });
 
-test('a user-defined alias takes priority over a colliding built-in alias', function () {
+test('a user-defined alias resolves to its package', function () {
     $this->useIsolatedComposerHome();
 
     $packageDirectory = prepareCachedPackage('vendor/custom-pint', ['pint']);
@@ -80,7 +100,7 @@ test('a user-defined alias takes priority over a colliding built-in alias', func
         ->and($output)->toContain('Running pint from vendor/custom-pint');
 });
 
-test('forget removes a user-defined alias so the built-in alias resolves again', function () {
+test('forget removes a user-defined alias', function () {
     $this->useIsolatedComposerHome();
 
     $packageDirectory = prepareCachedPackage('vendor/custom-pint', ['pint']);
@@ -97,10 +117,10 @@ test('forget removes a user-defined alias so the built-in alias resolves again',
 test('clean reports when there are no packages to clean', function () {
     $this->useIsolatedComposerHome();
 
-    [$status, $output] = runCpxCommand(['clean']);
+    [$status] = runCpxCommand(['clean']);
 
     expect($status)->toBe(0)
-        ->and($output)->toContain('There were no packages to clean.');
+        ->and(promptOutput())->toContain('Nothing to clean');
 });
 
 test('update reports when there are no packages to update', function () {
@@ -112,19 +132,41 @@ test('update reports when there are no packages to update', function () {
         ->and($output)->toContain('There are no packages to update.');
 });
 
-test('upgrade runs the composer global update command', function () {
-    $binDirectory = $this->temporaryDirectory('cpx-bin');
-    $logFile = $this->temporaryDirectory('cpx-log').'/composer.log';
-
-    writeExecutable($binDirectory.'/composer', "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', implode(' ', array_slice(\$argv, 1))); exit(0);\n");
-
-    $this->setEnvironmentVariable('PATH', $binDirectory.PATH_SEPARATOR.getenv('PATH'));
+test('upgrade runs the composer global update command in-process', function () {
+    $calls = [];
+    fakeComposer($calls);
 
     [$status, $output] = runCpxCommand(['upgrade']);
 
     expect($status)->toBe(0)
         ->and($output)->toContain('Updating')
-        ->and(file_get_contents($logFile))->toContain('global update cpx/cpx');
+        ->and($calls)->toBe([['global', 'update', 'cpx/cpx', '--no-interaction']]);
+});
+
+test('upgrade surfaces a non-zero status when the composer update fails', function () {
+    $calls = [];
+    fakeComposer($calls, exitCode: 1);
+
+    [$status] = runCpxCommand(['upgrade']);
+
+    expect($status)->not->toBe(0)
+        ->and($calls)->toBe([['global', 'update', 'cpx/cpx', '--no-interaction']]);
+});
+
+test('update requests a composer update for each installed package directory', function () {
+    $this->useIsolatedComposerHome();
+
+    prepareCachedPackage('laravel/pint', ['pint']);
+
+    $calls = [];
+    fakeComposer($calls);
+
+    [$status] = runCpxCommand(['update']);
+
+    expect($status)->toBe(0)
+        ->and($calls)->toHaveCount(1)
+        ->and($calls[0][0])->toBe('update')
+        ->and($calls[0])->toContain('--working-dir='.cpx_path('laravel/pint/latest'));
 });
 
 test('exec runs inline php code', function () {
@@ -157,6 +199,7 @@ test('tinker runs the cached psysh package with the bundled config', function ()
     $packageDirectory = cpx_path('psy/psysh/latest/vendor/psy/psysh');
     mkdir($packageDirectory, 0755, true);
 
+    file_put_contents(cpx_path('psy/psysh/latest/vendor/autoload.php'), '<?php');
     file_put_contents($packageDirectory.'/composer.json', json_encode([
         'bin' => ['psysh'],
     ], JSON_THROW_ON_ERROR));
@@ -262,20 +305,21 @@ test('package-target version options are forwarded instead of rendering cpx vers
 });
 
 test('package-looking values with shell metacharacters fail before composer execution', function () {
-    $binDirectory = $this->temporaryDirectory('cpx-bin');
-    $logFile = $this->temporaryDirectory('cpx-log').'/composer.log';
+    $this->useIsolatedComposerHome();
 
-    writeExecutable($binDirectory.'/composer', "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', 'called'); exit(0);\n");
-    $this->setEnvironmentVariable('PATH', $binDirectory.PATH_SEPARATOR.getenv('PATH'));
+    $calls = [];
+    fakeComposer($calls);
 
     [$status, $output] = runCpxCommand(['vendor/package;touch injected']);
 
     expect($status)->toBe(1)
         ->and($output)->toContain('Unrecognised command vendor/package;touch injected')
-        ->and(file_exists($logFile))->toBeFalse();
+        ->and($calls)->toBe([]);
 });
 
 test('invalid fallback commands return a failure status with help output', function () {
+    $this->useIsolatedComposerHome();
+
     [$status, $output] = runCpxCommand(['not-a-package']);
 
     expect($status)->toBe(1)

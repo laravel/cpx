@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Cpx\Commands;
 
 use Cpx\Packages\Package;
-use Cpx\Packages\PackageAlias;
-use Cpx\Packages\PackageAliases;
 use Cpx\Packages\UserAliases;
 use Laravel\Prompts\Elements\Element;
 use Laravel\Prompts\Prompt;
@@ -19,7 +17,7 @@ use function Laravel\Prompts\callout;
 
 #[AsCommand(
     name: 'aliases',
-    description: 'Show aliased package commands',
+    description: 'Show your package aliases',
 )]
 class AliasesCommand extends Command
 {
@@ -29,31 +27,20 @@ class AliasesCommand extends Command
 
         $userAliases = UserAliases::open()->all();
 
-        $packages = array_filter(
-            PackageAliases::all(),
-            fn (PackageAlias $package): bool => ! array_key_exists($package->command, $userAliases),
-        );
-        usort($packages, fn (PackageAlias $a, PackageAlias $b): int => strcmp($a->command, $b->command));
+        if ($userAliases === []) {
+            $output->writeln('You have no aliases. Create one with <info>cpx alias</info>.');
 
-        if ($packages !== []) {
-            callout('Aliased packages:', [
-                Element::keyValueList(array_combine(
-                    array_map(fn (PackageAlias $package): string => 'cpx '.$package->command, $packages),
-                    array_map(fn (PackageAlias $package): string => $package->package, $packages),
-                )),
-            ]);
+            return self::SUCCESS;
         }
 
-        if ($userAliases !== []) {
-            ksort($userAliases);
+        ksort($userAliases);
 
-            callout('Your aliases:', [
-                Element::keyValueList(array_combine(
-                    array_map(fn (string $name): string => 'cpx '.$name, array_keys($userAliases)),
-                    array_map(fn (Package $package): string => $package->fullPackageString(), $userAliases),
-                )),
-            ]);
-        }
+        callout('Your aliases:', [
+            Element::keyValueList(array_combine(
+                array_map(fn (string $name): string => 'cpx '.$name, array_keys($userAliases)),
+                array_map(fn (Package $package): string => $package->displayString(), $userAliases),
+            )),
+        ]);
 
         return self::SUCCESS;
     }

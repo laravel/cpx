@@ -54,6 +54,41 @@ test('it rejects invalid package targets', function (string $target) {
     'laravel/pint:..',
 ])->throws(InvalidArgumentException::class);
 
-test('package cache keys are derived from validated identifiers or stable safe hashes')->todo(
-    'Enable when cache keys are redesigned to avoid raw constraint punctuation.',
-);
+test('it derives filesystem-safe version segments from hostile constraints', function (string $target) {
+    $segment = Package::parse($target)->versionName();
+
+    expect($segment)->not->toBe('')
+        ->and(preg_match('#[/\\\\:*?"<>|\s]#', $segment))->toBe(0);
+})->with([
+    'laravel/pint:^1@dev',
+    'laravel/pint:~1.0',
+    'laravel/pint:>=2,<3',
+    'laravel/pint:dev-main',
+    'laravel/pint:*',
+    'laravel/pint:1.0.0|2.0.0',
+]);
+
+test('it maps an unversioned package to the literal latest segment', function () {
+    expect(Package::parse('laravel/pint')->versionName())->toBe('latest');
+});
+
+test('it derives a deterministic version segment for the same constraint', function () {
+    $first = Package::parse('laravel/pint:^1@dev')->versionName();
+    $second = Package::parse('laravel/pint:^1@dev')->versionName();
+
+    expect($first)->toBe($second);
+});
+
+test('it disambiguates constraints that slug to the same readable prefix', function () {
+    $caret = Package::parse('laravel/pint:^1')->versionName();
+    $tilde = Package::parse('laravel/pint:~1')->versionName();
+
+    expect($caret)->not->toBe($tilde);
+});
+
+test('it keeps the true package string while using a safe directory key', function () {
+    $package = Package::parse('laravel/pint:>=2,<3');
+
+    expect($package->fullPackageString())->toBe('laravel/pint:>=2,<3')
+        ->and(preg_match('#[/\\\\:*?"<>|,\s]#', $package->versionName()))->toBe(0);
+});

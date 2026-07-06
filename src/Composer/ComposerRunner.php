@@ -4,30 +4,51 @@ declare(strict_types=1);
 
 namespace Cpx\Composer;
 
+use Closure;
+use Cpx\Exceptions\ComposerCommandException;
 use Cpx\Process\ProcessRunner;
-use Exception;
 use Symfony\Component\Console\Command\Command;
 
 class ComposerRunner
 {
+    /** @var (Closure(list<string>): int)|null */
+    private static ?Closure $fake = null;
+
     /**
      * @param  list<string>  $arguments
+     *
+     * @throws ComposerCommandException
      */
-    public static function run(array $arguments, ?string $directory = null): int
+    public static function run(array $arguments, ?string $directory = null, ComposerSource $source = ComposerSource::Bundled): int
     {
-        $command = ['composer', ...$arguments, '--no-interaction'];
+        $command = [...$arguments, '--no-interaction'];
 
         if ($directory !== null) {
             $command[] = "--working-dir={$directory}";
         }
 
-        $exitCode = (new ProcessRunner)->run($command);
+        $exitCode = self::$fake !== null
+            ? (self::$fake)($command)
+            : (new ProcessRunner)->run([...$source->binary(), ...$command]);
 
         if ($exitCode !== Command::SUCCESS) {
-            throw new Exception('Composer command failed: '.implode(' ', $arguments));
+            throw new ComposerCommandException($arguments);
         }
 
         return $exitCode;
+    }
+
+    /**
+     * @param  Closure(list<string>): int  $runner
+     */
+    public static function fake(Closure $runner): void
+    {
+        self::$fake = $runner;
+    }
+
+    public static function clearFake(): void
+    {
+        self::$fake = null;
     }
 
     /** @return list<string> */

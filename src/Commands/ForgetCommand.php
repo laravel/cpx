@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cpx\Commands;
 
 use Cpx\Packages\UserAliases;
+use InvalidArgumentException;
 use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
 use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -42,14 +43,8 @@ class ForgetCommand extends Command
 
         try {
             $name = $this->resolveName($input, $aliases);
-        } catch (NonInteractiveValidationException $e) {
+        } catch (InvalidArgumentException|NonInteractiveValidationException $e) {
             error($e->getMessage());
-
-            return self::FAILURE;
-        }
-
-        if (! $aliases->has($name)) {
-            error("No alias named \"{$name}\" was found.");
 
             return self::FAILURE;
         }
@@ -63,10 +58,28 @@ class ForgetCommand extends Command
 
     private function resolveName(InputInterface $input, UserAliases $aliases): string
     {
-        return $input->getArgument('name') ?? select(
+        if ($name = $input->getArgument('name')) {
+            if ($error = $this->validateName($name, $aliases)) {
+                throw new InvalidArgumentException($error);
+            }
+
+            return $name;
+        }
+
+        return (string) select(
             label: 'Which alias would you like to forget?',
             options: array_keys($aliases->all()),
             required: 'An alias name must be provided.',
+            info: fn (string $name): string => (string) $aliases->find($name),
         );
+    }
+
+    private function validateName(string $name, UserAliases $aliases): ?string
+    {
+        if (! $aliases->has($name)) {
+            return "No alias named \"{$name}\" was found.";
+        }
+
+        return null;
     }
 }
