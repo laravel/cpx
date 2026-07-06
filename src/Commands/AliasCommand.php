@@ -126,7 +126,7 @@ class AliasCommand extends Command
             return true;
         }
 
-        warning("The alias \"{$name}\" already runs {$current->displayString()}.");
+        warning("The alias \"{$name}\" is currently mapped to {$current->displayString()}.");
 
         return confirm(
             label: "Do you want to overwrite the \"{$name}\" alias?",

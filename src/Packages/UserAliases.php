@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cpx\Packages;
 
+use Cpx\Exceptions\MalformedAliasesException;
 use Cpx\Support\Filesystem;
 
 class UserAliases
@@ -17,6 +18,9 @@ class UserAliases
         protected array $aliases = [],
     ) {}
 
+    /**
+     * @throws MalformedAliasesException
+     */
     public static function open(): self
     {
         $file = cpx_path(self::FILE);
@@ -27,10 +31,28 @@ class UserAliases
 
         $json = json_decode((string) file_get_contents($file), true);
 
-        return new self(array_map(
-            fn (array $value): Package => Package::parse($value['package'])->withBin($value['bin']),
-            $json,
-        ));
+        if (! is_array($json)) {
+            throw new MalformedAliasesException($file);
+        }
+
+        $aliases = [];
+
+        foreach ($json as $name => $value) {
+            if (! is_string($name) || ! is_array($value)) {
+                throw new MalformedAliasesException($file);
+            }
+
+            $package = $value['package'] ?? null;
+            $bin = $value['bin'] ?? null;
+
+            if (! is_string($package) || (! is_string($bin) && $bin !== null)) {
+                throw new MalformedAliasesException($file);
+            }
+
+            $aliases[$name] = Package::parse($package)->withBin($bin);
+        }
+
+        return new self($aliases);
     }
 
     /** @return array<string, Package> */
