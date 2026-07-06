@@ -38,12 +38,8 @@ info "Fetching latest remote state..."
 git fetch --tags origin
 
 # Working tree must be clean (builds/ is gitignored, so a local build never trips this).
-if ! git diff --quiet || ! git diff --cached --quiet; then
-    abort "You have uncommitted changes. Please commit or stash them before releasing."
-fi
-
-if [ -n "$(git ls-files --others --exclude-standard)" ]; then
-    abort "You have untracked files. Please commit or remove them before releasing."
+if [ -n "$(git status --porcelain)" ]; then
+    abort "You have uncommitted changes or untracked files. Please clean up before releasing."
 fi
 
 # Local branch must be in sync with its remote.
@@ -135,9 +131,7 @@ success "Smoke test passed: $SMOKE_VERSION"
 info "Creating release $NEW_TAG..."
 gh release create "$NEW_TAG" builds/cpx --title "$NEW_TAG" --target "$RELEASE_BRANCH" --generate-notes
 
-REMOTE_URL=$(git remote get-url origin)
-REPO_PATH=$(echo "$REMOTE_URL" | sed -E 's|.*github\.com[:/]||;s|\.git$||')
-REPO_URL="https://github.com/${REPO_PATH}"
+REPO_URL=$(gh repo view --json url -q .url)
 
 echo ""
 success "Release $NEW_TAG created."
