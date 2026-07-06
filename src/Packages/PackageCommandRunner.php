@@ -12,7 +12,7 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Runs a non-built-in cpx target by resolving it to a local PHP file, a package
+ * Runs a non-built-in cpx target by resolving it to a local PHP file, a user
  * alias, or a vendor/package and executing it.
  */
 class PackageCommandRunner
@@ -27,12 +27,6 @@ class PackageCommandRunner
 
         if ($userAlias !== null) {
             return $userAlias->runCommand($invocation, $output);
-        }
-
-        $aliases = PackageAliases::all();
-
-        if (array_key_exists($invocation->target, $aliases)) {
-            return Package::parse($aliases[$invocation->target]->package)->runCommand($invocation, $output);
         }
 
         if (str_contains($invocation->target, '/')) {
