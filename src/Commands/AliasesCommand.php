@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
+use Cpx\Packages\Package;
 use Cpx\Packages\UserAliases;
+use Laravel\Prompts\Elements\Element;
+use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+
+use function Laravel\Prompts\callout;
 
 #[AsCommand(
     name: 'aliases',
@@ -18,6 +23,8 @@ class AliasesCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        Prompt::setOutput($output);
+
         $userAliases = UserAliases::open()->all();
 
         if ($userAliases === []) {
@@ -28,12 +35,12 @@ class AliasesCommand extends Command
 
         ksort($userAliases);
 
-        $output->writeln('Your aliases:'.PHP_EOL);
-
-        foreach ($userAliases as $name => $package) {
-            $paddedCommand = str_pad($name, 15);
-            $output->writeln('  <info>cpx '.$paddedCommand.'</info>   '.$package->displayString());
-        }
+        callout('Your aliases:', [
+            Element::keyValueList(array_combine(
+                array_map(fn (string $name): string => 'cpx '.$name, array_keys($userAliases)),
+                array_map(fn (Package $package): string => $package->displayString(), $userAliases),
+            )),
+        ]);
 
         return self::SUCCESS;
     }
