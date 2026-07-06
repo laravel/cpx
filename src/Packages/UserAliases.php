@@ -37,16 +37,24 @@ class UserAliases
             throw new MalformedAliasesException($file);
         }
 
+        $aliases = [];
+
         foreach ($json as $name => $value) {
-            if (! is_string($name) || ! is_string($value)) {
+            if (! is_string($name) || ! is_array($value)) {
                 throw new MalformedAliasesException($file);
             }
+
+            $package = $value['package'] ?? null;
+            $bin = $value['bin'] ?? null;
+
+            if (! is_string($package) || (! is_string($bin) && $bin !== null)) {
+                throw new MalformedAliasesException($file);
+            }
+
+            $aliases[$name] = Package::parse($package)->withBin($bin);
         }
 
-        return new self(array_map(
-            fn (string $value): Package => Package::parse($value),
-            $json,
-        ));
+        return new self($aliases);
     }
 
     /** @return array<string, Package> */
@@ -84,11 +92,14 @@ class UserAliases
         Filesystem::writeAtomic(cpx_path(self::FILE), (string) json_encode($this->toArray(), JSON_PRETTY_PRINT));
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, array{package: string, bin: string|null}> */
     public function toArray(): array
     {
         return array_map(
-            fn (Package $package): string => $package->fullPackageString(),
+            fn (Package $package): array => [
+                'package' => $package->fullPackageString(),
+                'bin' => $package->bin,
+            ],
             $this->aliases,
         );
     }
