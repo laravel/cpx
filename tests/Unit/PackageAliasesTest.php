@@ -26,7 +26,3 @@ test('each default alias has the required package runner fields', function () {
 test('alias dispatch uses the alias command field when selecting among multiple binaries')->todo(
     'Enable when binary selection uses validated alias metadata.',
 );
-
-test('aliases can be added or overridden through user-managed config')->todo(
-    'Enable when aliases move from hardcoded defaults to user-managed config.',
-);

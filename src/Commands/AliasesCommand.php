@@ -6,6 +6,7 @@ namespace Cpx\Commands;
 
 use Cpx\Packages\PackageAlias;
 use Cpx\Packages\PackageAliases;
+use Cpx\Packages\UserAliases;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -26,6 +27,21 @@ class AliasesCommand extends Command
         foreach ($packages as $package) {
             $paddedCommand = str_pad($package->command, 15);
             $output->writeln('  <info>cpx '.$paddedCommand.'</info>   '.$package->description);
+        }
+
+        $userAliases = UserAliases::open()->all();
+
+        if ($userAliases === []) {
+            return self::SUCCESS;
+        }
+
+        ksort($userAliases);
+
+        $output->writeln(PHP_EOL.'Your aliases:'.PHP_EOL);
+
+        foreach ($userAliases as $name => $package) {
+            $paddedCommand = str_pad($name, 15);
+            $output->writeln('  <info>cpx '.$paddedCommand.'</info>   '.$package->fullPackageString());
         }
 
         return self::SUCCESS;

@@ -43,6 +43,20 @@ Behind the scenes, cpx will install the package into a separate directory and ru
 
 For example, `cpx php-cs-fixer` is an alias for `cpx friendsofphp/php-cs-fixer`, and `cpx laravel` is an alias for `cpx laravel/installer`.
 
+### cpx alias
+
+`cpx alias` lets you create your own shortcut for a package, so you don't have to remember or type its full vendor/package name every time.
+
+```
+cpx alias laravel/pint pint
+```
+
+Both arguments are optional — if you leave either one out, cpx will prompt you for it. Leaving out the name defaults it to the package's short name, so `cpx alias laravel/pint` alone is enough to create the `pint` alias above.
+
+Your aliases are saved under `~/.cpx/` and shown alongside the built-in ones under `cpx aliases`. They take priority over the built-in aliases, so you can also use `cpx alias` to point an existing alias like `pint` at a different package.
+
+Use `cpx unalias <name>` to remove one of your aliases, e.g. `cpx unalias pint`. Leave off the name and cpx will prompt you for it.
+
 ### cpx list
 
 `cpx list` shows all the packages you have run via cpx and have installed.
@@ -106,5 +120,6 @@ Yes, cpx will manage the package versions for you, so you can run any version of
 The code is deliberately written in a way that it doesn't need any dependencies to run, so it has no chance of conflicting with your global composer dependencies if you use them for other things, as this is one of the problems cpx is trying to solve.
 
 ## Credits
+
 - [Liam Hammett](https://github.com/imliam)
 - [All Contributors](https://github.com/imliam/cpx/contributors)
