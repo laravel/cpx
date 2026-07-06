@@ -69,7 +69,7 @@ class AliasCommand extends Command
             return true;
         }
 
-        warning("The alias \"{$name}\" already runs {$current}.");
+        warning("The alias \"{$name}\" is currently mapped to {$current}.");
 
         return confirm(
             label: "Do you want to overwrite the \"{$name}\" alias?",
