@@ -57,17 +57,6 @@ test('it rejects an alias name that collides with a registered command', functio
         ->and(UserAliases::open()->has('clean'))->toBeFalse();
 });
 
-test('it allows an alias name that collides with a built-in package alias', function () {
-    $this->useIsolatedComposerHome();
-    prepareCachedPackage('vendor/custom-pint', ['custom-pint']);
-
-    $tester = aliasCommandTester();
-    $status = $tester->execute(['package' => 'vendor/custom-pint', 'name' => 'pint']);
-
-    expect($status)->toBe(0)
-        ->and(UserAliases::open()->find('pint')?->fullPackageString())->toBe('vendor/custom-pint');
-});
-
 test('it warns before overwriting an existing alias of the same name', function () {
     $this->useIsolatedComposerHome();
     prepareCachedPackage('vendor/two', ['two']);

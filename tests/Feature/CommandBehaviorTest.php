@@ -65,17 +65,16 @@ test('list renders installed packages with their last run timestamp', function (
         ->and($output)->toContain('Last Run: 2024-01-02 03:04:05');
 });
 
-test('aliases lists aliased package commands', function () {
+test('aliases reports when no aliases have been created', function () {
     $this->useIsolatedComposerHome();
 
     [$status, $output] = runCpxCommand(['aliases']);
 
     expect($status)->toBe(0)
-        ->and($output)->toContain('Aliased packages:')
-        ->and($output)->toContain('cpx pint');
+        ->and($output)->toContain('You have no aliases.');
 });
 
-test('aliases lists user-defined aliases alongside built-in aliases', function () {
+test('aliases lists user-defined aliases', function () {
     $this->useIsolatedComposerHome();
 
     UserAliases::open()->put('mypint', Package::parse('laravel/pint'))->save();
@@ -88,7 +87,7 @@ test('aliases lists user-defined aliases alongside built-in aliases', function (
         ->and($output)->toContain('laravel/pint');
 });
 
-test('a user-defined alias takes priority over a colliding built-in alias', function () {
+test('a user-defined alias resolves to its package', function () {
     $this->useIsolatedComposerHome();
 
     $packageDirectory = prepareCachedPackage('vendor/custom-pint', ['pint']);
@@ -101,7 +100,7 @@ test('a user-defined alias takes priority over a colliding built-in alias', func
         ->and($output)->toContain('Running pint from vendor/custom-pint');
 });
 
-test('forget removes a user-defined alias so the built-in alias resolves again', function () {
+test('forget removes a user-defined alias', function () {
     $this->useIsolatedComposerHome();
 
     $packageDirectory = prepareCachedPackage('vendor/custom-pint', ['pint']);
