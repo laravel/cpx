@@ -72,7 +72,7 @@ class UserAliases
         return $this;
     }
 
-    public function forget(string $name): self
+    public function remove(string $name): self
     {
         unset($this->aliases[$name]);
 

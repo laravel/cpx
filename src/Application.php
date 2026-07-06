@@ -8,10 +8,10 @@ use Cpx\Commands\AliasCommand;
 use Cpx\Commands\AliasesCommand;
 use Cpx\Commands\CleanCommand;
 use Cpx\Commands\ExecCommand;
-use Cpx\Commands\ForgetCommand;
 use Cpx\Commands\ListCommand;
 use Cpx\Commands\RunPackageCommand;
 use Cpx\Commands\TinkerCommand;
+use Cpx\Commands\UnaliasCommand;
 use Cpx\Commands\UpdateCommand;
 use Cpx\Commands\UpgradeCommand;
 use Cpx\Packages\PackageCommandRunner;
@@ -56,7 +56,7 @@ class Application extends SymfonyApplication
             new ListCommand,
             new AliasCommand,
             new AliasesCommand,
-            new ForgetCommand,
+            new UnaliasCommand,
             new CleanCommand,
             new UpdateCommand,
             new UpgradeCommand,

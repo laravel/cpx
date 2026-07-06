@@ -19,10 +19,10 @@ use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
 
 #[AsCommand(
-    name: 'forget',
+    name: 'unalias',
     description: 'Remove a user-defined alias',
 )]
-class ForgetCommand extends Command
+class UnaliasCommand extends Command
 {
     protected function configure(): void
     {
@@ -36,7 +36,7 @@ class ForgetCommand extends Command
         $aliases = UserAliases::open();
 
         if ($aliases->all() === []) {
-            info('You have no aliases to forget.');
+            info('You have no aliases to remove.');
 
             return self::SUCCESS;
         }
@@ -49,7 +49,7 @@ class ForgetCommand extends Command
             return self::FAILURE;
         }
 
-        $aliases->forget($name)->save();
+        $aliases->remove($name)->save();
 
         info("Alias \"{$name}\" removed.");
 
@@ -67,7 +67,7 @@ class ForgetCommand extends Command
         }
 
         return (string) select(
-            label: 'Which alias would you like to forget?',
+            label: 'Which alias would you like to remove?',
             options: array_keys($aliases->all()),
             required: 'An alias name must be provided.',
             info: fn (string $name): string => (string) $aliases->find($name),

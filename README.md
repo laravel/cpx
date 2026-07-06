@@ -55,7 +55,7 @@ Both arguments are optional — if you leave either one out, cpx will prompt you
 
 Your aliases are saved under `~/.cpx/` and shown alongside the built-in ones under `cpx aliases`. They take priority over the built-in aliases, so you can also use `cpx alias` to point an existing alias like `pint` at a different package.
 
-Use `cpx forget <name>` to remove one of your aliases, e.g. `cpx forget pint`. Leave off the name and cpx will prompt you for it.
+Use `cpx unalias <name>` to remove one of your aliases, e.g. `cpx unalias pint`. Leave off the name and cpx will prompt you for it.
 
 ### cpx list
 

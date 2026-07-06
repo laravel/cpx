@@ -39,11 +39,11 @@ test('find returns null for an unknown alias', function () {
     expect(UserAliases::open()->find('missing'))->toBeNull();
 });
 
-test('it forgets a saved alias', function () {
+test('it removes a saved alias', function () {
     $this->useIsolatedComposerHome();
 
     UserAliases::open()->put('mypint', Package::parse('laravel/pint'))->save();
-    UserAliases::open()->forget('mypint')->save();
+    UserAliases::open()->remove('mypint')->save();
 
     $aliases = UserAliases::open();
 
@@ -51,11 +51,11 @@ test('it forgets a saved alias', function () {
         ->and(json_decode((string) file_get_contents(cpx_path('aliases.json')), true))->toBe([]);
 });
 
-test('forgetting an unknown alias is a no-op', function () {
+test('removing an unknown alias is a no-op', function () {
     $this->useIsolatedComposerHome();
 
     UserAliases::open()->put('mypint', Package::parse('laravel/pint'))->save();
-    UserAliases::open()->forget('missing')->save();
+    UserAliases::open()->remove('missing')->save();
 
     expect(UserAliases::open()->has('mypint'))->toBeTrue();
 });

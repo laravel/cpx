@@ -5,11 +5,11 @@ use Cpx\Packages\Package;
 use Cpx\Packages\UserAliases;
 use Symfony\Component\Console\Tester\CommandTester;
 
-function forgetCommandTester(): CommandTester
+function unaliasCommandTester(): CommandTester
 {
     $application = new Application;
 
-    return new CommandTester($application->find('forget'));
+    return new CommandTester($application->find('unalias'));
 }
 
 test('it removes an existing alias by name', function () {
@@ -17,7 +17,7 @@ test('it removes an existing alias by name', function () {
 
     UserAliases::open()->put('mypint', Package::parse('laravel/pint'))->save();
 
-    $tester = forgetCommandTester();
+    $tester = unaliasCommandTester();
     $status = $tester->execute(['name' => 'mypint']);
 
     expect($status)->toBe(0)
@@ -30,7 +30,7 @@ test('it fails when the named alias does not exist among other saved aliases', f
 
     UserAliases::open()->put('mypint', Package::parse('laravel/pint'))->save();
 
-    $tester = forgetCommandTester();
+    $tester = unaliasCommandTester();
     $status = $tester->execute(['name' => 'missing']);
 
     expect($status)->toBe(1)
@@ -42,7 +42,7 @@ test('it fails gracefully when the name is omitted outside of an interactive ter
 
     UserAliases::open()->put('mypint', Package::parse('laravel/pint'))->save();
 
-    $tester = forgetCommandTester();
+    $tester = unaliasCommandTester();
     $status = $tester->execute([]);
 
     expect($status)->toBe(1)
@@ -50,22 +50,22 @@ test('it fails gracefully when the name is omitted outside of an interactive ter
         ->and(UserAliases::open()->has('mypint'))->toBeTrue();
 });
 
-test('it reports there is nothing to forget when no aliases exist and the argument is omitted', function () {
+test('it reports there is nothing to remove when no aliases exist and the argument is omitted', function () {
     $this->useIsolatedComposerHome();
 
-    $tester = forgetCommandTester();
+    $tester = unaliasCommandTester();
     $status = $tester->execute([]);
 
     expect($status)->toBe(0)
-        ->and($tester->getDisplay())->toContain('You have no aliases to forget.');
+        ->and($tester->getDisplay())->toContain('You have no aliases to remove.');
 });
 
-test('it reports there is nothing to forget when no aliases exist even if a name is given', function () {
+test('it reports there is nothing to remove when no aliases exist even if a name is given', function () {
     $this->useIsolatedComposerHome();
 
-    $tester = forgetCommandTester();
+    $tester = unaliasCommandTester();
     $status = $tester->execute(['name' => 'mypint']);
 
     expect($status)->toBe(0)
-        ->and($tester->getDisplay())->toContain('You have no aliases to forget.');
+        ->and($tester->getDisplay())->toContain('You have no aliases to remove.');
 });
