@@ -1,6 +1,7 @@
 <?php
 
 use Cpx\Application;
+use Cpx\Composer\ComposerRunner;
 use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -33,15 +34,27 @@ function writeExecutable(string $path, string $contents): void
 }
 
 /**
- * A fake `composer` that writes a working autoloader into the install directory it is given.
+ * Fake the in-process Composer runner; record each call's argv and write an autoloader on success.
+ *
+ * @param  list<list<string>>  $calls
  */
-function composerAutoloaderStub(): string
+function fakeComposer(array &$calls, int $exitCode = 0): void
 {
-    return "#!/usr/bin/env php\n<?php\n"
-        ."\$dir = null;\n"
-        ."foreach (\$argv as \$arg) { if (strncmp(\$arg, '--working-dir=', 14) === 0) { \$dir = substr(\$arg, 14); } }\n"
-        ."if (\$dir !== null) { @mkdir(\$dir.'/vendor', 0755, true); file_put_contents(\$dir.'/vendor/autoload.php', '<?php'); }\n"
-        .'exit(0);'."\n";
+    ComposerRunner::fake(function (array $command) use (&$calls, $exitCode): int {
+        $calls[] = $command;
+
+        if ($exitCode === 0) {
+            foreach ($command as $argument) {
+                if (str_starts_with($argument, '--working-dir=')) {
+                    $directory = substr($argument, strlen('--working-dir='));
+                    @mkdir("{$directory}/vendor", 0755, true);
+                    file_put_contents("{$directory}/vendor/autoload.php", '<?php');
+                }
+            }
+        }
+
+        return $exitCode;
+    });
 }
 
 /**
