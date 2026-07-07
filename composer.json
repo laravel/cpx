@@ -48,7 +48,7 @@
         "symfony/console": "^7.4|^8.0"
     },
     "bin": [
-        "cpx"
+        "builds/cpx"
     ],
     "scripts": {
         "analyse": [
