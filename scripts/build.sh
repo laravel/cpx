@@ -10,6 +10,10 @@ VERSION="${1:-}"
 VERSION_FILE="src/Version.php"
 VERSION_BACKUP=""
 
+RUNTIME_PACKAGES=("composer/composer" "laravel/prompts" "symfony/console")
+COMPOSER_JSON_BACKUP=""
+COMPOSER_LOCK_BACKUP=""
+
 # The pinned copy is cached under builds/ (gitignored) and only downloaded once.
 BOX_VERSION="4.7.0"
 BOX_URL="https://github.com/box-project/box/releases/download/${BOX_VERSION}/box.phar"
@@ -28,15 +32,42 @@ success() {
 }
 
 cleanup() {
-    # Restore the version placeholder if the build was interrupted after we replaced it.
+    # Restore anything we swapped out if the build was interrupted mid-flight.
     if [ -n "$VERSION_BACKUP" ] && [ -f "$VERSION_BACKUP" ]; then
         mv "$VERSION_BACKUP" "$VERSION_FILE"
+    fi
+    if [ -n "$COMPOSER_JSON_BACKUP" ] && [ -f "$COMPOSER_JSON_BACKUP" ]; then
+        mv "$COMPOSER_JSON_BACKUP" composer.json
+    fi
+    if [ -n "$COMPOSER_LOCK_BACKUP" ] && [ -f "$COMPOSER_LOCK_BACKUP" ]; then
+        mv "$COMPOSER_LOCK_BACKUP" composer.lock
     fi
 }
 trap cleanup EXIT
 
-info "Installing dependencies..."
-composer install --no-interaction --quiet
+# Promote the runtime packages into "require" and drop "require-dev" so a --no-dev install
+# resolves only the runtime closure. composer.json/lock are restored before the script exits.
+info "Installing production dependencies..."
+COMPOSER_JSON_BACKUP="composer.json.bak"
+COMPOSER_LOCK_BACKUP="composer.lock.bak"
+cp composer.json "$COMPOSER_JSON_BACKUP"
+cp composer.lock "$COMPOSER_LOCK_BACKUP"
+
+php -r '
+    $path = "composer.json";
+    $data = json_decode(file_get_contents($path), true);
+    foreach (array_slice($argv, 1) as $package) {
+        if (! isset($data["require-dev"][$package])) {
+            fwrite(STDERR, "Runtime package not found in require-dev: {$package}\n");
+            exit(1);
+        }
+        $data["require"][$package] = $data["require-dev"][$package];
+    }
+    unset($data["require-dev"]);
+    file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
+' "${RUNTIME_PACKAGES[@]}"
+
+composer update --no-dev --no-interaction --quiet
 
 if [ ! -f "$BOX_PHAR" ]; then
     info "Downloading Box ${BOX_VERSION}..."
@@ -61,5 +92,13 @@ if [ -n "$VERSION_BACKUP" ]; then
     mv "$VERSION_BACKUP" "$VERSION_FILE"
     VERSION_BACKUP=""
 fi
+
+# Restore the committed manifest and reinstall the dev dependencies for local work.
+info "Restoring development dependencies..."
+mv "$COMPOSER_JSON_BACKUP" composer.json
+COMPOSER_JSON_BACKUP=""
+mv "$COMPOSER_LOCK_BACKUP" composer.lock
+COMPOSER_LOCK_BACKUP=""
+composer install --no-interaction --quiet
 
 success "Built builds/cpx"
