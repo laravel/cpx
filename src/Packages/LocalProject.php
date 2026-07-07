@@ -114,16 +114,10 @@ readonly class LocalProject
 
         $data = json_decode($contents, true);
 
-        if (! is_array($data)) {
+        if (! is_array($data) || ! isset($data['packages']) || ! is_array($data['packages'])) {
             return [];
         }
 
-        $packages = array_key_exists('packages', $data) ? $data['packages'] : $data;
-
-        if (! is_array($packages)) {
-            return [];
-        }
-
-        return array_values(array_filter($packages, 'is_array'));
+        return array_values(array_filter($data['packages'], 'is_array'));
     }
 }

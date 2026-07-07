@@ -31,7 +31,7 @@ test('binaryPath returns the absolute path when the bin exists as a file', funct
     $root = $this->temporaryDirectory('cpx-project');
     file_put_contents("{$root}/composer.json", json_encode([]));
     mkdir("{$root}/vendor/bin", 0755, true);
-    writeExecutable("{$root}/vendor/bin/pint", "#!/usr/bin/env php\n<?php exit(0);\n");
+    writeExecutable("{$root}/vendor/bin/pint", noopBinary());
 
     $project = LocalProject::discover($root);
 
@@ -42,11 +42,20 @@ test('binaryPath joins a custom bin-dir', function () {
     $root = $this->temporaryDirectory('cpx-project');
     file_put_contents("{$root}/composer.json", json_encode(['config' => ['bin-dir' => 'tools']]));
     mkdir("{$root}/tools", 0755, true);
-    writeExecutable("{$root}/tools/pint", "#!/usr/bin/env php\n<?php exit(0);\n");
+    writeExecutable("{$root}/tools/pint", noopBinary());
 
     $project = LocalProject::discover($root);
 
     expect($project->binaryPath('pint'))->toBe("{$project->root}/tools/pint");
+});
+
+test('binaryPath honours an absolute bin-dir without joining the project root', function () {
+    $root = $this->temporaryDirectory('cpx-project');
+    $binDir = $this->temporaryDirectory('cpx-bin');
+    file_put_contents("{$root}/composer.json", json_encode(['config' => ['bin-dir' => $binDir]]));
+    writeExecutable("{$binDir}/pint", noopBinary());
+
+    expect(LocalProject::discover($root)->binaryPath('pint'))->toBe("{$binDir}/pint");
 });
 
 test('binaryPath returns null when the entry is missing', function () {
@@ -100,7 +109,7 @@ test('installedPackageDir returns the path when the package is installed', funct
         ->and($project->installedPackageDir('laravel', 'missing'))->toBeNull();
 });
 
-test('installedVersion reads the version from the packages-wrapped installed.json', function () {
+test('installedVersion reads the version from installed.json', function () {
     $root = $this->temporaryDirectory('cpx-project');
     file_put_contents("{$root}/composer.json", json_encode([]));
     mkdir("{$root}/vendor/composer", 0755, true);
@@ -111,17 +120,6 @@ test('installedVersion reads the version from the packages-wrapped installed.jso
     ]));
 
     expect(LocalProject::discover($root)->installedVersion('laravel', 'pint'))->toBe('v2.1.0');
-});
-
-test('installedVersion reads the version from the legacy flat installed.json', function () {
-    $root = $this->temporaryDirectory('cpx-project');
-    file_put_contents("{$root}/composer.json", json_encode([]));
-    mkdir("{$root}/vendor/composer", 0755, true);
-    file_put_contents("{$root}/vendor/composer/installed.json", json_encode([
-        ['name' => 'laravel/pint', 'version' => 'v1.13.0'],
-    ]));
-
-    expect(LocalProject::discover($root)->installedVersion('laravel', 'pint'))->toBe('v1.13.0');
 });
 
 test('installedVersion returns null when the package or installed.json is missing or invalid', function () {
