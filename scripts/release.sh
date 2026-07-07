@@ -37,7 +37,7 @@ fi
 info "Fetching latest remote state..."
 git fetch --tags origin
 
-# Working tree must be clean (builds/ is gitignored, so a local build never trips this).
+# Working tree must be clean before we build and commit the versioned phar.
 if [ -n "$(git status --porcelain)" ]; then
     abort "You have uncommitted changes or untracked files. Please clean up before releasing."
 fi
@@ -121,13 +121,19 @@ fi
 
 # Prove the bundled Composer runs from inside the phar by installing and executing a package.
 SMOKE_HOME=$(mktemp -d)
-CPX_HOME="$SMOKE_HOME" ./builds/cpx php-cs-fixer --version >/dev/null 2>&1 \
+CPX_HOME="$SMOKE_HOME" ./builds/cpx friendsofphp/php-cs-fixer --version >/dev/null 2>&1 \
     || { rm -rf "$SMOKE_HOME"; abort "Binary failed to install and run a package through the bundled Composer."; }
 rm -rf "$SMOKE_HOME"
 
 success "Smoke test passed: $SMOKE_VERSION"
 
-# Create the tag and attach the phar as the release asset consumed by 'cpx upgrade'.
+# Commit the versioned phar so 'composer global require/update cpx/cpx' serves it as the bin.
+info "Committing build..."
+git add builds/cpx
+git commit -m "Build $NEW_TAG"
+git push origin "$RELEASE_BRANCH"
+
+# Create the GitHub release; this also creates the tag that Packagist publishes.
 info "Creating release $NEW_TAG..."
 gh release create "$NEW_TAG" builds/cpx --title "$NEW_TAG" --target "$RELEASE_BRANCH" --generate-notes
 
