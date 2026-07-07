@@ -33,29 +33,38 @@ class PackageCommandRunner
             return (new ExecCommand)->run($this->fileInput($invocation), $output);
         }
 
+        try {
+            $package = $this->findPackage($invocation->target);
+        } catch (InvalidArgumentException) {
+            return $this->unrecognised($invocation->target);
+        }
+
         if (! $remote) {
-            $resolved = $this->localBinaryResolver->resolve($invocation);
+            $resolved = $package === null
+                ? $this->localBinaryResolver->resolveBare($invocation)
+                : $this->localBinaryResolver->resolve($package, $invocation);
 
             if ($resolved !== null) {
                 return $this->runLocal($resolved);
             }
         }
 
-        $userAlias = UserAliases::open()->find($invocation->target);
-
-        if ($userAlias !== null) {
-            return $userAlias->runCommand($invocation);
-        }
-
-        if (str_contains($invocation->target, '/')) {
-            try {
-                return Package::parse($invocation->target)->runCommand($invocation);
-            } catch (InvalidArgumentException) {
-                return $this->unrecognised($invocation->target);
-            }
+        if ($package !== null) {
+            return $package->runCommand($invocation);
         }
 
         return $this->unrecognised($invocation->target);
+    }
+
+    private function findPackage(string $target): ?Package
+    {
+        $alias = UserAliases::open()->find($target);
+
+        if ($alias !== null) {
+            return $alias;
+        }
+
+        return str_contains($target, '/') ? Package::parse($target) : null;
     }
 
     private function runLocal(ResolvedBin $resolved): int

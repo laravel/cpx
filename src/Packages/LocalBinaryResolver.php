@@ -5,46 +5,16 @@ declare(strict_types=1);
 namespace Cpx\Packages;
 
 use Composer\Semver\Semver;
-use Cpx\Composer\ComposerRunner;
 use Cpx\Input\PackageInvocation;
-use InvalidArgumentException;
 use UnexpectedValueException;
 
 class LocalBinaryResolver
 {
-    public function resolve(PackageInvocation $invocation): ?ResolvedBin
+    public function resolve(Package $package, PackageInvocation $invocation): ?ResolvedBin
     {
         $project = LocalProject::discover();
 
-        if ($project === null) {
-            return null;
-        }
-
-        $alias = UserAliases::open()->find($invocation->target);
-
-        return match (true) {
-            $alias !== null => $this->resolveInstalledPackage($project, $alias, $invocation),
-            str_contains($invocation->target, '/') => $this->resolvePackage($project, $invocation),
-            default => $this->resolveBare($project, $invocation),
-        };
-    }
-
-    private function resolvePackage(LocalProject $project, PackageInvocation $invocation): ?ResolvedBin
-    {
-        try {
-            $package = Package::parse($invocation->target);
-        } catch (InvalidArgumentException) {
-            return null;
-        }
-
-        return $this->resolveInstalledPackage($project, $package, $invocation);
-    }
-
-    private function resolveInstalledPackage(LocalProject $project, Package $package, PackageInvocation $invocation): ?ResolvedBin
-    {
-        $packageDir = $project->installedPackageDir($package->vendor, $package->name);
-
-        if ($packageDir === null) {
+        if ($project === null || $project->installedPackageDir($package->vendor, $package->name) === null) {
             return null;
         }
 
@@ -52,30 +22,22 @@ class LocalBinaryResolver
             return null;
         }
 
-        $selected = (new BinSelector)->select($this->localBinNames($packageDir), $invocation, $package->name, $package->bin);
+        $selected = (new BinSelector)->select($package->binaries($project->root), $invocation, $package->name, $package->bin);
 
         if ($selected === null) {
             return null;
         }
 
-        $path = $project->binaryPath($selected->command);
+        $path = $project->binaryPath(basename($selected->command));
 
         return $path === null ? null : new ResolvedBin($path, $selected->invocation);
     }
 
-    private function resolveBare(LocalProject $project, PackageInvocation $invocation): ?ResolvedBin
+    public function resolveBare(PackageInvocation $invocation): ?ResolvedBin
     {
-        $path = $project->binaryPath($invocation->target);
+        $path = LocalProject::discover()?->binaryPath($invocation->target);
 
         return $path === null ? null : new ResolvedBin($path, $invocation);
-    }
-
-    /** @return array<string, string> */
-    private function localBinNames(string $packageDir): array
-    {
-        $names = array_map('basename', ComposerRunner::detectBinFromComposer($packageDir));
-
-        return array_combine($names, $names);
     }
 
     private function installedVersionSatisfies(LocalProject $project, Package $package, string $constraint): bool
