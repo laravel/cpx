@@ -12,6 +12,8 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+use function Laravel\Prompts\info;
+
 #[AsCommand(
     name: 'update',
     description: 'Update installed cpx packages',
@@ -41,7 +43,7 @@ class UpdateCommand extends Command
         $packageDirectories = glob(cpx_path('*/*/*'), GLOB_ONLYDIR) ?: [];
 
         if (empty($packageDirectories)) {
-            $output->writeln('There are no packages to update.');
+            info('There are no packages to update.');
         } else {
             foreach ($packageDirectories as $directory) {
                 $this->updateDirectory($directory, $output);
@@ -54,7 +56,7 @@ class UpdateCommand extends Command
         $packageDirectories = glob(cpx_path("{$vendor}/*/*"), GLOB_ONLYDIR) ?: [];
 
         if (empty($packageDirectories)) {
-            $output->writeln("There are no packages in vendor '{$vendor}' to update.");
+            info("There are no packages in vendor '{$vendor}' to update.");
         } else {
             foreach ($packageDirectories as $directory) {
                 $this->updateDirectory($directory, $output);
@@ -73,7 +75,7 @@ class UpdateCommand extends Command
         $packageDirectories = glob(cpx_path("{$package->vendor}/{$package->name}/*"), GLOB_ONLYDIR) ?: [];
 
         if (empty($packageDirectories)) {
-            $output->writeln("There are no installed versions of '{$package->vendor}/{$package->name}' to update.");
+            info("There are no installed versions of '{$package->vendor}/{$package->name}' to update.");
         } else {
             foreach ($packageDirectories as $directory) {
                 $this->updateDirectory($directory, $output);
@@ -83,7 +85,7 @@ class UpdateCommand extends Command
 
     protected function updateDirectory(string $directory, OutputInterface $output): void
     {
-        $output->writeln('Updating <info>'.str_replace(cpx_path(), '', $directory).'</info>');
+        info('Updating '.str_replace(cpx_path(), '', $directory));
         ComposerRunner::run(['update'], $directory);
     }
 }

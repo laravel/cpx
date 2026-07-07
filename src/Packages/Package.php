@@ -16,6 +16,9 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
+
 class Package
 {
     /**
@@ -130,7 +133,7 @@ class Package
         $binScripts = $this->binaries($installDir);
 
         if (empty($binScripts)) {
-            $output->writeln("<error>No bin command found in {$this}.</error>");
+            error("No bin command found in {$this}.");
 
             return Command::FAILURE;
         }
@@ -138,7 +141,7 @@ class Package
         $resolved = $this->resolveBinCommand($binScripts, $invocation);
 
         if ($resolved === null) {
-            $output->writeln("<error>More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.</error>');
+            error("More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.');
 
             return Command::FAILURE;
         }
@@ -146,13 +149,13 @@ class Package
         $binPath = "{$packageDir}/{$resolved->command}";
 
         if (! file_exists($binPath)) {
-            $output->writeln('<error>Command '.basename($resolved->command)." not found in {$this}.</error>");
+            error('Command '.basename($resolved->command)." not found in {$this}.");
 
             return Command::FAILURE;
         }
 
         Metadata::transaction(fn (Metadata $metadata) => $metadata->recordRun($this));
-        $output->writeln('<info>Running '.basename($resolved->command)." from {$this}</info>");
+        info('Running '.basename($resolved->command)." from {$this}");
 
         return (new ProcessRunner)->run([$binPath, ...$resolved->invocation->forwardedTokens()]);
     }
@@ -164,7 +167,7 @@ class Package
         match (true) {
             ! $this->isInstalled() => $this->installPackage($output, $installDir),
             $updateCheck && $this->shouldCheckForUpdates() => $this->updatePackage($output, $installDir),
-            default => $output->writeln("<info>{$this} is already installed and doesn't need updating.</info>"),
+            default => info("{$this} is already installed and doesn't need updating."),
         };
 
         return $installDir;
@@ -247,7 +250,7 @@ class Package
 
     private function installPackage(OutputInterface $output, string $installDir): void
     {
-        $output->writeln("<info>Installing {$this}...</info>");
+        info("Installing {$this}...");
 
         $cacheRoot = cpx_path();
         Filesystem::ensureDirectory($cacheRoot);
@@ -291,15 +294,15 @@ class Package
 
     private function updatePackage(OutputInterface $output, string $installDir): void
     {
-        $output->writeln("<info>Checking for updates for {$this}...</info>");
+        info("Checking for updates for {$this}...");
         $previousVersion = ComposerRunner::getCurrentVersion($installDir);
         ComposerRunner::run(['update'], $installDir);
         $newVersion = ComposerRunner::getCurrentVersion($installDir);
 
         if ($previousVersion !== $newVersion) {
-            $output->writeln("<info>{$this} was upgraded from {$previousVersion} to {$newVersion}.</info>");
+            info("{$this} was upgraded from {$previousVersion} to {$newVersion}.");
         } else {
-            $output->writeln("<info>{$this} is already up-to-date.</info>");
+            info("{$this} is already up-to-date.");
         }
 
         Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));

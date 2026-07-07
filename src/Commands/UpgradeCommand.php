@@ -11,6 +11,8 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+use function Laravel\Prompts\info;
+
 #[AsCommand(
     name: 'upgrade',
     description: 'Upgrade cpx itself',
@@ -19,7 +21,7 @@ class UpgradeCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $output->writeln('Updating <info>cpx</info>');
+        info('Updating cpx');
 
         return ComposerRunner::run(['global', 'update', 'cpx/cpx'], source: ComposerSource::Device);
     }

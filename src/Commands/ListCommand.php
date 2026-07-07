@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Cpx\Commands;
 
 use Cpx\Cache\Metadata;
+use Cpx\Cache\PackageMetadata;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+
+use function Laravel\Prompts\info;
+use function Laravel\Prompts\table;
 
 #[AsCommand(
     name: 'list',
@@ -21,16 +25,22 @@ class ListCommand extends Command
         $metadata = Metadata::open();
 
         if (empty($metadata->packages)) {
-            $output->writeln('There are no installed packages.');
+            info('There are no installed packages.');
 
             return self::SUCCESS;
         }
 
-        $output->writeln('Installed Packages:');
-
-        foreach ($metadata->packages as $packageMetadata) {
-            $output->writeln("<info>  {$packageMetadata->package->fullPackageString()}</info> (Last Run: {$packageMetadata->lastRunForDisplay()})");
-        }
+        info('Installed Packages:');
+        table(
+            headers: ['Package', 'Details'],
+            rows: array_values(array_map(
+                fn (PackageMetadata $packageMetadata): array => [
+                    $packageMetadata->package->fullPackageString(),
+                    'Last Run: '.$packageMetadata->lastRunForDisplay(),
+                ],
+                $metadata->packages,
+            )),
+        );
 
         return self::SUCCESS;
     }

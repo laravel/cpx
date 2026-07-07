@@ -13,6 +13,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\callout;
+use function Laravel\Prompts\info;
 
 #[AsCommand(
     name: 'aliases',
@@ -25,7 +26,7 @@ class AliasesCommand extends Command
         $userAliases = UserAliases::open()->all();
 
         if ($userAliases === []) {
-            $output->writeln('You have no aliases. Create one with <info>cpx alias</info>.');
+            info('You have no aliases. Create one with cpx alias.');
 
             return self::SUCCESS;
         }
