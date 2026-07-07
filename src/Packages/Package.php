@@ -206,51 +206,13 @@ class Package
      */
     private function resolveBinCommand(array $binScripts, PackageInvocation $invocation): ?ResolvedBin
     {
-        if ($this->bin !== null) {
-            $command = $this->matchBin($binScripts, $this->bin);
+        $resolved = (new BinSelector)->select($binScripts, $invocation, $this->name, $this->bin);
 
-            if ($command === null) {
-                throw new RuntimeException("The requested bin command '{$this->bin}' was not found in {$this}.");
-            }
-
-            return new ResolvedBin($command, $invocation);
+        if ($resolved === null && $this->bin !== null) {
+            throw new RuntimeException("The requested bin command '{$this->bin}' was not found in {$this}.");
         }
 
-        if (count($binScripts) === 1) {
-            return new ResolvedBin($binScripts[array_key_first($binScripts)], $invocation);
-        }
-
-        $candidates = array_values(array_unique(array_filter([
-            $invocation->target,
-            $invocation->firstForwardedToken(),
-            $this->name,
-        ])));
-
-        foreach ($candidates as $candidate) {
-            $command = $this->matchBin($binScripts, $candidate);
-
-            if ($command === null) {
-                continue;
-            }
-
-            return $invocation->firstForwardedToken() === $candidate
-                ? new ResolvedBin($command, $invocation->withoutFirstForwardedToken())
-                : new ResolvedBin($command, $invocation);
-        }
-
-        return null;
-    }
-
-    /**
-     * @param  array<string, string>  $binScripts
-     */
-    private function matchBin(array $binScripts, string $candidate): ?string
-    {
-        if (array_key_exists($candidate, $binScripts)) {
-            return $binScripts[$candidate];
-        }
-
-        return in_array($candidate, $binScripts, true) ? $candidate : null;
+        return $resolved;
     }
 
     private function installPackage(string $installDir): void
