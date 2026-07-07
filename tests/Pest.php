@@ -36,6 +36,14 @@ function argvLoggingBinary(string $logFile, int $exitCode = 0): string
 }
 
 /**
+ * A PHP binary that does nothing and exits with $exitCode.
+ */
+function noopBinary(int $exitCode = 0): string
+{
+    return "#!/usr/bin/env php\n<?php exit({$exitCode});\n";
+}
+
+/**
  * Fake the in-process Composer runner; record each call's argv and write an autoloader on success.
  *
  * @param  list<list<string>>  $calls

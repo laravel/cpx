@@ -124,7 +124,7 @@ test('the --remote flag skips the local binary and uses the isolated install', f
 
     // The local pint would exit 77 if it were (incorrectly) preferred over --remote.
     $this->installLocalPackage($root, 'laravel/pint', ['pint']);
-    $this->writeLocalBinary($root, 'pint', "#!/usr/bin/env php\n<?php exit(77);\n");
+    $this->writeLocalBinary($root, 'pint', noopBinary(77));
 
     prepareCachedPackage('laravel/pint', ['pint'], [
         'pint' => argvLoggingBinary($logFile),
