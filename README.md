@@ -8,18 +8,18 @@ cpx is to Composer what npx is to npm.
 
 ## Installation
 
-cpx ships as a standalone PHAR. Download the latest release, make it executable, and move it onto your `PATH`:
+Install cpx globally with Composer:
 
 ```bash
-curl -L https://github.com/laravel/cpx/releases/latest/download/cpx -o cpx
-chmod +x cpx
-mv cpx /usr/local/bin/cpx
+composer global require cpx/cpx
 ```
 
-Once installed, upgrade to the latest release at any time by running:
+Make sure Composer's global `bin` directory is on your `PATH` (you can find it with `composer global config bin-dir --absolute`) so you can run `cpx` from anywhere.
+
+Upgrade to the latest release at any time by running:
 
 ```bash
-cpx upgrade
+composer global update cpx/cpx
 ```
 
 ## Usage
@@ -96,14 +96,16 @@ When using these commands, you get the following benefits:
 
 ## FAQ:
 
-### Why not just use global composer?
+### Why not just install every tool with global composer?
 
-Installing packages with `composer global require` is a great way to install packages that you want to use globally, but it has some downsides:
+Installing individual tools with `composer global require` works, but it has some downsides:
 
 - You can get conflicts with other global dependencies (especially tooling using common dependencies like `nikic/php-parser` and `symfony/console`)
 - You might need to switch between versions of the package between runs, but can only have one version installed globally
 - You need to remember to update your global packages if you are using them long-term
 - You might only use a package's command once, and don't want to install it globally
+
+cpx itself is safe to install with `composer global require` because it has no runtime Composer dependencies of its own — it ships as a self-contained PHAR (see below), so it doesn't add to the global dependency conflict surface.
 
 ### What kind of one-off commands might I want to run with cpx?
 
