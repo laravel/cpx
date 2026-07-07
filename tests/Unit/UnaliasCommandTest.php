@@ -3,13 +3,11 @@
 use Cpx\Application;
 use Cpx\Packages\Package;
 use Cpx\Packages\UserAliases;
-use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\Console\Tester\ApplicationTester;
 
-function unaliasCommandTester(): CommandTester
+function unaliasCommandTester(): ApplicationTester
 {
-    $application = new Application;
-
-    return new CommandTester($application->find('unalias'));
+    return new ApplicationTester(new Application);
 }
 
 test('it removes an existing alias by name', function () {
@@ -18,7 +16,7 @@ test('it removes an existing alias by name', function () {
     UserAliases::open()->put('mypint', Package::parse('laravel/pint'))->save();
 
     $tester = unaliasCommandTester();
-    $status = $tester->execute(['name' => 'mypint']);
+    $status = $tester->run(['command' => 'unalias', 'name' => 'mypint']);
 
     expect($status)->toBe(0)
         ->and($tester->getDisplay())->toContain('Alias "mypint" removed.')
@@ -31,7 +29,7 @@ test('it fails when the named alias does not exist among other saved aliases', f
     UserAliases::open()->put('mypint', Package::parse('laravel/pint'))->save();
 
     $tester = unaliasCommandTester();
-    $status = $tester->execute(['name' => 'missing']);
+    $status = $tester->run(['command' => 'unalias', 'name' => 'missing']);
 
     expect($status)->toBe(1)
         ->and($tester->getDisplay())->toContain('No alias named "missing" was found.');
@@ -43,7 +41,7 @@ test('it fails gracefully when the name is omitted outside of an interactive ter
     UserAliases::open()->put('mypint', Package::parse('laravel/pint'))->save();
 
     $tester = unaliasCommandTester();
-    $status = $tester->execute([]);
+    $status = $tester->run(['command' => 'unalias']);
 
     expect($status)->toBe(1)
         ->and($tester->getDisplay())->toContain('An alias name must be provided.')
@@ -54,7 +52,7 @@ test('it reports there is nothing to remove when no aliases exist and the argume
     $this->useIsolatedComposerHome();
 
     $tester = unaliasCommandTester();
-    $status = $tester->execute([]);
+    $status = $tester->run(['command' => 'unalias']);
 
     expect($status)->toBe(0)
         ->and($tester->getDisplay())->toContain('You have no aliases to remove.');
@@ -64,7 +62,7 @@ test('it reports there is nothing to remove when no aliases exist even if a name
     $this->useIsolatedComposerHome();
 
     $tester = unaliasCommandTester();
-    $status = $tester->execute(['name' => 'mypint']);
+    $status = $tester->run(['command' => 'unalias', 'name' => 'mypint']);
 
     expect($status)->toBe(0)
         ->and($tester->getDisplay())->toContain('You have no aliases to remove.');

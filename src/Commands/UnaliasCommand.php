@@ -7,7 +7,6 @@ namespace Cpx\Commands;
 use Cpx\Packages\UserAliases;
 use InvalidArgumentException;
 use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
-use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -31,8 +30,6 @@ class UnaliasCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        Prompt::setOutput($output);
-
         $aliases = UserAliases::open();
 
         if ($aliases->all() === []) {

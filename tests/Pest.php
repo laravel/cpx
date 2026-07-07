@@ -2,17 +2,11 @@
 
 use Cpx\Application;
 use Cpx\Composer\ComposerRunner;
-use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)->in('Feature', 'Unit');
-
-function promptOutput(): string
-{
-    return Prompt::strippedContent();
-}
 
 /**
  * @param  list<string>  $arguments
