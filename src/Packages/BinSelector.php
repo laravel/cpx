@@ -32,13 +32,11 @@ class BinSelector
         foreach (array_unique($candidates) as $candidate) {
             $command = $this->match($bins, $candidate);
 
-            if ($command === null) {
-                continue;
+            if ($command !== null) {
+                return $invocation->firstForwardedToken() === $candidate
+                    ? new ResolvedBin($command, $invocation->withoutFirstForwardedToken())
+                    : new ResolvedBin($command, $invocation);
             }
-
-            return $invocation->firstForwardedToken() === $candidate
-                ? new ResolvedBin($command, $invocation->withoutFirstForwardedToken())
-                : new ResolvedBin($command, $invocation);
         }
 
         return null;
