@@ -7,7 +7,6 @@ namespace Cpx\Commands;
 use Cpx\Packages\Package;
 use Cpx\Packages\UserAliases;
 use Laravel\Prompts\Elements\Element;
-use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -23,8 +22,6 @@ class AliasesCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        Prompt::setOutput($output);
-
         $userAliases = UserAliases::open()->all();
 
         if ($userAliases === []) {

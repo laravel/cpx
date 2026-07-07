@@ -15,9 +15,11 @@ use Cpx\Commands\UnaliasCommand;
 use Cpx\Commands\UpdateCommand;
 use Cpx\Commands\UpgradeCommand;
 use Cpx\Packages\PackageCommandRunner;
+use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Application extends SymfonyApplication
@@ -33,6 +35,9 @@ class Application extends SymfonyApplication
     public function run(?InputInterface $input = null, ?OutputInterface $output = null): int
     {
         $input ??= new ArgvInput;
+        $output ??= new ConsoleOutput;
+
+        Prompt::setOutput($output);
 
         if ($input instanceof ArgvInput && $this->shouldRunPackageFallback($input)) {
             $input = new ArgvInput(['cpx', RunPackageCommand::NAME, '--', ...$input->getRawTokens()]);

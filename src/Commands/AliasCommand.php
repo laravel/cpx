@@ -8,7 +8,6 @@ use Cpx\Packages\Package;
 use Cpx\Packages\UserAliases;
 use InvalidArgumentException;
 use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
-use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -39,8 +38,6 @@ class AliasCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        Prompt::setOutput($output);
-
         try {
             $package = $this->resolvePackage($input);
             $name = $this->resolveName($input, $package);

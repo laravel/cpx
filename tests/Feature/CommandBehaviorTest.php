@@ -117,10 +117,10 @@ test('unalias removes a user-defined alias', function () {
 test('clean reports when there are no packages to clean', function () {
     $this->useIsolatedComposerHome();
 
-    [$status] = runCpxCommand(['clean']);
+    [$status, $output] = runCpxCommand(['clean']);
 
     expect($status)->toBe(0)
-        ->and(promptOutput())->toContain('Nothing to clean');
+        ->and($output)->toContain('Nothing to clean');
 });
 
 test('update reports when there are no packages to update', function () {
