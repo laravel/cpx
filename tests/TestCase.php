@@ -111,6 +111,50 @@ abstract class TestCase extends BaseTestCase
         chdir($directory);
     }
 
+    protected function prepareLocalProject(?string $binDir = null): string
+    {
+        $root = $this->temporaryDirectory('cpx-project');
+
+        $composer = $binDir === null ? [] : ['config' => ['bin-dir' => $binDir]];
+        file_put_contents("{$root}/composer.json", json_encode($composer, JSON_THROW_ON_ERROR));
+
+        $this->useWorkingDirectory($root);
+
+        return $root;
+    }
+
+    protected function writeLocalBinary(string $root, string $name, string $contents, ?string $binDir = null): string
+    {
+        $directory = "{$root}/".($binDir ?? 'vendor/bin');
+
+        if (! is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        $path = "{$directory}/{$name}";
+        writeExecutable($path, $contents);
+
+        return $path;
+    }
+
+    /**
+     * @param  list<string>  $bins
+     */
+    protected function installLocalPackage(string $root, string $package, array $bins, ?string $version = null): void
+    {
+        [$vendor, $name] = explode('/', $package);
+        $directory = "{$root}/vendor/{$vendor}/{$name}";
+
+        mkdir($directory, 0755, true);
+        file_put_contents("{$directory}/composer.json", json_encode(['bin' => $bins], JSON_THROW_ON_ERROR));
+
+        if ($version === null) {
+            return;
+        }
+
+        $this->recordInstalledVersion($root, $package, $version);
+    }
+
     /**
      * @param  list<string>  $packages
      */
@@ -189,6 +233,30 @@ abstract class TestCase extends BaseTestCase
         ], JSON_THROW_ON_ERROR));
 
         return ['staging' => $staging, 'package' => $package, 'pluginClass' => $pluginClass];
+    }
+
+    private function recordInstalledVersion(string $root, string $package, string $version): void
+    {
+        $composerDirectory = "{$root}/vendor/composer";
+
+        if (! is_dir($composerDirectory)) {
+            mkdir($composerDirectory, 0755, true);
+        }
+
+        $installedFile = "{$composerDirectory}/installed.json";
+        $installed = ['packages' => []];
+
+        if (is_file($installedFile)) {
+            $decoded = json_decode((string) file_get_contents($installedFile), true);
+
+            if (is_array($decoded) && isset($decoded['packages']) && is_array($decoded['packages'])) {
+                $installed = $decoded;
+            }
+        }
+
+        $installed['packages'][] = ['name' => $package, 'version' => $version];
+
+        file_put_contents($installedFile, json_encode($installed, JSON_THROW_ON_ERROR));
     }
 
     private function deleteDirectory(string $directory): void

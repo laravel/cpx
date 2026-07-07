@@ -48,8 +48,14 @@ class RunPackageCommand extends SymfonyCommand
             array_shift($tokens);
         }
 
+        $remote = ($tokens[0] ?? null) === '--remote';
+
+        if ($remote) {
+            array_shift($tokens);
+        }
+
         try {
-            return $this->packageCommandRunner->run(PackageInvocation::fromRawTokens($tokens), $output);
+            return $this->packageCommandRunner->run(PackageInvocation::fromRawTokens($tokens), $output, $remote);
         } catch (InvalidArgumentException $e) {
             error($e->getMessage());
 

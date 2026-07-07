@@ -41,7 +41,25 @@ cpx <package-name> [arguments]
 # Example: cpx friendsofphp/php-cs-fixer fix ./src
 ```
 
-Behind the scenes, cpx will install the package into a separate directory and run the command, keeping it separate from both your project and global Composer dependencies. Subsequent runs of the same package will use the same installation and run quickly, unless you specify a different version or there is an update to the package available.
+Behind the scenes, cpx will install the package into a separate directory and run the command, keeping it separate from both your project and global Composer dependencies (unless the package is already installed in your project — see below). Subsequent runs of the same package will use the same installation and run quickly, unless you specify a different version or there is an update to the package available.
+
+### Local project binaries
+
+Like `npx`, cpx prefers a binary that is already installed in your project. Before installing an isolated copy, cpx finds the nearest Composer project (walking up from the current directory) and runs the matching binary from its configured `bin-dir` (`vendor/bin` by default):
+
+```bash
+cpx pint                 # runs vendor/bin/pint when the project has it installed
+cpx phpunit --filter=Foo # runs vendor/bin/phpunit when present
+cpx laravel/pint:^2.0    # uses the local pint only when the installed version satisfies ^2.0
+```
+
+This keeps cpx aligned with the versions your project pins. When no matching local binary is found, cpx falls back to installing and running an isolated copy.
+
+To skip the local binary and force the isolated copy, pass `--remote` before the package:
+
+```bash
+cpx --remote laravel/pint --version
+```
 
 ---
 

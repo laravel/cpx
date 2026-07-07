@@ -235,7 +235,7 @@ test('unknown package targets route to the package fallback command', function (
     {
         public ?PackageInvocation $invocation = null;
 
-        public function run(PackageInvocation $invocation, OutputInterface $output): int
+        public function run(PackageInvocation $invocation, OutputInterface $output, bool $remote = false): int
         {
             $this->invocation = $invocation;
 
@@ -257,7 +257,7 @@ test('package fallback accepts arbitrary package options without Symfony validat
     {
         public ?PackageInvocation $invocation = null;
 
-        public function run(PackageInvocation $invocation, OutputInterface $output): int
+        public function run(PackageInvocation $invocation, OutputInterface $output, bool $remote = false): int
         {
             $this->invocation = $invocation;
 
@@ -296,7 +296,7 @@ test('package-target version options are forwarded instead of rendering cpx vers
     {
         public ?PackageInvocation $invocation = null;
 
-        public function run(PackageInvocation $invocation, OutputInterface $output): int
+        public function run(PackageInvocation $invocation, OutputInterface $output, bool $remote = false): int
         {
             $this->invocation = $invocation;
 
