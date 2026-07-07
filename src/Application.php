@@ -13,7 +13,6 @@ use Cpx\Commands\RunPackageCommand;
 use Cpx\Commands\TinkerCommand;
 use Cpx\Commands\UnaliasCommand;
 use Cpx\Commands\UpdateCommand;
-use Cpx\Commands\UpgradeCommand;
 use Cpx\Composer\ComposerRunner;
 use Cpx\Packages\PackageCommandRunner;
 use Symfony\Component\Console\Application as SymfonyApplication;
@@ -69,7 +68,6 @@ class Application extends SymfonyApplication
             new UnaliasCommand,
             new CleanCommand,
             new UpdateCommand,
-            new UpgradeCommand,
             new ExecCommand,
             new TinkerCommand,
             new RunPackageCommand($packageCommandRunner),
