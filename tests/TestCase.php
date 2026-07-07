@@ -73,7 +73,7 @@ abstract class TestCase extends BaseTestCase
 
         $this->temporaryDirectories[] = $directory;
 
-        return $directory;
+        return realpath($directory) ?: $directory;
     }
 
     protected function useIsolatedComposerHome(): string
