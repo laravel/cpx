@@ -1,0 +1,19 @@
+{
+    "main": "cpx",
+    "output": "builds/cpx",
+    "chmod": "0755",
+    "directories": [
+        "src",
+        "files",
+        "vendor"
+    ],
+    "files": [
+        "composer.json"
+    ],
+    "exclude-composer-files": false,
+    "compression": "GZ",
+    "compactors": [
+        "KevinGH\\Box\\Compactor\\Php",
+        "KevinGH\\Box\\Compactor\\Json"
+    ]
+}

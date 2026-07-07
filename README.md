@@ -8,10 +8,18 @@ cpx is to Composer what npx is to npm.
 
 ## Installation
 
-Using [Composer](https://getcomposer.org/doc/00-intro.md), you can install cpx by running:
+Install cpx globally with Composer:
 
 ```bash
 composer global require cpx/cpx
+```
+
+Make sure Composer's global `bin` directory is on your `PATH` (you can find it with `composer global config bin-dir --absolute`) so you can run `cpx` from anywhere.
+
+Upgrade to the latest release at any time by running:
+
+```bash
+composer global update cpx/cpx
 ```
 
 ## Usage
@@ -88,14 +96,16 @@ When using these commands, you get the following benefits:
 
 ## FAQ:
 
-### Why not just use global composer?
+### Why not just install every tool with global composer?
 
-Installing packages with `composer global require` is a great way to install packages that you want to use globally, but it has some downsides:
+Installing individual tools with `composer global require` works, but it has some downsides:
 
 - You can get conflicts with other global dependencies (especially tooling using common dependencies like `nikic/php-parser` and `symfony/console`)
 - You might need to switch between versions of the package between runs, but can only have one version installed globally
 - You need to remember to update your global packages if you are using them long-term
 - You might only use a package's command once, and don't want to install it globally
+
+cpx itself is safe to install with `composer global require` because it has no runtime Composer dependencies of its own — it ships as a self-contained PHAR (see below), so it doesn't add to the global dependency conflict surface.
 
 ### What kind of one-off commands might I want to run with cpx?
 
@@ -109,9 +119,9 @@ There are a few reasons you might want to run a one-off command with cpx:
 
 Yes, cpx will manage the package versions for you, so you can run any version of the package you want.
 
-### Why does the source code of cpx have no dependencies?
+### Does cpx conflict with my project or global Composer dependencies?
 
-The code is deliberately written in a way that it doesn't need any dependencies to run, so it has no chance of conflicting with your global composer dependencies if you use them for other things, as this is one of the problems cpx is trying to solve.
+No. cpx ships as a self-contained PHAR with its own runtime dependencies bundled and isolated inside it, kept separate from both your project and your global Composer setup. Avoiding those conflicts is one of the problems cpx is built to solve.
 
 ## Credits
 
