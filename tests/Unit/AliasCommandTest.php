@@ -18,7 +18,8 @@ test('it creates an alias non-interactively from positional arguments', function
     $status = $tester->run(['command' => 'alias', 'package' => 'laravel/pint', 'name' => 'mypint']);
 
     expect($status)->toBe(0)
-        ->and($tester->getDisplay())->toContain('Alias created: cpx mypint')
+        ->and($tester->getDisplay())->toContain('Alias created')
+        ->and($tester->getDisplay())->toContain('cpx mypint now runs laravel/pint')
         ->and(UserAliases::open()->find('mypint')?->fullPackageString())->toBe('laravel/pint');
 });
 
@@ -110,7 +111,8 @@ test('it pins the alias to the binary chosen with --bin for a multi-binary packa
     $status = $tester->run(['command' => 'alias', 'package' => 'vendor/package', 'name' => 'tool', '--bin' => 'bar']);
 
     expect($status)->toBe(0)
-        ->and($tester->getDisplay())->toContain('now runs vendor/package (bar)');
+        ->and($tester->getDisplay())->toContain('Alias created')
+        ->and($tester->getDisplay())->toContain('cpx tool now runs vendor/package (bar)');
 
     $alias = UserAliases::open()->find('tool');
 
