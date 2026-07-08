@@ -42,6 +42,12 @@ test('the app does not call proc_open directly', function () {
     expect($offenders)->toBe([]);
 });
 
+test('only the process runner uses the symfony process component', function () {
+    $offenders = sourceFilesContaining('Symfony\\Component\\Process', except: ['src/Process/ProcessRunner.php']);
+
+    expect($offenders)->toBe([]);
+});
+
 /**
  * @return list<string>
  */
