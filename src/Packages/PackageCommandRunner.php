@@ -27,7 +27,7 @@ class PackageCommandRunner
         //
     }
 
-    public function run(PackageInvocation $invocation, OutputInterface $output, bool $remote = false): int
+    public function run(PackageInvocation $invocation, OutputInterface $output, bool $skipLocal = false): int
     {
         if ($this->isFile($invocation->target)) {
             return (new ExecCommand)->run($this->fileInput($invocation), $output);
@@ -39,7 +39,7 @@ class PackageCommandRunner
             return $this->unrecognised($invocation->target);
         }
 
-        if (! $remote) {
+        if (! $skipLocal) {
             $resolved = $package === null
                 ? $this->localBinaryResolver->resolveBare($invocation)
                 : $this->localBinaryResolver->resolve($package, $invocation);

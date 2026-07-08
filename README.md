@@ -55,10 +55,10 @@ cpx laravel/pint:^2.0    # uses the local pint only when the installed version s
 
 This keeps cpx aligned with the versions your project pins. When no matching local binary is found, cpx falls back to installing and running an isolated copy.
 
-To skip the local binary and force the isolated copy, pass `--remote` before the package:
+To skip the local binary and force the isolated copy, pass `--skip-local` before the package:
 
 ```bash
-cpx --remote laravel/pint --version
+cpx --skip-local laravel/pint --version
 ```
 
 ---

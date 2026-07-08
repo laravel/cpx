@@ -117,12 +117,12 @@ test('a bare command with no local binary is unrecognised', function () {
         ->and($output)->toContain('Unrecognised command unknown-tool');
 });
 
-test('the --remote flag skips the local binary and uses the isolated install', function () {
+test('the --skip-local flag skips the local binary and uses the isolated install', function () {
     $this->useIsolatedComposerHome();
     $root = $this->prepareLocalProject();
     $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
 
-    // The local pint would exit 77 if it were (incorrectly) preferred over --remote.
+    // The local pint would exit 77 if it were (incorrectly) preferred over --skip-local.
     $this->installLocalPackage($root, 'laravel/pint', ['pint']);
     $this->writeLocalBinary($root, 'pint', noopBinary(77));
 
@@ -130,7 +130,7 @@ test('the --remote flag skips the local binary and uses the isolated install', f
         'pint' => argvLoggingBinary($logFile),
     ]);
 
-    [$status] = runCpxCommand(['--remote', 'laravel/pint', '--flag']);
+    [$status] = runCpxCommand(['--skip-local', 'laravel/pint', '--flag']);
 
     expect($status)->toBe(0)
         ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['--flag']);
