@@ -35,3 +35,13 @@ test('it reports a missing executable as a could-not-execute exit code', functio
 
     expect((new ProcessRunner)->run(["{$directory}/missing"]))->toBe(ProcessRunner::COULD_NOT_EXECUTE);
 });
+
+test('it keeps the parent stdio streams usable across sequential runs', function () {
+    $directory = $this->temporaryDirectory('cpx-process');
+    $binary = "{$directory}/exit-code";
+
+    writeExecutable($binary, "#!/usr/bin/env php\n<?php exit(11);\n");
+
+    expect((new ProcessRunner)->run([$binary]))->toBe(11)
+        ->and((new ProcessRunner)->run([$binary]))->toBe(11);
+});
