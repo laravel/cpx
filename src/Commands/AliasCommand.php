@@ -8,7 +8,6 @@ use Cpx\Packages\Package;
 use Cpx\Packages\UserAliases;
 use InvalidArgumentException;
 use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
-use Laravel\Prompts\Support\Logger;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
