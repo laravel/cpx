@@ -50,7 +50,7 @@ class AliasCommand extends Command
                 return self::SUCCESS;
             }
 
-            $package = $this->resolveBinary($input, $package, $output);
+            $package = $this->resolveBinary($input, $package);
         } catch (InvalidArgumentException|NonInteractiveValidationException $e) {
             error($e->getMessage());
 
@@ -64,9 +64,9 @@ class AliasCommand extends Command
         return self::SUCCESS;
     }
 
-    private function resolveBinary(InputInterface $input, Package $package, OutputInterface $output): Package
+    private function resolveBinary(InputInterface $input, Package $package): Package
     {
-        $binaries = array_keys($package->binaries($package->installOrUpdatePackage($output)));
+        $binaries = array_keys($package->binaries($package->installOrUpdatePackage()));
 
         if ($binaries === []) {
             throw new InvalidArgumentException("{$package} does not provide any binaries.");

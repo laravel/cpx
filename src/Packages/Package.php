@@ -13,7 +13,6 @@ use Cpx\Support\Filesystem;
 use InvalidArgumentException;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
 use function Laravel\Prompts\error;
@@ -126,9 +125,9 @@ class Package
         Filesystem::deleteDirectory($this->installPath());
     }
 
-    public function runCommand(PackageInvocation $invocation, OutputInterface $output, bool $autoUpdate = true): int
+    public function runCommand(PackageInvocation $invocation, bool $autoUpdate = true): int
     {
-        $installDir = $this->installOrUpdatePackage($output, $autoUpdate);
+        $installDir = $this->installOrUpdatePackage($autoUpdate);
         $packageDir = $this->packagePath($installDir);
         $binScripts = $this->binaries($installDir);
 
@@ -160,13 +159,13 @@ class Package
         return (new ProcessRunner)->run([$binPath, ...$resolved->invocation->forwardedTokens()]);
     }
 
-    public function installOrUpdatePackage(OutputInterface $output, bool $updateCheck = true): string
+    public function installOrUpdatePackage(bool $updateCheck = true): string
     {
         $installDir = $this->installPath();
 
         match (true) {
-            ! $this->isInstalled() => $this->installPackage($output, $installDir),
-            $updateCheck && $this->shouldCheckForUpdates() => $this->updatePackage($output, $installDir),
+            ! $this->isInstalled() => $this->installPackage($installDir),
+            $updateCheck && $this->shouldCheckForUpdates() => $this->updatePackage($installDir),
             default => info("{$this} is already installed and doesn't need updating."),
         };
 
@@ -248,7 +247,7 @@ class Package
         return in_array($candidate, $binScripts, true) ? $candidate : null;
     }
 
-    private function installPackage(OutputInterface $output, string $installDir): void
+    private function installPackage(string $installDir): void
     {
         info("Installing {$this}...");
 
@@ -292,7 +291,7 @@ class Package
         }
     }
 
-    private function updatePackage(OutputInterface $output, string $installDir): void
+    private function updatePackage(string $installDir): void
     {
         info("Checking for updates for {$this}...");
         $previousVersion = ComposerRunner::getCurrentVersion($installDir);

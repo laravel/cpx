@@ -28,12 +28,12 @@ class PackageCommandRunner
         $userAlias = UserAliases::open()->find($invocation->target);
 
         if ($userAlias !== null) {
-            return $userAlias->runCommand($invocation, $output);
+            return $userAlias->runCommand($invocation);
         }
 
         if (str_contains($invocation->target, '/')) {
             try {
-                return Package::parse($invocation->target)->runCommand($invocation, $output);
+                return Package::parse($invocation->target)->runCommand($invocation);
             } catch (InvalidArgumentException) {
                 error("Unrecognised command {$invocation->target}");
 

@@ -31,7 +31,6 @@ class TinkerCommand extends Command
 
         return Package::parse('psy/psysh')->runCommand(
             PackageInvocation::fromRawTokens(['psysh', '--config', $psyshConfig]),
-            $output,
         );
     }
 }
