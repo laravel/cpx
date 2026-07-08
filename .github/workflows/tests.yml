@@ -12,17 +12,24 @@ on:
       - 1.x
       - 2.x
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
+        os: [ubuntu-latest, windows-latest]
         php-version: ['8.3', '8.4', '8.5']
+
+    name: PHP ${{ matrix.php-version }} - ${{ matrix.os }}
 
     steps:
       - name: Checkout Code
@@ -47,7 +54,13 @@ jobs:
         run: composer lint:check
 
       - name: Run Type Coverage
+        if: runner.os != 'Windows'
         run: composer test:types
 
       - name: Run Unit Tests
+        if: runner.os != 'Windows'
         run: composer test:unit
+
+      - name: Run Unit Tests (Windows)
+        if: runner.os == 'Windows'
+        run: vendor/bin/pest
