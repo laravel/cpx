@@ -65,7 +65,7 @@ class PackageCommandRunner
     {
         info('Running '.basename($resolved->command)." from {$resolved->command}");
 
-        return (new ProcessRunner)->run([$resolved->command, ...$resolved->invocation->forwardedTokens()]);
+        return (new ProcessRunner)->run(BinExecutable::commandFor($resolved->command, $resolved->invocation->forwardedTokens()));
     }
 
     private function unrecognised(string $target): int
