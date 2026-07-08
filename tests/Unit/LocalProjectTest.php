@@ -1,6 +1,7 @@
 <?php
 
 use Cpx\Packages\LocalProject;
+use Cpx\Support\Filesystem;
 
 test('it discovers the nearest ancestor holding a composer.json', function () {
     $root = $this->temporaryDirectory('cpx-project');
@@ -58,6 +59,19 @@ test('binaryPath honours an absolute bin-dir without joining the project root', 
     expect(LocalProject::discover($root)->binaryPath('pint'))->toBe("{$binDir}/pint");
 });
 
+test('binaryPath does not join Windows-style absolute bin-dirs onto the project root', function () {
+    foreach (['C:\\tools', 'C:/tools', '\\\\server\\bins'] as $binDir) {
+        $root = $this->temporaryDirectory('cpx-project');
+        file_put_contents("{$root}/composer.json", json_encode(['config' => ['bin-dir' => $binDir]]));
+
+        $wronglyJoined = "{$root}/{$binDir}";
+        mkdir($wronglyJoined, 0755, true);
+        writeExecutable("{$wronglyJoined}/pint", noopBinary());
+
+        expect(LocalProject::discover($root)->binaryPath('pint'))->toBeNull();
+    }
+});
+
 test('binaryPath returns null when the entry is missing', function () {
     $root = $this->temporaryDirectory('cpx-project');
     file_put_contents("{$root}/composer.json", json_encode([]));
@@ -81,7 +95,7 @@ test('discovery stops at the closest composer.json when projects are nested', fu
 
     $project = LocalProject::discover("{$outer}/inner/src");
 
-    expect($project->root)->toBe("{$outer}/inner")
+    expect(Filesystem::normalizePath($project->root))->toBe(Filesystem::normalizePath("{$outer}/inner"))
         ->and($project->binDir)->toBe('inner');
 });
 

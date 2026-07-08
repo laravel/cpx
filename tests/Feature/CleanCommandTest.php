@@ -347,7 +347,7 @@ test('cleanup refuses to delete paths outside the cpx cache root', function () {
         ->and(is_dir($outside))->toBeTrue()
         ->and(file_exists($outside.'/keep.txt'))->toBeTrue()
         ->and($output)->toContain('Could not remove');
-});
+})->skip(! canCreateSymlinks(), 'symlink creation is unavailable (Windows without Developer Mode)');
 
 test('the summary lists the caches that were removed', function () {
     $this->useIsolatedComposerHome();

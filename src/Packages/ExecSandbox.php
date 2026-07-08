@@ -76,12 +76,10 @@ class ExecSandbox
         $stagingDir = $this->path().'.installing.'.getmypid();
         $this->stageInstall($stagingDir, $cacheRoot);
 
-        Filesystem::deleteDirectory($this->path());
-
-        if (! rename($stagingDir, $this->path())) {
+        if (! Filesystem::replaceDirectory($stagingDir, $this->path())) {
             Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
 
-            throw new ComposerInstallException("Unable to finalize the exec sandbox for {$this->key}.");
+            throw new ComposerInstallException("Unable to finalize the exec sandbox for {$this->key}; another process may be holding files under {$this->path()}.");
         }
 
         return time();

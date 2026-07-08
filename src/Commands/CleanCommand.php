@@ -173,17 +173,20 @@ class CleanCommand extends Command
         $tracked = [];
 
         foreach ($metadata->packages as $key => $packageMetadata) {
-            $tracked[$packageMetadata->installPath()] = $key;
+            $tracked[Filesystem::normalizePath($packageMetadata->installPath())] = $key;
         }
 
+        $cacheRoot = Filesystem::normalizePath(cpx_path());
+
         foreach (glob(cpx_path('*/*/*'), GLOB_ONLYDIR) ?: [] as $directory) {
-            $trackedKey = $tracked[$directory] ?? null;
+            $normalizedDirectory = Filesystem::normalizePath($directory);
+            $trackedKey = $tracked[$normalizedDirectory] ?? null;
 
             if ($trackedKey !== null && file_exists("{$directory}/vendor/autoload.php")) {
                 continue;
             }
 
-            $description = 'orphaned package '.str_replace(cpx_path(), '', $directory);
+            $description = 'orphaned package '.str_replace($cacheRoot, '', $normalizedDirectory);
 
             if (! $this->remove($directory, $description, $result, $logger)) {
                 continue;

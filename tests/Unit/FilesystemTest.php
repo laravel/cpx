@@ -1,5 +1,6 @@
 <?php
 
+use Cpx\Process\ProcessRunner;
 use Cpx\Support\Filesystem;
 
 test('writeAtomic writes the full contents and leaves no temp residue', function () {
@@ -21,6 +22,20 @@ test('writeAtomic overwrites an existing file without truncation residue', funct
 
     expect(file_get_contents($path))->toBe('new')
         ->and(glob("{$directory}/*.tmp"))->toBe([]);
+});
+
+test('isAbsolutePath recognises POSIX, drive-letter, and UNC paths', function () {
+    expect(Filesystem::isAbsolutePath('/usr/local/bin'))->toBeTrue()
+        ->and(Filesystem::isAbsolutePath('C:\\tools'))->toBeTrue()
+        ->and(Filesystem::isAbsolutePath('C:/tools'))->toBeTrue()
+        ->and(Filesystem::isAbsolutePath('\\\\server\\bins'))->toBeTrue()
+        ->and(Filesystem::isAbsolutePath('vendor/bin'))->toBeFalse()
+        ->and(Filesystem::isAbsolutePath('tools'))->toBeFalse();
+});
+
+test('normalizePath converts backslashes to forward slashes', function () {
+    expect(Filesystem::normalizePath('C:\\Users\\me/.cpx/laravel\\pint'))->toBe('C:/Users/me/.cpx/laravel/pint')
+        ->and(Filesystem::normalizePath('/home/me/.cpx/laravel/pint'))->toBe('/home/me/.cpx/laravel/pint');
 });
 
 test('deleteDirectoryWithin removes a directory genuinely inside the root', function () {
@@ -66,6 +81,62 @@ test('deleteDirectoryWithin refuses to follow a symlink escaping the root', func
 
     expect(is_dir($outside))->toBeTrue()
         ->and(file_exists("{$outside}/keep.txt"))->toBeTrue();
+})->skip(! canCreateSymlinks(), 'symlink creation is unavailable (Windows without Developer Mode)');
+
+test('deleteDirectory removes read-only files', function () {
+    $root = $this->temporaryDirectory('cpx-readonly');
+
+    file_put_contents("{$root}/file.txt", 'x');
+    chmod("{$root}/file.txt", 0444);
+
+    Filesystem::deleteDirectory($root);
+
+    expect(is_dir($root))->toBeFalse();
+});
+
+test('deleteDirectory removes a junction without deleting the junction target contents', function () {
+    $base = $this->temporaryDirectory('cpx-junction');
+    $target = "{$base}/target";
+    $root = "{$base}/root";
+
+    mkdir($target, 0755, true);
+    mkdir($root, 0755, true);
+    file_put_contents("{$target}/keep.txt", 'x');
+
+    $status = (new ProcessRunner)->run(['cmd', '/c', 'mklink', '/J', "{$root}\\junction", $target]);
+
+    expect($status)->toBe(0);
+
+    Filesystem::deleteDirectory($root);
+
+    expect(is_dir($root))->toBeFalse()
+        ->and(file_exists("{$target}/keep.txt"))->toBeTrue();
+})->onlyOnWindows();
+
+test('replaceDirectory swaps the target with the source directory', function () {
+    $base = $this->temporaryDirectory('cpx-replace');
+    $source = "{$base}/staging";
+    $target = "{$base}/final";
+
+    mkdir($source, 0755, true);
+    mkdir($target, 0755, true);
+    file_put_contents("{$source}/new.txt", 'new');
+    file_put_contents("{$target}/old.txt", 'old');
+
+    expect(Filesystem::replaceDirectory($source, $target))->toBeTrue()
+        ->and(file_exists("{$target}/new.txt"))->toBeTrue()
+        ->and(file_exists("{$target}/old.txt"))->toBeFalse()
+        ->and(is_dir($source))->toBeFalse();
+});
+
+test('replaceDirectory reports failure when the source is missing', function () {
+    $base = $this->temporaryDirectory('cpx-replace');
+    $target = "{$base}/final";
+
+    mkdir($target, 0755, true);
+    file_put_contents("{$target}/old.txt", 'old');
+
+    expect(Filesystem::replaceDirectory("{$base}/missing", $target))->toBeFalse();
 });
 
 test('pruneEmptyParents removes empty parent directories up to the root', function () {

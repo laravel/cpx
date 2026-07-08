@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cpx\Packages;
 
+use Cpx\Support\Filesystem;
+
 readonly class LocalProject
 {
     private function __construct(
@@ -92,7 +94,7 @@ readonly class LocalProject
 
     private function resolvedBinDir(): string
     {
-        return str_starts_with($this->binDir, '/')
+        return Filesystem::isAbsolutePath($this->binDir)
             ? $this->binDir
             : "{$this->root}/{$this->binDir}";
     }
