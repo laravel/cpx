@@ -128,25 +128,29 @@ class Filesystem
     }
 
     /** Replace the target with the source, retrying transient Windows file-lock failures. */
-    public static function replaceDirectory(string $source, string $target, int $attempts = 3): bool
+    public static function replaceDirectory(string $source, string $target): void
     {
-        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+        $lastFailure = null;
+
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
             if ($attempt > 1) {
                 usleep(100_000);
             }
 
             try {
                 self::deleteDirectory($target);
-            } catch (RuntimeException) {
+            } catch (RuntimeException $exception) {
+                $lastFailure = $exception;
+
                 continue;
             }
 
             if (@rename($source, $target)) {
-                return true;
+                return;
             }
         }
 
-        return false;
+        throw $lastFailure ?? new RuntimeException("Unable to move {$source} to {$target}.");
     }
 
     private static function removeEntry(string $path, bool $rmdir): void

@@ -10,6 +10,7 @@ use Cpx\Composer\ComposerRunner;
 use Cpx\Exceptions\ComposerInstallException;
 use Cpx\Runtime\PhpExecutionHelper;
 use Cpx\Support\Filesystem;
+use RuntimeException;
 use stdClass;
 use Throwable;
 
@@ -76,10 +77,12 @@ class ExecSandbox
         $stagingDir = $this->path().'.installing.'.getmypid();
         $this->stageInstall($stagingDir, $cacheRoot);
 
-        if (! Filesystem::replaceDirectory($stagingDir, $this->path())) {
+        try {
+            Filesystem::replaceDirectory($stagingDir, $this->path());
+        } catch (RuntimeException $exception) {
             Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
 
-            throw new ComposerInstallException("Unable to finalize the exec sandbox for {$this->key}; another process may be holding files under {$this->path()}.");
+            throw new ComposerInstallException("Unable to finalize the exec sandbox for {$this->key}; another process may be holding files under {$this->path()}.", previous: $exception);
         }
 
         return time();

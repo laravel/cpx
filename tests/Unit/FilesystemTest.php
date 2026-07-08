@@ -123,20 +123,22 @@ test('replaceDirectory swaps the target with the source directory', function () 
     file_put_contents("{$source}/new.txt", 'new');
     file_put_contents("{$target}/old.txt", 'old');
 
-    expect(Filesystem::replaceDirectory($source, $target))->toBeTrue()
-        ->and(file_exists("{$target}/new.txt"))->toBeTrue()
+    Filesystem::replaceDirectory($source, $target);
+
+    expect(file_exists("{$target}/new.txt"))->toBeTrue()
         ->and(file_exists("{$target}/old.txt"))->toBeFalse()
         ->and(is_dir($source))->toBeFalse();
 });
 
-test('replaceDirectory reports failure when the source is missing', function () {
+test('replaceDirectory throws when the source is missing', function () {
     $base = $this->temporaryDirectory('cpx-replace');
     $target = "{$base}/final";
 
     mkdir($target, 0755, true);
     file_put_contents("{$target}/old.txt", 'old');
 
-    expect(Filesystem::replaceDirectory("{$base}/missing", $target))->toBeFalse();
+    expect(fn () => Filesystem::replaceDirectory("{$base}/missing", $target))
+        ->toThrow(RuntimeException::class, "Unable to move {$base}/missing to {$target}.");
 });
 
 test('pruneEmptyParents removes empty parent directories up to the root', function () {

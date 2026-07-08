@@ -228,10 +228,12 @@ class Package
 
                 Filesystem::deleteDirectory($installDir);
 
-                if (! Filesystem::replaceDirectory($stagingDir, $installDir)) {
+                try {
+                    Filesystem::replaceDirectory($stagingDir, $installDir);
+                } catch (RuntimeException $exception) {
                     Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
 
-                    throw new RuntimeException("Unable to finalize the installation of {$this}; another process may be holding files under {$installDir}.");
+                    throw new RuntimeException("Unable to finalize the installation of {$this}; another process may be holding files under {$installDir}.", previous: $exception);
                 }
 
                 Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
