@@ -17,7 +17,6 @@ use Symfony\Component\Console\Command\Command;
 use Throwable;
 
 use function Laravel\Prompts\error;
-use function Laravel\Prompts\info;
 use function Laravel\Prompts\task;
 
 class Package
@@ -155,8 +154,13 @@ class Package
             return Command::FAILURE;
         }
 
-        Metadata::transaction(fn (Metadata $metadata) => $metadata->recordRun($this));
-        info('Running '.basename($resolved->command)." from {$this}");
+        task(
+            label: 'Running '.basename($resolved->command)." from {$this}",
+            callback: fn (Logger $_logger): mixed => Metadata::transaction(
+                fn (Metadata $metadata) => $metadata->recordRun($this),
+            ),
+            keepSummary: true,
+        );
 
         return (new ProcessRunner)->run([$binPath, ...$resolved->invocation->forwardedTokens()]);
     }
@@ -168,7 +172,7 @@ class Package
         match (true) {
             ! $this->isInstalled() => $this->installPackage($installDir),
             $updateCheck && $this->shouldCheckForUpdates() => $this->updatePackage($installDir),
-            default => info("{$this} is already installed and doesn't need updating."),
+            default => $this->renderInstalledPackage(),
         };
 
         return $installDir;
@@ -270,6 +274,15 @@ class Package
 
                 Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
             },
+            keepSummary: true,
+        );
+    }
+
+    private function renderInstalledPackage(): void
+    {
+        task(
+            label: "Installing {$this}",
+            callback: fn (Logger $_logger): null => null,
             keepSummary: true,
         );
     }
