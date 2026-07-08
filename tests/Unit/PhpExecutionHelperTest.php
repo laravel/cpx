@@ -29,4 +29,6 @@ test('it returns when no autoloader exists in any ancestor directory', function 
     PhpExecutionHelper::init("{$root}/nested", shouldAliasClasses: false);
 
     expect($GLOBALS['cpxAutoloadHits'] ?? [])->toBe([]);
+
+    unset($GLOBALS['cpxAutoloadHits']);
 });

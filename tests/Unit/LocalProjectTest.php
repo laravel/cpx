@@ -64,9 +64,11 @@ test('binaryPath does not join Windows-style absolute bin-dirs onto the project 
         $root = $this->temporaryDirectory('cpx-project');
         file_put_contents("{$root}/composer.json", json_encode(['config' => ['bin-dir' => $binDir]]));
 
-        $wronglyJoined = "{$root}/{$binDir}";
-        mkdir($wronglyJoined, 0755, true);
-        writeExecutable("{$wronglyJoined}/pint", noopBinary());
+        if (PHP_OS_FAMILY !== 'Windows') {
+            $wronglyJoined = "{$root}/{$binDir}";
+            mkdir($wronglyJoined, 0755, true);
+            writeExecutable("{$wronglyJoined}/pint", noopBinary());
+        }
 
         expect(LocalProject::discover($root)->binaryPath('pint'))->toBeNull();
     }
