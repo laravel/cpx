@@ -10,7 +10,7 @@ VERSION="${1:-}"
 VERSION_FILE="src/Version.php"
 VERSION_BACKUP=""
 
-RUNTIME_PACKAGES=("composer/composer" "laravel/prompts" "symfony/console")
+RUNTIME_PACKAGES=("composer/composer" "laravel/prompts" "symfony/console", "symfony/process")
 COMPOSER_JSON_BACKUP=""
 COMPOSER_LOCK_BACKUP=""
 
