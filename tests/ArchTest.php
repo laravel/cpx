@@ -36,8 +36,8 @@ arch('the package source declares strict types')
     ->expect('Cpx')
     ->toUseStrictTypes();
 
-test('only the process runner calls proc_open', function () {
-    $offenders = sourceFilesContaining('proc_open', except: ['src/Process/ProcessRunner.php']);
+test('the app does not call proc_open directly', function () {
+    $offenders = sourceFilesContaining('proc_open');
 
     expect($offenders)->toBe([]);
 });

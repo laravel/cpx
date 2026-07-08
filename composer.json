@@ -37,7 +37,8 @@
         "php": "^8.3",
         "composer/composer": "^2.8",
         "laravel/prompts": "^0.3.21",
-        "symfony/console": "^7.4|^8.0"
+        "symfony/console": "^7.4|^8.0",
+        "symfony/process": "^7.4|^8.0"
     },
     "require-dev": {
         "laravel/pao": "^1.1",

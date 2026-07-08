@@ -11,12 +11,14 @@ use Cpx\Process\ProcessRunner;
 use Cpx\Support\Arr;
 use Cpx\Support\Filesystem;
 use InvalidArgumentException;
+use Laravel\Prompts\Support\Logger;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Throwable;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
+use function Laravel\Prompts\task;
 
 class Package
 {
@@ -249,23 +251,27 @@ class Package
 
     private function installPackage(string $installDir): void
     {
-        info("Installing {$this}...");
+        task(
+            label: "Installing {$this}",
+            callback: function (Logger $logger) use ($installDir): void {
+                $cacheRoot = cpx_path();
+                Filesystem::ensureDirectory($cacheRoot);
 
-        $cacheRoot = cpx_path();
-        Filesystem::ensureDirectory($cacheRoot);
+                $stagingDir = "{$installDir}.installing.".getmypid();
+                ProcessRunner::withLogger($logger, fn () => $this->stageInstall($stagingDir, $cacheRoot));
 
-        $stagingDir = "{$installDir}.installing.".getmypid();
-        $this->stageInstall($stagingDir, $cacheRoot);
+                Filesystem::deleteDirectory($installDir);
 
-        Filesystem::deleteDirectory($installDir);
+                if (! rename($stagingDir, $installDir)) {
+                    Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
 
-        if (! rename($stagingDir, $installDir)) {
-            Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
+                    throw new RuntimeException("Unable to finalize the installation of {$this}.");
+                }
 
-            throw new RuntimeException("Unable to finalize the installation of {$this}.");
-        }
-
-        Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
+                Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
+            },
+            keepSummary: true,
+        );
     }
 
     private function stageInstall(string $stagingDir, string $cacheRoot): void
@@ -293,17 +299,22 @@ class Package
 
     private function updatePackage(string $installDir): void
     {
-        info("Checking for updates for {$this}...");
-        $previousVersion = ComposerRunner::getCurrentVersion($installDir);
-        ComposerRunner::run(['update'], $installDir);
-        $newVersion = ComposerRunner::getCurrentVersion($installDir);
+        task(
+            label: "Updating {$this}",
+            callback: function (Logger $logger) use ($installDir): void {
+                $previousVersion = ComposerRunner::getCurrentVersion($installDir);
+                ProcessRunner::withLogger($logger, fn () => ComposerRunner::run(['update'], $installDir));
+                $newVersion = ComposerRunner::getCurrentVersion($installDir);
 
-        if ($previousVersion !== $newVersion) {
-            info("{$this} was upgraded from {$previousVersion} to {$newVersion}.");
-        } else {
-            info("{$this} is already up-to-date.");
-        }
+                if ($previousVersion !== $newVersion) {
+                    $logger->success("{$this} was upgraded from {$previousVersion} to {$newVersion}.");
+                } else {
+                    $logger->line("{$this} is already up-to-date.");
+                }
 
-        Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
+                Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
+            },
+            keepSummary: true,
+        );
     }
 }

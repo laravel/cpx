@@ -4,49 +4,79 @@ declare(strict_types=1);
 
 namespace Cpx\Process;
 
+use Laravel\Prompts\Support\Logger;
+use Symfony\Component\Process\Exception\ExceptionInterface;
+use Symfony\Component\Process\Process;
+
 class ProcessRunner
 {
     public const COULD_NOT_EXECUTE = 127;
+
+    protected static ?Logger $logger = null;
+
+    public static function withLogger(Logger $logger, callable $callback): mixed
+    {
+        static::$logger = $logger;
+
+        try {
+            return $callback();
+        } finally {
+            static::$logger = null;
+        }
+    }
 
     /**
      * @param  list<string>  $command
      */
     public function run(array $command): int
     {
-        $stdin = fopen('php://fd/0', 'r');
-        $stdout = fopen('php://fd/1', 'w');
-        $stderr = fopen('php://fd/2', 'w');
-
-        if ($stdin === false || $stdout === false || $stderr === false) {
-            $this->closeAll($stdin, $stdout, $stderr);
-
+        if ($this->isMissingExecutable($command[0] ?? null)) {
             return self::COULD_NOT_EXECUTE;
         }
 
         try {
-            $process = @proc_open($command, [$stdin, $stdout, $stderr], $pipes);
+            $process = new Process($command, timeout: null);
 
-            if (! is_resource($process)) {
-                return self::COULD_NOT_EXECUTE;
+            if (static::$logger !== null) {
+                return $process->run($this->logOutput(...));
             }
 
-            $exitCode = proc_close($process);
+            if (Process::isTtySupported()) {
+                $process->setTty(true);
 
-            return $exitCode === -1 ? self::COULD_NOT_EXECUTE : $exitCode;
-        } finally {
-            $this->closeAll($stdin, $stdout, $stderr);
+                return $process->run();
+            }
+
+            return $process->run($this->writeOutput(...));
+        } catch (ExceptionInterface) {
+            return self::COULD_NOT_EXECUTE;
         }
     }
 
-    /**
-     * @param  resource|false  ...$streams
-     */
-    private function closeAll(...$streams): void
+    private function isMissingExecutable(?string $command): bool
     {
-        foreach ($streams as $stream) {
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
+        if ($command === null || ! str_contains($command, DIRECTORY_SEPARATOR)) {
+            return false;
         }
+
+        return ! is_executable($command);
+    }
+
+    private function logOutput(string $type, string $buffer): void
+    {
+        if (static::$logger === null) {
+            return;
+        }
+
+        $message = rtrim($buffer);
+
+        if ($message !== '') {
+            static::$logger->line($message);
+        }
+    }
+
+    private function writeOutput(string $type, string $buffer): void
+    {
+        fwrite($type === Process::ERR ? STDERR : STDOUT, $buffer);
     }
 }
