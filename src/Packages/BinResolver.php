@@ -6,15 +6,15 @@ namespace Cpx\Packages;
 
 use Cpx\Input\PackageInvocation;
 
-class BinSelector
+class BinResolver
 {
     /**
      * @param  array<string, string>  $bins
      */
-    public function select(array $bins, PackageInvocation $invocation, string $packageName, ?string $pinnedBin = null): ?ResolvedBin
+    public static function resolve(array $bins, PackageInvocation $invocation, string $packageName, ?string $pinnedBin = null): ?ResolvedBin
     {
         if ($pinnedBin !== null) {
-            $command = $this->match($bins, $pinnedBin);
+            $command = self::match($bins, $pinnedBin);
 
             return $command === null ? null : new ResolvedBin($command, $invocation);
         }
@@ -30,7 +30,7 @@ class BinSelector
         ]);
 
         foreach (array_unique($candidates) as $candidate) {
-            $command = $this->match($bins, $candidate);
+            $command = self::match($bins, $candidate);
 
             if ($command !== null) {
                 return $invocation->firstForwardedToken() === $candidate
@@ -45,7 +45,7 @@ class BinSelector
     /**
      * @param  array<string, string>  $bins
      */
-    private function match(array $bins, string $candidate): ?string
+    private static function match(array $bins, string $candidate): ?string
     {
         if (array_key_exists($candidate, $bins)) {
             return $bins[$candidate];

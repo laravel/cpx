@@ -10,7 +10,7 @@ use UnexpectedValueException;
 
 class LocalBinaryResolver
 {
-    public function resolve(Package $package, PackageInvocation $invocation): ?ResolvedBin
+    public static function resolve(Package $package, PackageInvocation $invocation): ?ResolvedBin
     {
         $project = LocalProject::discover();
 
@@ -18,11 +18,11 @@ class LocalBinaryResolver
             return null;
         }
 
-        if ($package->version !== null && ! $this->installedVersionSatisfies($project, $package, $package->version)) {
+        if ($package->version !== null && ! self::installedVersionSatisfies($project, $package, $package->version)) {
             return null;
         }
 
-        $selected = (new BinSelector)->select($package->binaries($project->root), $invocation, $package->name, $package->bin);
+        $selected = BinResolver::resolve($package->binaries($project->root), $invocation, $package->name, $package->bin);
 
         if ($selected === null) {
             return null;
@@ -33,14 +33,14 @@ class LocalBinaryResolver
         return $path === null ? null : new ResolvedBin($path, $selected->invocation);
     }
 
-    public function resolveBare(PackageInvocation $invocation): ?ResolvedBin
+    public static function resolveBare(PackageInvocation $invocation): ?ResolvedBin
     {
         $path = LocalProject::discover()?->binaryPath($invocation->target);
 
         return $path === null ? null : new ResolvedBin($path, $invocation);
     }
 
-    private function installedVersionSatisfies(LocalProject $project, Package $package, string $constraint): bool
+    private static function installedVersionSatisfies(LocalProject $project, Package $package, string $constraint): bool
     {
         $installed = $project->installedVersion($package->vendor, $package->name);
 

@@ -206,7 +206,7 @@ class Package
      */
     private function resolveBinCommand(array $binScripts, PackageInvocation $invocation): ?ResolvedBin
     {
-        $resolved = (new BinSelector)->select($binScripts, $invocation, $this->name, $this->bin);
+        $resolved = BinResolver::resolve($binScripts, $invocation, $this->name, $this->bin);
 
         if ($resolved === null && $this->bin !== null) {
             throw new RuntimeException("The requested bin command '{$this->bin}' was not found in {$this}.");

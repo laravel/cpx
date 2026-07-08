@@ -21,12 +21,6 @@ use function Laravel\Prompts\info;
  */
 class PackageCommandRunner
 {
-    public function __construct(
-        private LocalBinaryResolver $localBinaryResolver = new LocalBinaryResolver,
-    ) {
-        //
-    }
-
     public function run(PackageInvocation $invocation, OutputInterface $output, bool $skipLocal = false): int
     {
         if ($this->isFile($invocation->target)) {
@@ -41,8 +35,8 @@ class PackageCommandRunner
 
         if (! $skipLocal) {
             $resolved = $package === null
-                ? $this->localBinaryResolver->resolveBare($invocation)
-                : $this->localBinaryResolver->resolve($package, $invocation);
+                ? LocalBinaryResolver::resolveBare($invocation)
+                : LocalBinaryResolver::resolve($package, $invocation);
 
             if ($resolved !== null) {
                 return $this->runLocal($resolved);
