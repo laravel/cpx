@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Cpx\Composer\ComposerRunner;
-use Cpx\Composer\ComposerSource;
 use Cpx\Exceptions\ComposerCommandException;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 test('it assembles arguments with no-interaction and working-dir and returns the runner exit code', function () {
     $captured = null;
@@ -45,16 +45,22 @@ test('it throws a uniform message when the runner reports a failure', function (
     ComposerRunner::run(['update']);
 })->throws(ComposerCommandException::class, 'Composer command failed: update');
 
+test('it boots composer in-process and returns the exit code', function () {
+    $this->useIsolatedComposerHome();
+
+    expect(ComposerRunner::runInProcess(['about', '--quiet'], new BufferedOutput))->toBe(0);
+});
+
+test('it returns a non-zero exit code when the booted composer command fails', function () {
+    $this->useIsolatedComposerHome();
+
+    expect(ComposerRunner::runInProcess(['this-command-does-not-exist', '--quiet'], new BufferedOutput))->toBe(1);
+});
+
 test('it runs an offline composer command in an isolated child process and returns success', function () {
     $this->useIsolatedComposerHome();
 
     expect(ComposerRunner::run(['about', '--quiet']))->toBe(0);
-});
-
-test('it runs a command with the device composer', function () {
-    $this->useIsolatedComposerHome();
-
-    expect(ComposerRunner::run(['about', '--quiet'], source: ComposerSource::Device))->toBe(0);
 });
 
 test('it throws the uniform message when an unknown composer command fails in the child', function () {

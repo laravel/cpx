@@ -13,7 +13,7 @@ use Cpx\Commands\RunPackageCommand;
 use Cpx\Commands\TinkerCommand;
 use Cpx\Commands\UnaliasCommand;
 use Cpx\Commands\UpdateCommand;
-use Cpx\Commands\UpgradeCommand;
+use Cpx\Composer\ComposerRunner;
 use Cpx\Packages\PackageCommandRunner;
 use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Application as SymfonyApplication;
@@ -26,7 +26,7 @@ class Application extends SymfonyApplication
 {
     public function __construct(?PackageCommandRunner $packageCommandRunner = null)
     {
-        parent::__construct('cpx', $this->resolveVersion());
+        parent::__construct('cpx', Version::resolve());
         $this->setAutoExit(false);
 
         $this->registerCommands($packageCommandRunner ?? new PackageCommandRunner);
@@ -39,8 +39,17 @@ class Application extends SymfonyApplication
 
         Prompt::setOutput($output);
 
-        if ($input instanceof ArgvInput && $this->shouldRunPackageFallback($input)) {
-            $input = new ArgvInput(['cpx', RunPackageCommand::NAME, '--', ...$input->getRawTokens()]);
+        if ($input instanceof ArgvInput) {
+            $tokens = $input->getRawTokens();
+
+            // Bundled Composer re-invokes the phar with this token
+            if (($tokens[0] ?? null) === ComposerRunner::REINVOKE_TOKEN) {
+                return ComposerRunner::runInProcess(array_slice($tokens, 1), $output);
+            }
+
+            if ($this->shouldRunPackageFallback($input)) {
+                $input = new ArgvInput(['cpx', RunPackageCommand::NAME, '--', ...$tokens]);
+            }
         }
 
         return parent::run($input, $output);
@@ -64,26 +73,10 @@ class Application extends SymfonyApplication
             new UnaliasCommand,
             new CleanCommand,
             new UpdateCommand,
-            new UpgradeCommand,
             new ExecCommand,
             new TinkerCommand,
             new RunPackageCommand($packageCommandRunner),
         ]);
-    }
-
-    private function resolveVersion(): string
-    {
-        $contents = file_get_contents(__DIR__.'/../composer.json');
-
-        if ($contents === false) {
-            return 'unknown';
-        }
-
-        $decoded = json_decode($contents, true);
-
-        return is_array($decoded) && is_string($decoded['version'] ?? null)
-            ? $decoded['version']
-            : 'unknown';
     }
 
     private function shouldRunPackageFallback(ArgvInput $input): bool

@@ -3,20 +3,8 @@
 
 use Cpx\Application;
 
-if (isset($GLOBALS['_composer_autoload_path'])) {
-    require_once $GLOBALS['_composer_autoload_path'];
-
-    unset($GLOBALS['_composer_autoload_path']);
-} else {
-    foreach ([__DIR__ . '/../../autoload.php', __DIR__ . '/../vendor/autoload.php', __DIR__ . '/vendor/autoload.php'] as $file) {
-        if (file_exists($file)) {
-            require_once $file;
-
-            break;
-        }
-    }
-
-    unset($file);
-}
+require file_exists(__DIR__ . '/vendor/autoload.php')
+    ? __DIR__ . '/vendor/autoload.php'
+    : __DIR__ . '/../../autoload.php';
 
 exit((new Application)->run());

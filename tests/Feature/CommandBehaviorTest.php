@@ -5,6 +5,7 @@ use Cpx\Input\PackageInvocation;
 use Cpx\Packages\Package;
 use Cpx\Packages\PackageCommandRunner;
 use Cpx\Packages\UserAliases;
+use Cpx\Runtime\Environment;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -132,27 +133,6 @@ test('update reports when there are no packages to update', function () {
         ->and($output)->toContain('There are no packages to update.');
 });
 
-test('upgrade runs the composer global update command in-process', function () {
-    $calls = [];
-    fakeComposer($calls);
-
-    [$status, $output] = runCpxCommand(['upgrade']);
-
-    expect($status)->toBe(0)
-        ->and($output)->toContain('Updating')
-        ->and($calls)->toBe([['global', 'update', 'cpx/cpx', '--no-interaction']]);
-});
-
-test('upgrade surfaces a non-zero status when the composer update fails', function () {
-    $calls = [];
-    fakeComposer($calls, exitCode: 1);
-
-    [$status] = runCpxCommand(['upgrade']);
-
-    expect($status)->not->toBe(0)
-        ->and($calls)->toBe([['global', 'update', 'cpx/cpx', '--no-interaction']]);
-});
-
 test('update requests a composer update for each installed package directory', function () {
     $this->useIsolatedComposerHome();
 
@@ -218,6 +198,36 @@ test('tinker runs the cached psysh package with the bundled config', function ()
 
     expect($status)->toBe(0)
         ->and($output)->toContain('Running psysh from psy/psysh');
+});
+
+test('tinker materializes the bundled config outside the phar for the psysh child process', function () {
+    $this->useIsolatedComposerHome();
+    Environment::fakePharPath('/opt/cpx.phar');
+
+    $packageDirectory = cpx_path('psy/psysh/latest/vendor/psy/psysh');
+    mkdir($packageDirectory, 0755, true);
+
+    file_put_contents(cpx_path('psy/psysh/latest/vendor/autoload.php'), '<?php');
+    file_put_contents($packageDirectory.'/composer.json', json_encode([
+        'bin' => ['psysh'],
+    ], JSON_THROW_ON_ERROR));
+    writeExecutable($packageDirectory.'/psysh', "#!/usr/bin/env php\n<?php exit(0);\n");
+    file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
+        'packages' => [
+            'psy/psysh' => [
+                'last_updated' => date('Y-m-d H:i:s'),
+                'last_run' => date('Y-m-d H:i:s'),
+            ],
+        ],
+        'execCache' => [],
+    ], JSON_THROW_ON_ERROR));
+
+    [$status] = runCpxCommand(['tinker']);
+
+    expect($status)->toBe(0)
+        ->and((string) file_get_contents(cpx_path('psysh-config.php')))
+        ->toContain("Phar::loadPhar('/opt/cpx.phar', 'cpx.phar')")
+        ->toContain("return require 'phar://cpx.phar/files/psysh-config.php';");
 });
 
 test('unknown package targets route to the package fallback command', function () {

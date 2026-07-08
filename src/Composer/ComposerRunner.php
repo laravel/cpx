@@ -5,12 +5,20 @@ declare(strict_types=1);
 namespace Cpx\Composer;
 
 use Closure;
+use Composer\Console\Application as ComposerApplication;
+use Composer\InstalledVersions;
 use Cpx\Exceptions\ComposerCommandException;
 use Cpx\Process\ProcessRunner;
+use Cpx\Runtime\Environment;
+use RuntimeException;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class ComposerRunner
 {
+    public const REINVOKE_TOKEN = '__cpx_run_composer';
+
     /** @var (Closure(list<string>): int)|null */
     private static ?Closure $fake = null;
 
@@ -19,7 +27,7 @@ class ComposerRunner
      *
      * @throws ComposerCommandException
      */
-    public static function run(array $arguments, ?string $directory = null, ComposerSource $source = ComposerSource::Bundled): int
+    public static function run(array $arguments, ?string $directory = null): int
     {
         $command = [...$arguments, '--no-interaction'];
 
@@ -29,13 +37,24 @@ class ComposerRunner
 
         $exitCode = self::$fake !== null
             ? (self::$fake)($command)
-            : (new ProcessRunner)->run([...$source->binary(), ...$command]);
+            : (new ProcessRunner)->run([...self::composerBinary(), ...$command]);
 
         if ($exitCode !== Command::SUCCESS) {
             throw new ComposerCommandException($arguments);
         }
 
         return $exitCode;
+    }
+
+    /**
+     * @param  list<string>  $arguments
+     */
+    public static function runInProcess(array $arguments, ?OutputInterface $output = null): int
+    {
+        $composer = new ComposerApplication;
+        $composer->setAutoExit(false);
+
+        return $composer->run(new ArgvInput(['composer', ...$arguments]), $output);
     }
 
     /**
@@ -95,5 +114,26 @@ class ComposerRunner
         $version = is_array($lockData) ? ($lockData['packages'][0]['version'] ?? null) : null;
 
         return is_string($version) ? $version : $unknown;
+    }
+
+    /** @return list<string> */
+    private static function composerBinary(): array
+    {
+        $pharPath = Environment::pharPath();
+
+        return $pharPath === ''
+            ? [PHP_BINARY, self::bundledComposerPath()]
+            : [PHP_BINARY, $pharPath, self::REINVOKE_TOKEN];
+    }
+
+    private static function bundledComposerPath(): string
+    {
+        $path = InstalledVersions::getInstallPath('composer/composer');
+
+        if ($path === null) {
+            throw new RuntimeException('Unable to locate the bundled Composer binary.');
+        }
+
+        return "{$path}/bin/composer";
     }
 }
