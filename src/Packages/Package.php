@@ -11,10 +11,13 @@ use Cpx\Process\ProcessRunner;
 use Cpx\Support\Arr;
 use Cpx\Support\Filesystem;
 use InvalidArgumentException;
+use Laravel\Prompts\Support\Logger;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
+
+use function Laravel\Prompts\error;
+use function Laravel\Prompts\task;
 
 class Package
 {
@@ -123,14 +126,14 @@ class Package
         Filesystem::deleteDirectory($this->installPath());
     }
 
-    public function runCommand(PackageInvocation $invocation, OutputInterface $output, bool $autoUpdate = true): int
+    public function runCommand(PackageInvocation $invocation, bool $autoUpdate = true): int
     {
-        $installDir = $this->installOrUpdatePackage($output, $autoUpdate);
+        $installDir = $this->installOrUpdatePackage($autoUpdate);
         $packageDir = $this->packagePath($installDir);
         $binScripts = $this->binaries($installDir);
 
         if (empty($binScripts)) {
-            $output->writeln("<error>No bin command found in {$this}.</error>");
+            error("No bin command found in {$this}.");
 
             return Command::FAILURE;
         }
@@ -138,7 +141,7 @@ class Package
         $resolved = $this->resolveBinCommand($binScripts, $invocation);
 
         if ($resolved === null) {
-            $output->writeln("<error>More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.</error>');
+            error("More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.');
 
             return Command::FAILURE;
         }
@@ -146,26 +149,31 @@ class Package
         $binPath = "{$packageDir}/{$resolved->command}";
 
         if (! file_exists($binPath)) {
-            $output->writeln('<error>Command '.basename($resolved->command)." not found in {$this}.</error>");
+            error('Command '.basename($resolved->command)." not found in {$this}.");
 
             return Command::FAILURE;
         }
 
-        Metadata::transaction(fn (Metadata $metadata) => $metadata->recordRun($this));
-        $output->writeln('<info>Running '.basename($resolved->command)." from {$this}</info>");
+        task(
+            label: 'Running '.basename($resolved->command)." from {$this}",
+            callback: fn (Logger $_logger): mixed => Metadata::transaction(
+                fn (Metadata $metadata) => $metadata->recordRun($this),
+            ),
+            keepSummary: true,
+        );
 
         return (new ProcessRunner)->run([$binPath, ...$resolved->invocation->forwardedTokens()]);
     }
 
-    public function installOrUpdatePackage(OutputInterface $output, bool $updateCheck = true): string
+    public function installOrUpdatePackage(bool $updateCheck = true): string
     {
         $installDir = $this->installPath();
 
-        match (true) {
-            ! $this->isInstalled() => $this->installPackage($output, $installDir),
-            $updateCheck && $this->shouldCheckForUpdates() => $this->updatePackage($output, $installDir),
-            default => $output->writeln("<info>{$this} is already installed and doesn't need updating.</info>"),
-        };
+        if (! $this->isInstalled()) {
+            $this->installPackage($installDir);
+        } elseif ($updateCheck && $this->shouldCheckForUpdates()) {
+            $this->updatePackage($installDir);
+        }
 
         return $installDir;
     }
@@ -245,25 +253,29 @@ class Package
         return in_array($candidate, $binScripts, true) ? $candidate : null;
     }
 
-    private function installPackage(OutputInterface $output, string $installDir): void
+    private function installPackage(string $installDir): void
     {
-        $output->writeln("<info>Installing {$this}...</info>");
+        task(
+            label: "Installing {$this}",
+            callback: function (Logger $logger) use ($installDir): void {
+                $cacheRoot = cpx_path();
+                Filesystem::ensureDirectory($cacheRoot);
 
-        $cacheRoot = cpx_path();
-        Filesystem::ensureDirectory($cacheRoot);
+                $stagingDir = "{$installDir}.installing.".getmypid();
+                ProcessRunner::withLogger($logger, fn () => $this->stageInstall($stagingDir, $cacheRoot));
 
-        $stagingDir = "{$installDir}.installing.".getmypid();
-        $this->stageInstall($stagingDir, $cacheRoot);
+                Filesystem::deleteDirectory($installDir);
 
-        Filesystem::deleteDirectory($installDir);
+                if (! rename($stagingDir, $installDir)) {
+                    Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
 
-        if (! rename($stagingDir, $installDir)) {
-            Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
+                    throw new RuntimeException("Unable to finalize the installation of {$this}.");
+                }
 
-            throw new RuntimeException("Unable to finalize the installation of {$this}.");
-        }
-
-        Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
+                Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
+            },
+            keepSummary: true,
+        );
     }
 
     private function stageInstall(string $stagingDir, string $cacheRoot): void
@@ -289,19 +301,24 @@ class Package
         }
     }
 
-    private function updatePackage(OutputInterface $output, string $installDir): void
+    private function updatePackage(string $installDir): void
     {
-        $output->writeln("<info>Checking for updates for {$this}...</info>");
-        $previousVersion = ComposerRunner::getCurrentVersion($installDir);
-        ComposerRunner::run(['update'], $installDir);
-        $newVersion = ComposerRunner::getCurrentVersion($installDir);
+        task(
+            label: "Updating {$this}",
+            callback: function (Logger $logger) use ($installDir): void {
+                $previousVersion = ComposerRunner::getCurrentVersion($installDir);
+                ProcessRunner::withLogger($logger, fn () => ComposerRunner::run(['update'], $installDir));
+                $newVersion = ComposerRunner::getCurrentVersion($installDir);
 
-        if ($previousVersion !== $newVersion) {
-            $output->writeln("<info>{$this} was upgraded from {$previousVersion} to {$newVersion}.</info>");
-        } else {
-            $output->writeln("<info>{$this} is already up-to-date.</info>");
-        }
+                if ($previousVersion !== $newVersion) {
+                    $logger->success("{$this} was upgraded from {$previousVersion} to {$newVersion}.");
+                } else {
+                    $logger->line("{$this} is already up-to-date.");
+                }
 
-        Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
+                Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
+            },
+            keepSummary: true,
+        );
     }
 }

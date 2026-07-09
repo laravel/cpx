@@ -13,6 +13,8 @@ use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+use function Laravel\Prompts\error;
+
 #[AsCommand(
     name: self::NAME,
     hidden: true,
@@ -49,7 +51,7 @@ class RunPackageCommand extends SymfonyCommand
         try {
             return $this->packageCommandRunner->run(PackageInvocation::fromRawTokens($tokens), $output);
         } catch (InvalidArgumentException $e) {
-            $output->writeln("<error>{$e->getMessage()}</error>");
+            error($e->getMessage());
 
             return SymfonyCommand::FAILURE;
         }

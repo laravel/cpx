@@ -15,10 +15,12 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+use function Laravel\Prompts\callout;
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
+use function Laravel\Prompts\task;
 use function Laravel\Prompts\text;
 use function Laravel\Prompts\warning;
 
@@ -50,23 +52,27 @@ class AliasCommand extends Command
                 return self::SUCCESS;
             }
 
-            $package = $this->resolveBinary($input, $package, $output);
+            $package = $this->resolveBinary($input, $package);
         } catch (InvalidArgumentException|NonInteractiveValidationException $e) {
             error($e->getMessage());
 
             return self::FAILURE;
         }
 
-        $aliases->put($name, $package)->save();
+        task(
+            label: 'Creating alias',
+            callback: fn () => $aliases->put($name, $package)->save(),
+            keepSummary: true,
+        );
 
-        info("Alias created: cpx {$name} now runs {$package->displayString()}.");
+        callout('Alias created', "`cpx {$name}` now runs {$package->displayString()}");
 
         return self::SUCCESS;
     }
 
-    private function resolveBinary(InputInterface $input, Package $package, OutputInterface $output): Package
+    private function resolveBinary(InputInterface $input, Package $package): Package
     {
-        $binaries = array_keys($package->binaries($package->installOrUpdatePackage($output)));
+        $binaries = array_keys($package->binaries($package->installOrUpdatePackage()));
 
         if ($binaries === []) {
             throw new InvalidArgumentException("{$package} does not provide any binaries.");

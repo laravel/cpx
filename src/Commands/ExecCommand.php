@@ -12,6 +12,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+use function Laravel\Prompts\error;
+
 #[AsCommand(
     name: 'exec',
     description: 'Invoke a PHP file or inline PHP code',
@@ -38,7 +40,7 @@ class ExecCommand extends Command
         } finally {
             $contents = ob_get_clean();
 
-            if ($contents !== false) {
+            if ($contents !== false && $contents !== '') {
                 $output->write($contents);
             }
         }
@@ -60,7 +62,7 @@ class ExecCommand extends Command
             $code = $input->getOption('run');
 
             if (! is_string($code) || $code === '') {
-                $output->writeln('<error>Please supply code to execute with the -r option.</error>');
+                error('Please supply code to execute with the -r option.');
 
                 return self::FAILURE;
             }
@@ -80,7 +82,7 @@ class ExecCommand extends Command
             $directory = getcwd();
 
             if ($directory === false) {
-                $output->writeln('<error>Unable to determine the current working directory.</error>');
+                error('Unable to determine the current working directory.');
 
                 return self::FAILURE;
             }
@@ -96,7 +98,7 @@ class ExecCommand extends Command
         $file = $input->getArgument('file');
 
         if (! is_string($file) || $file === '') {
-            $output->writeln('<error>Please supply the path to a file to execute.</error>');
+            error('Please supply the path to a file to execute.');
 
             return self::FAILURE;
         }
@@ -104,7 +106,7 @@ class ExecCommand extends Command
         $path = realpath($file);
 
         if ($path === false || ! file_exists($path)) {
-            $output->writeln("<error>File does not exist at '{$file}'</error>");
+            error("File does not exist at '{$file}'");
 
             return self::FAILURE;
         }

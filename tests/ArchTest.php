@@ -36,8 +36,14 @@ arch('the package source declares strict types')
     ->expect('Cpx')
     ->toUseStrictTypes();
 
-test('only the process runner calls proc_open', function () {
-    $offenders = sourceFilesContaining('proc_open', except: ['src/Process/ProcessRunner.php']);
+test('the app does not call proc_open directly', function () {
+    $offenders = sourceFilesContaining('proc_open');
+
+    expect($offenders)->toBe([]);
+});
+
+test('only the process runner uses the symfony process component', function () {
+    $offenders = sourceFilesContaining('Symfony\\Component\\Process', except: ['src/Process/ProcessRunner.php']);
 
     expect($offenders)->toBe([]);
 });

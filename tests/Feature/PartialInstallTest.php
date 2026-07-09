@@ -2,7 +2,6 @@
 
 use Cpx\Cache\Metadata;
 use Cpx\Packages\Package;
-use Symfony\Component\Console\Output\BufferedOutput;
 
 test('a failed install leaves no final dir, no staging residue, and records nothing', function () {
     $this->useIsolatedComposerHome();
@@ -12,7 +11,7 @@ test('a failed install leaves no final dir, no staging residue, and records noth
 
     $package = Package::parse('laravel/pint');
 
-    expect(fn () => $package->installOrUpdatePackage(new BufferedOutput))->toThrow(Exception::class);
+    expect(fn () => $package->installOrUpdatePackage())->toThrow(Exception::class);
 
     expect(is_dir($package->installPath()))->toBeFalse()
         ->and(glob(cpx_path('laravel/pint/*.installing.*')) ?: [])->toBe([])
@@ -28,7 +27,7 @@ test('a successful install atomically populates the final dir and records last_u
     fakeComposer($calls);
 
     $package = Package::parse('laravel/pint');
-    $package->installOrUpdatePackage(new BufferedOutput);
+    $package->installOrUpdatePackage();
 
     expect(file_exists($package->installPath().'/vendor/autoload.php'))->toBeTrue()
         ->and(glob(cpx_path('laravel/pint/*.installing.*')) ?: [])->toBe([])
@@ -47,7 +46,7 @@ test('an install dir missing the autoloader is treated as incomplete and re-stag
     $calls = [];
     fakeComposer($calls);
 
-    $package->installOrUpdatePackage(new BufferedOutput);
+    $package->installOrUpdatePackage();
 
     expect(file_exists($package->installPath().'/vendor/autoload.php'))->toBeTrue();
 });

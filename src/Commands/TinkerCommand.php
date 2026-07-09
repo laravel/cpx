@@ -13,6 +13,8 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+use function Laravel\Prompts\error;
+
 #[AsCommand(
     name: 'tinker',
     description: 'Open an interactive REPL',
@@ -24,14 +26,13 @@ class TinkerCommand extends Command
         $psyshConfig = $this->psyshConfigPath();
 
         if ($psyshConfig === null) {
-            $output->writeln('<error>Unable to find the PsySH configuration file.</error>');
+            error('Unable to find the PsySH configuration file.');
 
             return self::FAILURE;
         }
 
         return Package::parse('psy/psysh')->runCommand(
             PackageInvocation::fromRawTokens(['psysh', '--config', $psyshConfig]),
-            $output,
         );
     }
 

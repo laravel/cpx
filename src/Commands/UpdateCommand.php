@@ -12,6 +12,8 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+use function Laravel\Prompts\info;
+
 #[AsCommand(
     name: 'update',
     description: 'Update installed cpx packages',
@@ -28,44 +30,44 @@ class UpdateCommand extends Command
         $target = (string) $input->getArgument('target');
 
         match (true) {
-            str_contains($target, '/') => $this->updatePackage(Package::parse($target), $output),
-            $target !== '' => $this->updateVendor($target, $output),
-            default => $this->updateAllPackages($output),
+            str_contains($target, '/') => $this->updatePackage(Package::parse($target)),
+            $target !== '' => $this->updateVendor($target),
+            default => $this->updateAllPackages(),
         };
 
         return self::SUCCESS;
     }
 
-    protected function updateAllPackages(OutputInterface $output): void
+    protected function updateAllPackages(): void
     {
         $packageDirectories = glob(cpx_path('*/*/*'), GLOB_ONLYDIR) ?: [];
 
         if (empty($packageDirectories)) {
-            $output->writeln('There are no packages to update.');
+            info('There are no packages to update.');
         } else {
             foreach ($packageDirectories as $directory) {
-                $this->updateDirectory($directory, $output);
+                $this->updateDirectory($directory);
             }
         }
     }
 
-    protected function updateVendor(string $vendor, OutputInterface $output): void
+    protected function updateVendor(string $vendor): void
     {
         $packageDirectories = glob(cpx_path("{$vendor}/*/*"), GLOB_ONLYDIR) ?: [];
 
         if (empty($packageDirectories)) {
-            $output->writeln("There are no packages in vendor '{$vendor}' to update.");
+            info("There are no packages in vendor '{$vendor}' to update.");
         } else {
             foreach ($packageDirectories as $directory) {
-                $this->updateDirectory($directory, $output);
+                $this->updateDirectory($directory);
             }
         }
     }
 
-    protected function updatePackage(Package $package, OutputInterface $output): void
+    protected function updatePackage(Package $package): void
     {
         if ($package->version) {
-            $this->updateDirectory(cpx_path($package->folder()), $output);
+            $this->updateDirectory(cpx_path($package->folder()));
 
             return;
         }
@@ -73,17 +75,17 @@ class UpdateCommand extends Command
         $packageDirectories = glob(cpx_path("{$package->vendor}/{$package->name}/*"), GLOB_ONLYDIR) ?: [];
 
         if (empty($packageDirectories)) {
-            $output->writeln("There are no installed versions of '{$package->vendor}/{$package->name}' to update.");
+            info("There are no installed versions of '{$package->vendor}/{$package->name}' to update.");
         } else {
             foreach ($packageDirectories as $directory) {
-                $this->updateDirectory($directory, $output);
+                $this->updateDirectory($directory);
             }
         }
     }
 
-    protected function updateDirectory(string $directory, OutputInterface $output): void
+    protected function updateDirectory(string $directory): void
     {
-        $output->writeln('Updating <info>'.str_replace(cpx_path(), '', $directory).'</info>');
+        info('Updating '.str_replace(cpx_path(), '', $directory));
         ComposerRunner::run(['update'], $directory);
     }
 }

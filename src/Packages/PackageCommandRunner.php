@@ -11,6 +11,8 @@ use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\OutputInterface;
 
+use function Laravel\Prompts\error;
+
 /**
  * Runs a non-built-in cpx target by resolving it to a local PHP file, a user
  * alias, or a vendor/package and executing it.
@@ -26,20 +28,20 @@ class PackageCommandRunner
         $userAlias = UserAliases::open()->find($invocation->target);
 
         if ($userAlias !== null) {
-            return $userAlias->runCommand($invocation, $output);
+            return $userAlias->runCommand($invocation);
         }
 
         if (str_contains($invocation->target, '/')) {
             try {
-                return Package::parse($invocation->target)->runCommand($invocation, $output);
+                return Package::parse($invocation->target)->runCommand($invocation);
             } catch (InvalidArgumentException) {
-                $output->writeln("<error>Unrecognised command {$invocation->target}</error>");
+                error("Unrecognised command {$invocation->target}");
 
                 return SymfonyCommand::FAILURE;
             }
         }
 
-        $output->writeln("<error>Unrecognised command {$invocation->target}</error>");
+        error("Unrecognised command {$invocation->target}");
 
         return SymfonyCommand::FAILURE;
     }

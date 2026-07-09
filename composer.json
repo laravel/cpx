@@ -45,7 +45,8 @@
         "pestphp/pest": "^4.7",
         "pestphp/pest-plugin-type-coverage": "^4.0",
         "phpstan/phpstan": "^2.2",
-        "symfony/console": "^7.4|^8.0"
+        "symfony/console": "^7.4|^8.0",
+        "symfony/process": "^7.4|^8.0"
     },
     "bin": [
         "builds/cpx"
