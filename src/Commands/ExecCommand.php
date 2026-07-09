@@ -13,7 +13,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\error;
-use function Laravel\Prompts\note;
 
 #[AsCommand(
     name: 'exec',
@@ -42,7 +41,7 @@ class ExecCommand extends Command
             $contents = ob_get_clean();
 
             if ($contents !== false && $contents !== '') {
-                note(rtrim($contents, "\r\n"));
+                $output->write($contents);
             }
         }
     }

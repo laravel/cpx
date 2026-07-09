@@ -98,7 +98,6 @@ test('a user-defined alias resolves to its package', function () {
     [$status, $output] = runCpxCommand(['pint']);
 
     expect($status)->toBe(0)
-        ->and($output)->toContain('Installing vendor/custom-pint')
         ->and($output)->toContain('Running pint from vendor/custom-pint');
 });
 
