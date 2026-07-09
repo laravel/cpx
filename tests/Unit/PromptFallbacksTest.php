@@ -152,10 +152,18 @@ test('non-interactive validation failures throw instead of looping', function ()
     );
 })->throws(NonInteractiveValidationException::class, 'Not that one.');
 
-test('registered fallbacks stay inert until enabled', function () {
+test('registration alone keeps prompts on the native path off Windows', function () {
     enableFallbackPrompts("phpstan\n", enabled: false);
 
     $choice = select(label: 'Which binary?', options: ['pint', 'phpstan'], default: 'pint');
 
     expect($choice)->toBe('pint');
-});
+})->skipOnWindows();
+
+test('registration alone enables the fallbacks on Windows', function () {
+    enableFallbackPrompts("phpstan\n", enabled: false);
+
+    $choice = select(label: 'Which binary?', options: ['pint', 'phpstan'], default: 'pint');
+
+    expect($choice)->toBe('phpstan');
+})->onlyOnWindows();
