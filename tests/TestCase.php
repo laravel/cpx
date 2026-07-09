@@ -4,6 +4,7 @@ namespace Tests;
 
 use Cpx\Composer\ComposerRunner;
 use Cpx\Packages\BinExecutable;
+use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\Environment;
 use Laravel\Prompts\Output\BufferedConsoleOutput;
 use Laravel\Prompts\Prompt;
@@ -41,6 +42,7 @@ abstract class TestCase extends BaseTestCase
         ComposerRunner::clearFake();
         Environment::clearFakePharPath();
         BinExecutable::clearFakeWindows();
+        ProcessRunner::clearFakeInput();
 
         if ($this->workingDirectory !== null) {
             chdir($this->workingDirectory);

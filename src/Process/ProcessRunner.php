@@ -14,6 +14,8 @@ class ProcessRunner
 
     protected static ?Logger $logger = null;
 
+    private static ?string $fakeInput = null;
+
     public static function withLogger(Logger $logger, callable $callback): mixed
     {
         static::$logger = $logger;
@@ -41,16 +43,28 @@ class ProcessRunner
                 return $process->run($this->logOutput(...));
             }
 
-            if (Process::isTtySupported()) {
+            if (self::$fakeInput === null && Process::isTtySupported()) {
                 $process->setTty(true);
 
                 return $process->run();
             }
 
+            $process->setInput(self::$fakeInput ?? STDIN);
+
             return $process->run($this->writeOutput(...));
         } catch (ExceptionInterface) {
             return self::COULD_NOT_EXECUTE;
         }
+    }
+
+    public static function fakeInput(string $input): void
+    {
+        self::$fakeInput = $input;
+    }
+
+    public static function clearFakeInput(): void
+    {
+        self::$fakeInput = null;
     }
 
     private function isMissingExecutable(?string $command): bool
