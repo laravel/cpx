@@ -169,11 +169,11 @@ class Package
     {
         $installDir = $this->installPath();
 
-        match (true) {
-            ! $this->isInstalled() => $this->installPackage($installDir),
-            $updateCheck && $this->shouldCheckForUpdates() => $this->updatePackage($installDir),
-            default => $this->renderInstalledPackage(),
-        };
+        if (! $this->isInstalled()) {
+            $this->installPackage($installDir);
+        } elseif ($updateCheck && $this->shouldCheckForUpdates()) {
+            $this->updatePackage($installDir);
+        }
 
         return $installDir;
     }
@@ -274,15 +274,6 @@ class Package
 
                 Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
             },
-            keepSummary: true,
-        );
-    }
-
-    private function renderInstalledPackage(): void
-    {
-        task(
-            label: "Installing {$this}",
-            callback: fn (Logger $_logger): null => null,
             keepSummary: true,
         );
     }
