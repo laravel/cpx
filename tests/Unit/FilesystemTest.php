@@ -1,6 +1,6 @@
 <?php
 
-use Cpx\Process\ProcessRunner;
+use Composer\Util\Filesystem as ComposerFilesystem;
 use Cpx\Support\Filesystem;
 
 test('writeAtomic writes the full contents and leaves no temp residue', function () {
@@ -103,13 +103,7 @@ test('deleteDirectory removes a junction without deleting the junction target co
     mkdir($root, 0755, true);
     file_put_contents("{$target}/keep.txt", 'x');
 
-    $link = str_replace('/', '\\', "{$root}/junction");
-    $junctionTarget = str_replace('/', '\\', $target);
-
-    // cmd does not resolve builtins from quoted argv tokens, so mklink must be one /c string.
-    $status = (new ProcessRunner)->run(['cmd', '/c', "mklink /J {$link} {$junctionTarget}"]);
-
-    expect($status)->toBe(0);
+    (new ComposerFilesystem)->junction($target, "{$root}/junction");
 
     Filesystem::deleteDirectory($root);
 
