@@ -65,7 +65,7 @@ class AliasCommand extends Command
             keepSummary: true,
         );
 
-        callout('Alias created', "cpx {$name} now runs {$package->displayString()}");
+        callout('Alias created', "`cpx {$name}` now runs {$package->displayString()}");
 
         return self::SUCCESS;
     }
