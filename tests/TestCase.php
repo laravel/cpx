@@ -34,6 +34,9 @@ abstract class TestCase extends BaseTestCase
         Prompt::interactive(false);
         Prompt::setOutput(new BufferedConsoleOutput);
 
+        // Keep child processes off the real STDIN: under pest --parallel it is the paratest worker's command pipe.
+        ProcessRunner::fakeInput('');
+
         (new ReflectionProperty(Prompt::class, 'terminal'))->setValue(null, new Terminal);
         (new ReflectionProperty(Prompt::class, 'shouldFallback'))->setValue(null, false);
         (new ReflectionProperty(Prompt::class, 'fallbacks'))->setValue(null, []);
