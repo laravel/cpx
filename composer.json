@@ -38,6 +38,7 @@
     },
     "require-dev": {
         "composer/composer": "^2.8",
+        "composer/semver": "^3.4",
         "laravel/pao": "^1.1",
         "laravel/pint": "^1.29",
         "laravel/prompts": "^0.3.21",

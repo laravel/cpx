@@ -28,6 +28,22 @@ function writeExecutable(string $path, string $contents): void
 }
 
 /**
+ * A PHP binary that logs its forwarded argv tokens to $logFile and exits with $exitCode.
+ */
+function argvLoggingBinary(string $logFile, int $exitCode = 0): string
+{
+    return "#!/usr/bin/env php\n<?php file_put_contents(".var_export($logFile, true).", json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit({$exitCode});\n";
+}
+
+/**
+ * A PHP binary that does nothing and exits with $exitCode.
+ */
+function noopBinary(int $exitCode = 0): string
+{
+    return "#!/usr/bin/env php\n<?php exit({$exitCode});\n";
+}
+
+/**
  * Fake the in-process Composer runner; record each call's argv and write an autoloader on success.
  *
  * @param  list<list<string>>  $calls

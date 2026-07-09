@@ -6,42 +6,71 @@ namespace Cpx\Packages;
 
 use Cpx\Commands\ExecCommand;
 use Cpx\Input\PackageInvocation;
+use Cpx\Process\ProcessRunner;
 use InvalidArgumentException;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
 
 /**
- * Runs a non-built-in cpx target by resolving it to a local PHP file, a user
- * alias, or a vendor/package and executing it.
+ * Runs a non-built-in cpx target by resolving it to a local PHP file, a local
+ * project binary, a user alias, or a vendor/package and executing it.
  */
 class PackageCommandRunner
 {
-    public function run(PackageInvocation $invocation, OutputInterface $output): int
+    public function run(PackageInvocation $invocation, OutputInterface $output, bool $skipLocal = false): int
     {
         if ($this->isFile($invocation->target)) {
             return (new ExecCommand)->run($this->fileInput($invocation), $output);
         }
 
-        $userAlias = UserAliases::open()->find($invocation->target);
-
-        if ($userAlias !== null) {
-            return $userAlias->runCommand($invocation);
+        try {
+            $package = $this->findPackage($invocation->target);
+        } catch (InvalidArgumentException) {
+            return $this->unrecognised($invocation->target);
         }
 
-        if (str_contains($invocation->target, '/')) {
-            try {
-                return Package::parse($invocation->target)->runCommand($invocation);
-            } catch (InvalidArgumentException) {
-                error("Unrecognised command {$invocation->target}");
+        if (! $skipLocal) {
+            $resolved = $package === null
+                ? LocalBinaryResolver::resolveBare($invocation)
+                : LocalBinaryResolver::resolve($package, $invocation);
 
-                return SymfonyCommand::FAILURE;
+            if ($resolved !== null) {
+                return $this->runLocal($resolved);
             }
         }
 
-        error("Unrecognised command {$invocation->target}");
+        if ($package !== null) {
+            return $package->runCommand($invocation);
+        }
+
+        return $this->unrecognised($invocation->target);
+    }
+
+    private function findPackage(string $target): ?Package
+    {
+        $alias = UserAliases::open()->find($target);
+
+        if ($alias !== null) {
+            return $alias;
+        }
+
+        return str_contains($target, '/') ? Package::parse($target) : null;
+    }
+
+    private function runLocal(ResolvedBin $resolved): int
+    {
+        info('Running '.basename($resolved->command)." from {$resolved->command}");
+
+        return (new ProcessRunner)->run([$resolved->command, ...$resolved->invocation->forwardedTokens()]);
+    }
+
+    private function unrecognised(string $target): int
+    {
+        error("Unrecognised command {$target}");
 
         return SymfonyCommand::FAILURE;
     }
