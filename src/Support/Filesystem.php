@@ -15,6 +15,21 @@ class Filesystem
         return str_replace('\\', '/', $path);
     }
 
+    public static function joinPath(string $base, string ...$segments): string
+    {
+        $path = rtrim($base, '/\\');
+
+        foreach ($segments as $segment) {
+            $segment = trim($segment, '/');
+
+            if ($segment !== '') {
+                $path .= '/'.$segment;
+            }
+        }
+
+        return $path;
+    }
+
     public static function isAbsolutePath(string $path): bool
     {
         return str_starts_with($path, '/')
