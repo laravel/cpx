@@ -103,7 +103,11 @@ test('deleteDirectory removes a junction without deleting the junction target co
     mkdir($root, 0755, true);
     file_put_contents("{$target}/keep.txt", 'x');
 
-    $status = (new ProcessRunner)->run(['cmd', '/c', 'mklink', '/J', "{$root}\\junction", $target]);
+    $link = str_replace('/', '\\', "{$root}/junction");
+    $junctionTarget = str_replace('/', '\\', $target);
+
+    // cmd does not resolve builtins from quoted argv tokens, so mklink must be one /c string.
+    $status = (new ProcessRunner)->run(['cmd', '/c', "mklink /J {$link} {$junctionTarget}"]);
 
     expect($status)->toBe(0);
 

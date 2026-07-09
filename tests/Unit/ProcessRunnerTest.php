@@ -8,7 +8,7 @@ test('it returns the child exit code when using inherited stdio', function () {
 
     writeExecutable($binary, "#!/usr/bin/env php\n<?php exit(37);\n");
 
-    expect((new ProcessRunner)->run([$binary]))->toBe(37);
+    expect((new ProcessRunner)->run([PHP_BINARY, $binary]))->toBe(37);
 });
 
 test('it delivers shell metacharacters as literal argv tokens', function () {
@@ -18,7 +18,7 @@ test('it delivers shell metacharacters as literal argv tokens', function () {
 
     writeExecutable($binary, "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n");
 
-    $status = (new ProcessRunner)->run([$binary, 'two words', 'semi;colon', 'pipe|value', '$(touch injected)']);
+    $status = (new ProcessRunner)->run([PHP_BINARY, $binary, 'two words', 'semi;colon', 'pipe|value', '$(touch injected)']);
 
     expect($status)->toBe(0)
         ->and(json_decode((string) file_get_contents($logFile), true))->toBe([
@@ -42,6 +42,6 @@ test('it keeps the parent stdio streams usable across sequential runs', function
 
     writeExecutable($binary, "#!/usr/bin/env php\n<?php exit(11);\n");
 
-    expect((new ProcessRunner)->run([$binary]))->toBe(11)
-        ->and((new ProcessRunner)->run([$binary]))->toBe(11);
+    expect((new ProcessRunner)->run([PHP_BINARY, $binary]))->toBe(11)
+        ->and((new ProcessRunner)->run([PHP_BINARY, $binary]))->toBe(11);
 });
