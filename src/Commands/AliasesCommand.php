@@ -26,7 +26,7 @@ class AliasesCommand extends Command
         $userAliases = UserAliases::open()->all();
 
         if ($userAliases === []) {
-            info('You have no aliases. Create one with cpx alias.');
+            info('You have no aliases. Create one with `cpx alias`.');
 
             return self::SUCCESS;
         }
