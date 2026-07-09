@@ -13,6 +13,7 @@ use Laravel\Prompts\SelectPrompt;
 use Laravel\Prompts\TextPrompt;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\StreamableInputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
@@ -27,7 +28,11 @@ class PromptFallbacks
     {
         Prompt::fallbackWhen(PHP_OS_FAMILY === 'Windows');
 
-        $ask = fn (Question $question): mixed => (new QuestionHelper)->ask($input, $output, $question);
+        $ask = function (Question $question) use ($input, $output): mixed {
+            $input->setInteractive(self::isInteractive($input));
+
+            return (new QuestionHelper)->ask($input, $output, $question);
+        };
 
         TextPrompt::fallbackUsing(fn (TextPrompt $prompt): string => self::untilValid(
             fn (): string => (string) ($ask(new Question($prompt->label, $prompt->default === '' ? null : $prompt->default)) ?? ''),
@@ -56,6 +61,15 @@ class PromptFallbacks
             $prompt->validate,
             $input,
         ));
+    }
+
+    private static function isInteractive(InputInterface $input): bool
+    {
+        return match (true) {
+            ! $input->isInteractive() => false,
+            $input instanceof StreamableInputInterface && $input->getStream() !== null => true,
+            default => defined('STDIN') && stream_isatty(STDIN),
+        };
     }
 
     private static function untilValid(Closure $ask, bool|string $required, mixed $validate, InputInterface $input): mixed
