@@ -55,8 +55,13 @@ class ProcessRunner
 
     private function isMissingExecutable(?string $command): bool
     {
-        if ($command === null || ! str_contains($command, DIRECTORY_SEPARATOR)) {
+        if ($command === null || strpbrk($command, '/\\') === false) {
             return false;
+        }
+
+        // Windows is_executable() rejects .bat/.cmd scripts
+        if (PHP_OS_FAMILY === 'Windows') {
+            return ! is_file($command);
         }
 
         return ! is_executable($command);

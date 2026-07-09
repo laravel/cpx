@@ -30,6 +30,15 @@ test('it delivers shell metacharacters as literal argv tokens', function () {
         ->and(file_exists("{$directory}/injected"))->toBeFalse();
 });
 
+test('it executes batch scripts and propagates their exit code', function () {
+    $directory = $this->temporaryDirectory('cpx-process');
+    $binary = "{$directory}/tool.bat";
+
+    file_put_contents($binary, "@exit /b 21\r\n");
+
+    expect((new ProcessRunner)->run([$binary]))->toBe(21);
+})->onlyOnWindows();
+
 test('it reports a missing executable as a could-not-execute exit code', function () {
     $directory = $this->temporaryDirectory('cpx-process');
 
