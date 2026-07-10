@@ -70,7 +70,7 @@ function sourceFilesContaining(string $needle, array $except = []): array
                 continue;
             }
 
-            $path = str_replace($root.DIRECTORY_SEPARATOR, '', $file->getPathname());
+            $path = str_replace('\\', '/', substr($file->getPathname(), strlen($root) + 1));
 
             if (in_array($path, $except, true)) {
                 continue;

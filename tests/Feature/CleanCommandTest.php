@@ -347,7 +347,7 @@ test('cleanup refuses to delete paths outside the cpx cache root', function () {
         ->and(is_dir($outside))->toBeTrue()
         ->and(file_exists($outside.'/keep.txt'))->toBeTrue()
         ->and($output)->toContain('Could not remove');
-});
+})->skip(! canCreateSymlinks(), 'symlink creation is unavailable (Windows without Developer Mode)');
 
 test('the summary lists the caches that were removed', function () {
     $this->useIsolatedComposerHome();
@@ -384,7 +384,7 @@ test('the interactive prompt shows the available clean options', function () {
         ->toContain('All cached packages and sandboxes')
         ->toContain('Only sandbox (exec) caches')
         ->toContain('Packages older than a number of days');
-});
+})->skipOnWindows();
 
 test('choosing "all" interactively cleans every package and sandbox', function () {
     $this->useIsolatedComposerHome();
@@ -413,7 +413,7 @@ test('choosing "all" interactively cleans every package and sandbox', function (
         ->and(is_dir($execDirectory))->toBeFalse()
         ->and(Metadata::open()->packages)->toBe([])
         ->and(Metadata::open()->execCache)->toBe([]);
-});
+})->skipOnWindows();
 
 test('choosing "sandbox" interactively preserves package caches', function () {
     $this->useIsolatedComposerHome();
@@ -443,7 +443,7 @@ test('choosing "sandbox" interactively preserves package caches', function () {
         ->and(Metadata::open()->hasPackage('laravel/pint'))->toBeTrue()
         ->and(is_dir($sandboxDirectory))->toBeFalse()
         ->and(Metadata::open()->execCache)->toBe([]);
-});
+})->skipOnWindows();
 
 test('choosing "period" interactively cleans by the entered number of days', function () {
     $this->useIsolatedComposerHome();
@@ -473,7 +473,7 @@ test('choosing "period" interactively cleans by the entered number of days', fun
         ->and(Metadata::open()->hasPackage('laravel/pint'))->toBeFalse()
         ->and(is_dir($recent))->toBeTrue()
         ->and(Metadata::open()->hasPackage('phpunit/phpunit'))->toBeTrue();
-});
+})->skipOnWindows();
 
 test('the interactive number prompt rejects values below one and re-prompts', function () {
     $this->useIsolatedComposerHome();
@@ -497,4 +497,4 @@ test('the interactive number prompt rejects values below one and re-prompts', fu
     expect($output)->toContain('Must be at least 1')
         ->and(is_dir($idle))->toBeFalse()
         ->and(Metadata::open()->hasPackage('laravel/pint'))->toBeFalse();
-});
+})->skipOnWindows();

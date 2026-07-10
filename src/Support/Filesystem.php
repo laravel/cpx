@@ -5,13 +5,38 @@ declare(strict_types=1);
 namespace Cpx\Support;
 
 use FilesystemIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 use RuntimeException;
 use SplFileInfo;
 
 class Filesystem
 {
+    public static function normalizePath(string $path): string
+    {
+        return str_replace('\\', '/', $path);
+    }
+
+    public static function joinPath(string $base, string ...$segments): string
+    {
+        $path = rtrim($base, '/\\');
+
+        foreach ($segments as $segment) {
+            $segment = trim($segment, '/');
+
+            if ($segment !== '') {
+                $path .= '/'.$segment;
+            }
+        }
+
+        return $path;
+    }
+
+    public static function isAbsolutePath(string $path): bool
+    {
+        return str_starts_with($path, '/')
+            || str_starts_with($path, '\\\\')
+            || preg_match('/\A[a-zA-Z]:[\\\\\/]/', $path) === 1;
+    }
+
     public static function ensureDirectory(string $directory): void
     {
         if (is_dir($directory)) {
@@ -95,24 +120,83 @@ class Filesystem
             return;
         }
 
-        $files = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::CHILD_FIRST,
-        );
-
-        foreach ($files as $file) {
+        foreach (new FilesystemIterator($directory, FilesystemIterator::SKIP_DOTS) as $file) {
             /** @var SplFileInfo $file */
             $path = $file->getPathname();
-            $removed = $file->isDir() && ! $file->isLink() ? rmdir($path) : unlink($path);
 
-            if (! $removed) {
-                throw new RuntimeException("Unable to remove {$path}.");
+            if (! $file->isDir()) {
+                self::removeEntry($path, rmdir: false);
+
+                continue;
+            }
+
+            if ($file->isLink() || self::isJunction($path)) {
+                self::removeEntry($path, rmdir: PHP_OS_FAMILY === 'Windows');
+
+                continue;
+            }
+
+            self::deleteDirectory($path);
+        }
+
+        self::removeEntry($directory, rmdir: true);
+    }
+
+    /** Replace the target with the source, retrying transient Windows file-lock failures. */
+    public static function replaceDirectory(string $source, string $target): void
+    {
+        $lastFailure = null;
+
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            if ($attempt > 1) {
+                usleep(100_000);
+            }
+
+            try {
+                self::deleteDirectory($target);
+            } catch (RuntimeException $exception) {
+                $lastFailure = $exception;
+
+                continue;
+            }
+
+            if (@rename($source, $target)) {
+                return;
             }
         }
 
-        if (! rmdir($directory)) {
-            throw new RuntimeException("Unable to remove directory {$directory}.");
+        throw $lastFailure ?? new RuntimeException("Unable to move {$source} to {$target}.");
+    }
+
+    private static function removeEntry(string $path, bool $rmdir): void
+    {
+        if ($rmdir ? @rmdir($path) : @unlink($path)) {
+            return;
         }
+
+        // Clear a Windows read-only attribute and retry once.
+        @chmod($path, 0666);
+
+        if (! ($rmdir ? @rmdir($path) : @unlink($path))) {
+            throw new RuntimeException("Unable to remove {$path}.");
+        }
+    }
+
+    /** NTFS junctions look like plain directories, but realpath() resolves to their target. */
+    private static function isJunction(string $path): bool
+    {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            return false;
+        }
+
+        $parent = realpath(dirname($path));
+        $resolved = realpath($path);
+
+        if ($parent === false || $resolved === false) {
+            return false;
+        }
+
+        return $resolved !== $parent.DIRECTORY_SEPARATOR.basename($path);
     }
 
     private static function deleteFile(string $path): void

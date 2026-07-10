@@ -27,6 +27,28 @@ function writeExecutable(string $path, string $contents): void
     chmod($path, 0755);
 }
 
+/** Windows only allows symlink creation with Developer Mode or elevation */
+function canCreateSymlinks(): bool
+{
+    static $supported = null;
+
+    if ($supported !== null) {
+        return $supported;
+    }
+
+    $target = sys_get_temp_dir().'/cpx-symlink-probe-'.bin2hex(random_bytes(4));
+    $link = "{$target}-link";
+
+    mkdir($target, 0755, true);
+    $supported = @symlink($target, $link);
+
+    @unlink($link);
+    @rmdir($link);
+    @rmdir($target);
+
+    return $supported;
+}
+
 /**
  * A PHP binary that logs its forwarded argv tokens to $logFile and exits with $exitCode.
  */

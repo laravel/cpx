@@ -170,7 +170,7 @@ class Package
             keepSummary: true,
         );
 
-        return (new ProcessRunner)->run([$binPath, ...$resolved->invocation->forwardedTokens()]);
+        return (new ProcessRunner)->run(BinExecutable::commandFor($binPath, $resolved->invocation->forwardedTokens()));
     }
 
     public function installOrUpdatePackage(bool $updateCheck = true): string
@@ -236,10 +236,12 @@ class Package
 
                 Filesystem::deleteDirectory($installDir);
 
-                if (! rename($stagingDir, $installDir)) {
+                try {
+                    Filesystem::replaceDirectory($stagingDir, $installDir);
+                } catch (RuntimeException $exception) {
                     Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
 
-                    throw new RuntimeException("Unable to finalize the installation of {$this}.");
+                    throw new RuntimeException("Unable to finalize the installation of {$this}; another process may be holding files under {$installDir}.", previous: $exception);
                 }
 
                 Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));

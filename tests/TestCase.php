@@ -3,6 +3,8 @@
 namespace Tests;
 
 use Cpx\Composer\ComposerRunner;
+use Cpx\Packages\BinExecutable;
+use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\Environment;
 use Laravel\Prompts\Output\BufferedConsoleOutput;
 use Laravel\Prompts\Prompt;
@@ -32,13 +34,20 @@ abstract class TestCase extends BaseTestCase
         Prompt::interactive(false);
         Prompt::setOutput(new BufferedConsoleOutput);
 
+        // Keep child processes off the real STDIN: under pest --parallel it is the paratest worker's command pipe.
+        ProcessRunner::fakeInput('');
+
         (new ReflectionProperty(Prompt::class, 'terminal'))->setValue(null, new Terminal);
+        (new ReflectionProperty(Prompt::class, 'shouldFallback'))->setValue(null, false);
+        (new ReflectionProperty(Prompt::class, 'fallbacks'))->setValue(null, []);
     }
 
     protected function tearDown(): void
     {
         ComposerRunner::clearFake();
         Environment::clearFakePharPath();
+        BinExecutable::clearFakeWindows();
+        ProcessRunner::clearFakeInput();
 
         if ($this->workingDirectory !== null) {
             chdir($this->workingDirectory);
@@ -86,6 +95,9 @@ abstract class TestCase extends BaseTestCase
         $this->setEnvironmentVariable('HOME', $home);
         $this->setEnvironmentVariable('COMPOSER_HOME', $composerHome);
         $this->setEnvironmentVariable('CPX_HOME', '');
+        $this->setEnvironmentVariable('USERPROFILE', '');
+        $this->setEnvironmentVariable('HOMEDRIVE', '');
+        $this->setEnvironmentVariable('HOMEPATH', '');
 
         return $composerHome;
     }
@@ -133,6 +145,10 @@ abstract class TestCase extends BaseTestCase
 
         $path = "{$directory}/{$name}";
         writeExecutable($path, $contents);
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            file_put_contents("{$path}.bat", "@php \"%~dp0{$name}\" %*\r\n");
+        }
 
         return $path;
     }

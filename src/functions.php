@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Cpx\Exceptions\ComposerInstallException;
 use Cpx\Packages\ExecSandbox;
+use Cpx\Support\Filesystem;
 
 if (! function_exists('composer_require')) {
     /**
@@ -25,15 +26,24 @@ if (! function_exists('cpx_path')) {
         $cpxHome = $_SERVER['CPX_HOME'] ?? getenv('CPX_HOME');
 
         if (is_string($cpxHome) && $cpxHome !== '') {
-            return rtrim(rtrim($cpxHome, '/').'/'.trim($path, '/'), '/');
+            return Filesystem::joinPath($cpxHome, $path);
         }
 
-        $home = $_SERVER['HOME'] ?? getenv('HOME');
+        foreach (['HOME', 'USERPROFILE'] as $variable) {
+            $home = $_SERVER[$variable] ?? getenv($variable);
 
-        if (! is_string($home) || $home === '') {
-            throw new RuntimeException('Unable to determine the home directory; set the HOME or CPX_HOME environment variable.');
+            if (is_string($home) && $home !== '') {
+                return Filesystem::joinPath($home, '.cpx', $path);
+            }
         }
 
-        return rtrim("{$home}/.cpx/".trim($path, '/'), '/');
+        $drive = $_SERVER['HOMEDRIVE'] ?? getenv('HOMEDRIVE');
+        $homePath = $_SERVER['HOMEPATH'] ?? getenv('HOMEPATH');
+
+        if (is_string($drive) && $drive !== '' && is_string($homePath) && $homePath !== '') {
+            return Filesystem::joinPath("{$drive}{$homePath}", '.cpx', $path);
+        }
+
+        throw new RuntimeException('Unable to determine the home directory; set the CPX_HOME, HOME, or USERPROFILE environment variable.');
     }
 }

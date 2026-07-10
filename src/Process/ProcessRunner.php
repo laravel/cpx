@@ -14,6 +14,8 @@ class ProcessRunner
 
     protected static ?Logger $logger = null;
 
+    private static ?string $fakeInput = null;
+
     public static function withLogger(Logger $logger, callable $callback): mixed
     {
         static::$logger = $logger;
@@ -41,11 +43,13 @@ class ProcessRunner
                 return $process->run($this->logOutput(...));
             }
 
-            if (Process::isTtySupported()) {
+            if (self::$fakeInput === null && Process::isTtySupported()) {
                 $process->setTty(true);
 
                 return $process->run();
             }
+
+            $process->setInput(self::$fakeInput ?? STDIN);
 
             return $process->run($this->writeOutput(...));
         } catch (ExceptionInterface) {
@@ -53,10 +57,25 @@ class ProcessRunner
         }
     }
 
+    public static function fakeInput(string $input): void
+    {
+        self::$fakeInput = $input;
+    }
+
+    public static function clearFakeInput(): void
+    {
+        self::$fakeInput = null;
+    }
+
     private function isMissingExecutable(?string $command): bool
     {
-        if ($command === null || ! str_contains($command, DIRECTORY_SEPARATOR)) {
+        if ($command === null || strpbrk($command, '/\\') === false) {
             return false;
+        }
+
+        // Windows is_executable() rejects .bat/.cmd scripts
+        if (PHP_OS_FAMILY === 'Windows') {
+            return ! is_file($command);
         }
 
         return ! is_executable($command);

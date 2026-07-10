@@ -26,16 +26,13 @@ class PhpExecutionHelper
         while (! file_exists($autoloadFile)) {
             $parentDirectory = realpath(dirname($autoloadRootDirectory));
 
-            if ($parentDirectory === false) {
+            // At a filesystem or drive root, dirname() returns its input unchanged.
+            if ($parentDirectory === false || $parentDirectory === $autoloadRootDirectory) {
                 break;
             }
 
             $autoloadRootDirectory = $parentDirectory;
             $autoloadFile = $autoloadRootDirectory.$autoloadFileSuffix;
-
-            if ($autoloadRootDirectory === '/') {
-                break;
-            }
         }
 
         if (! file_exists($autoloadFile)) {

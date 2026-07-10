@@ -15,6 +15,7 @@ use Cpx\Commands\UnaliasCommand;
 use Cpx\Commands\UpdateCommand;
 use Cpx\Composer\ComposerRunner;
 use Cpx\Packages\PackageCommandRunner;
+use Cpx\Runtime\PromptFallbacks;
 use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Input\ArgvInput;
@@ -38,6 +39,7 @@ class Application extends SymfonyApplication
         $output ??= new ConsoleOutput;
 
         Prompt::setOutput($output);
+        PromptFallbacks::register($input, $output);
 
         if ($input instanceof ArgvInput) {
             $tokens = $input->getRawTokens();
