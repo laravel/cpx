@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
-use Cpx\Runtime\PhpExecutionHelper;
+use Cpx\Process\ProcessRunner;
+use Cpx\Runtime\ExecEnvironment;
+use Cpx\Support\ChildScript;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -20,108 +22,77 @@ use function Laravel\Prompts\error;
 )]
 class ExecCommand extends Command
 {
-    private string $path;
-
     protected function configure(): void
     {
         $this->addArgument('file', InputArgument::OPTIONAL, 'PHP file to invoke');
         $this->addOption('run', 'r', InputOption::VALUE_REQUIRED, 'Run PHP code without <?php ?> tags');
         $this->addOption('find-autoloader', null, InputOption::VALUE_NEGATABLE, 'Find and load the nearest Composer autoloader', true);
-        $this->addOption('load-laravel-bootstrap', null, InputOption::VALUE_NEGATABLE, 'Load Laravel bootstrap files when available', true);
+        $this->addOption('boot', null, InputOption::VALUE_NEGATABLE, 'Boot the detected framework when available', true);
         $this->addOption('alias-classes', null, InputOption::VALUE_NEGATABLE, 'Alias classes from loaded autoloaders', true);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        ob_start();
+        $code = null;
+        $file = null;
 
-        try {
-            return $this->executeInput($input, $output);
-        } finally {
-            $contents = ob_get_clean();
-
-            if ($contents !== false && $contents !== '') {
-                $output->write($contents);
-            }
-        }
-    }
-
-    protected function autoload(string $directory, InputInterface $input, OutputInterface $output): void
-    {
-        $shouldFindAutoloader = $input->getOption('find-autoloader') === true;
-        $shouldLoadLaravelBootstrap = $input->getOption('load-laravel-bootstrap') === true;
-        $shouldAliasClasses = $input->getOption('alias-classes') === true;
-        $shouldBeVerbose = $output->isVerbose();
-
-        PhpExecutionHelper::init($directory, $shouldFindAutoloader, $shouldLoadLaravelBootstrap, $shouldAliasClasses, $shouldBeVerbose);
-    }
-
-    private function executeInput(InputInterface $input, OutputInterface $output): int
-    {
         if ($input->getOption('run') !== null) {
-            $code = $input->getOption('run');
+            $run = $input->getOption('run');
 
-            if (! is_string($code) || $code === '') {
+            if (! is_string($run) || $run === '') {
                 error('Please supply code to execute with the -r option.');
 
                 return self::FAILURE;
             }
 
-            if (str_starts_with($code, '<?php')) {
-                $code = substr($code, 5);
+            $code = $this->normalizeCode($run);
+        } else {
+            $target = $input->getArgument('file');
 
-                if (str_ends_with(trim($code), '?>')) {
-                    $code = substr($code, 0, -2);
-                }
-            }
-
-            if (! str_ends_with(trim($code), ';')) {
-                $code .= ';';
-            }
-
-            $directory = getcwd();
-
-            if ($directory === false) {
-                error('Unable to determine the current working directory.');
+            if (! is_string($target) || $target === '') {
+                error('Please supply the path to a file to execute.');
 
                 return self::FAILURE;
             }
 
-            $this->autoload($directory, $input, $output);
+            $file = realpath($target);
 
-            eval($code);
-            echo PHP_EOL;
+            if ($file === false) {
+                error("File does not exist at '{$target}'");
 
-            return self::SUCCESS;
+                return self::FAILURE;
+            }
         }
 
-        $file = $input->getArgument('file');
+        $environment = new ExecEnvironment(
+            file: $file,
+            code: $code,
+            findAutoloader: $input->getOption('find-autoloader') === true,
+            boot: $input->getOption('boot') === true,
+            aliasClasses: $input->getOption('alias-classes') === true,
+            verbose: $output->isVerbose(),
+        );
 
-        if (! is_string($file) || $file === '') {
-            error('Please supply the path to a file to execute.');
-
-            return self::FAILURE;
-        }
-
-        $path = realpath($file);
-
-        if ($path === false || ! file_exists($path)) {
-            error("File does not exist at '{$file}'");
-
-            return self::FAILURE;
-        }
-
-        $this->path = $path;
-
-        $this->autoload(dirname($this->path), $input, $output);
-
-        $this->runFile();
-
-        return self::SUCCESS;
+        return (new ProcessRunner)->run(
+            [PHP_BINARY, ChildScript::path('exec-bootstrap.php')],
+            $environment->toEnvironment(),
+        );
     }
 
-    private function runFile(): void
+    private function normalizeCode(string $code): string
     {
-        require $this->path;
+        if (str_starts_with($code, '<?php')) {
+            $code = substr($code, 5);
+
+            if (str_ends_with(trim($code), '?>')) {
+                $code = substr(rtrim($code), 0, -2);
+            }
+        }
+
+        if (! str_ends_with(trim($code), ';')) {
+            $code .= ';';
+        }
+
+        return $code;
     }
 }

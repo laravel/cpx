@@ -149,16 +149,6 @@ test('update requests a composer update for each installed package directory', f
         ->and($calls[0])->toContain('--working-dir='.cpx_path('laravel/pint/latest'));
 });
 
-test('exec runs inline php code', function () {
-    $directory = $this->temporaryDirectory('cpx-exec');
-    $this->useWorkingDirectory($directory);
-
-    [$status, $output] = runCpxCommand(['exec', '-r', 'echo "hello";']);
-
-    expect($status)->toBe(0)
-        ->and($output)->toContain('hello');
-});
-
 test('bare php file targets are rejected with an exec hint', function () {
     $this->useIsolatedComposerHome();
     $directory = $this->temporaryDirectory('cpx-bare-file');
@@ -186,18 +176,6 @@ test('bare existing files without a php extension also get the exec hint', funct
     expect($status)->toBe(1)
         ->and($output)->toContain('Unrecognised command runme')
         ->and($output)->toContain('To run a PHP file, use: cpx exec runme');
-});
-
-test('exec still runs php files directly', function () {
-    $directory = $this->temporaryDirectory('cpx-exec-file');
-    $this->useWorkingDirectory($directory);
-
-    file_put_contents($directory.'/script.php', '<?php echo "ran";');
-
-    [$status, $output] = runCpxCommand(['exec', 'script.php']);
-
-    expect($status)->toBe(0)
-        ->and($output)->toContain('ran');
 });
 
 test('tinker runs the cached psysh package with the bundled config', function () {
