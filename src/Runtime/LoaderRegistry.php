@@ -11,6 +11,7 @@ class LoaderRegistry
     {
         return [
             new LaravelLoader,
+            new SymfonyLoader,
             new GenericLoader,
         ];
     }
