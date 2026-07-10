@@ -23,7 +23,9 @@ class LaravelLoader implements ProjectBooter, ReplLauncher
     /** @return list<string>|null */
     public function replCommand(Context $context): ?array
     {
-        if ($context->autoloadRoot === null || ! is_dir("{$context->autoloadRoot}/vendor/laravel/tinker")) {
+        if ($context->autoloadRoot === null
+            || ! is_file("{$context->autoloadRoot}/artisan")
+            || ! is_dir("{$context->autoloadRoot}/vendor/laravel/tinker")) {
             return null;
         }
 
