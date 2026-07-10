@@ -20,12 +20,14 @@ function laravelTinkerProject(string $root, string $artisanLog, bool $withTinker
 /**
  * @param  list<list<string>>  $commands
  * @param  list<array<string, string|false>>  $environments
+ * @param  list<string|null>  $cwds
  */
-function fakeProcessRunner(array &$commands, array &$environments, int $exitCode = 0): void
+function fakeProcessRunner(array &$commands, array &$environments, int $exitCode = 0, array &$cwds = []): void
 {
-    ProcessRunner::fake(function (array $command, array $env) use (&$commands, &$environments, $exitCode): int {
+    ProcessRunner::fake(function (array $command, array $env, ?string $cwd) use (&$commands, &$environments, &$cwds, $exitCode): int {
         $commands[] = $command;
         $environments[] = $env;
+        $cwds[] = $cwd;
 
         return $exitCode;
     });
@@ -78,6 +80,23 @@ test('tinker ignores global options before the command name when forwarding', fu
 
     expect($status)->toBe(0)
         ->and(json_decode((string) file_get_contents($log), true))->toBe(['tinker', '--execute=2+2']);
+});
+
+test('tinker runs the artisan proxy from the project root', function () {
+    $root = $this->temporaryDirectory('cpx-tinker');
+    laravelTinkerProject($root, "{$root}/artisan.json");
+    mkdir("{$root}/app/Models", 0755, true);
+    $this->useWorkingDirectory("{$root}/app/Models");
+
+    $commands = [];
+    $environments = [];
+    $cwds = [];
+    fakeProcessRunner($commands, $environments, 0, $cwds);
+
+    [$status] = runCpxCommand(['tinker']);
+
+    expect($status)->toBe(0)
+        ->and($cwds)->toBe([$root]);
 });
 
 test('tinker falls back to the bundled psysh outside laravel projects', function () {

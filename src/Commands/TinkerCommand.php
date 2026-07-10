@@ -54,7 +54,7 @@ class TinkerCommand extends Command
         $replCommand = $loader instanceof ReplLauncher ? $loader->replCommand($context) : null;
 
         if ($replCommand !== null) {
-            return (new ProcessRunner)->run([...$replCommand, ...$tokens]);
+            return (new ProcessRunner)->run([...$replCommand, ...$tokens], cwd: $context->autoloadRoot);
         }
 
         return $this->launchBundledPsysh($context, $tokens);
