@@ -6,6 +6,8 @@ namespace Cpx\Packages;
 
 use Cpx\Cache\Metadata;
 use Cpx\Composer\ComposerRunner;
+use Cpx\Exceptions\ComposerCommandException;
+use Cpx\Exceptions\PackageNotFoundException;
 use Cpx\Input\PackageInvocation;
 use Cpx\Process\ProcessRunner;
 use Cpx\Support\Arr;
@@ -128,7 +130,13 @@ class Package
 
     public function runCommand(PackageInvocation $invocation, bool $autoUpdate = true): int
     {
-        $installDir = $this->installOrUpdatePackage($autoUpdate);
+        try {
+            $installDir = $this->installOrUpdatePackage($autoUpdate);
+        } catch (PackageNotFoundException $exception) {
+            $exception->render();
+
+            return Command::FAILURE;
+        }
         $packageDir = $this->packagePath($installDir);
         $binScripts = $this->binaries($installDir);
 
@@ -259,7 +267,9 @@ class Package
         } catch (Throwable $exception) {
             Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
 
-            throw $exception;
+            throw $exception instanceof ComposerCommandException
+                ? new PackageNotFoundException($this, previous: $exception)
+                : $exception;
         }
     }
 

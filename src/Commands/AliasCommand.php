@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
+use Cpx\Exceptions\PackageNotFoundException;
 use Cpx\Packages\Package;
 use Cpx\Packages\UserAliases;
 use InvalidArgumentException;
@@ -53,6 +54,10 @@ class AliasCommand extends Command
             }
 
             $package = $this->resolveBinary($input, $package);
+        } catch (PackageNotFoundException $e) {
+            $e->render();
+
+            return self::FAILURE;
         } catch (InvalidArgumentException|NonInteractiveValidationException $e) {
             error($e->getMessage());
 

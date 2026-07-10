@@ -335,3 +335,35 @@ test('invalid fallback commands return a failure status with help output', funct
     expect($status)->toBe(1)
         ->and($output)->toContain('Unrecognised command not-a-package');
 });
+
+test('a package that composer cannot install renders a package-not-found error', function () {
+    $this->useIsolatedComposerHome();
+
+    $calls = [];
+    fakeComposer($calls, exitCode: 1);
+
+    [$status, $output] = runCpxCommand(['foo/bar']);
+
+    expect($status)->toBe(1)
+        ->and($output)->toContain('Package not found')
+        ->and($output)->toContain('Composer was unable to install')
+        ->and($output)->toContain('`foo/bar`')
+        ->and($output)->toContain('spelled correctly')
+        ->and($output)->toContain('https://packagist.org/packages/foo/bar')
+        ->and($output)->not->toContain('__cpx_run_package');
+});
+
+test('a package-not-found error mentions the requested version constraint', function () {
+    $this->useIsolatedComposerHome();
+
+    $calls = [];
+    fakeComposer($calls, exitCode: 1);
+
+    [$status, $output] = runCpxCommand(['foo/bar:^9.0']);
+
+    expect($status)->toBe(1)
+        ->and($output)->toContain('Package not found')
+        ->and($output)->toContain('version matching')
+        ->and($output)->toContain('`^9.0`')
+        ->and($output)->toContain('https://packagist.org/packages/foo/bar');
+});
