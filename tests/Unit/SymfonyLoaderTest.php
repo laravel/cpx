@@ -4,13 +4,13 @@ use Cpx\Runtime\Context;
 use Cpx\Runtime\ReplLauncher;
 use Cpx\Runtime\SymfonyLoader;
 
-function symfonyKernelFixture(string $root, string $namespace = 'CpxSymfonyFixture'): void
+function symfonyKernelFixture(string $root, string $namespace = 'CpxSymfonyFixture', string|array $psr4Paths = 'src/'): void
 {
     mkdir("{$root}/src", 0755, true);
 
     file_put_contents("{$root}/composer.json", json_encode([
         'require' => ['symfony/framework-bundle' => '^7.0'],
-        'autoload' => ['psr-4' => ["{$namespace}\\" => 'src/']],
+        'autoload' => ['psr-4' => ["{$namespace}\\" => $psr4Paths]],
     ], JSON_THROW_ON_ERROR));
 
     file_put_contents("{$root}/src/Kernel.php", <<<PHP
@@ -88,6 +88,24 @@ test('it respects the configured application environment', function () {
 
     expect($variables['kernel']->environment)->toBe('prod')
         ->and($variables['kernel']->debug)->toBeFalse();
+});
+
+test('it discovers the kernel through array psr-4 paths', function () {
+    $root = $this->temporaryDirectory('cpx-symfony');
+    symfonyKernelFixture($root, 'CpxSymfonyFixtureArrayPaths', ['src/']);
+
+    $variables = (new SymfonyLoader)->boot(new Context($root, $root));
+
+    expect($variables)->toHaveKeys(['kernel', 'container']);
+});
+
+test('it discovers the kernel when the psr-4 path has no trailing slash', function () {
+    $root = $this->temporaryDirectory('cpx-symfony');
+    symfonyKernelFixture($root, 'CpxSymfonyFixtureBarePath', 'src');
+
+    $variables = (new SymfonyLoader)->boot(new Context($root, $root));
+
+    expect($variables)->toHaveKeys(['kernel', 'container']);
 });
 
 test('it exposes no variables when no kernel class is discoverable', function () {
