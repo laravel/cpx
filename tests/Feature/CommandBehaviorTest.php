@@ -159,18 +159,45 @@ test('exec runs inline php code', function () {
         ->and($output)->toContain('hello');
 });
 
-test('file fallback preserves exec options', function () {
-    $directory = $this->temporaryDirectory('cpx-file-fallback');
+test('bare php file targets are rejected with an exec hint', function () {
+    $this->useIsolatedComposerHome();
+    $directory = $this->temporaryDirectory('cpx-bare-file');
     $this->useWorkingDirectory($directory);
 
-    mkdir($directory.'/vendor', 0755, true);
-    file_put_contents($directory.'/vendor/autoload.php', '<?php $GLOBALS[\'cpx_autoload_loaded\'] = true;');
-    file_put_contents($directory.'/script.php', '<?php echo isset($GLOBALS[\'cpx_autoload_loaded\']) ? \'loaded\' : \'not-loaded\';');
+    file_put_contents($directory.'/script.php', '<?php echo "ran";');
 
-    [$status, $output] = runCpxCommand(['script.php', '--find-autoloader=false']);
+    [$status, $output] = runCpxCommand(['script.php']);
+
+    expect($status)->toBe(1)
+        ->and($output)->toContain('Unrecognised command script.php')
+        ->and($output)->toContain('To run a PHP file, use: cpx exec script.php')
+        ->and($output)->not->toContain('ran');
+});
+
+test('bare existing files without a php extension also get the exec hint', function () {
+    $this->useIsolatedComposerHome();
+    $directory = $this->temporaryDirectory('cpx-bare-file');
+    $this->useWorkingDirectory($directory);
+
+    file_put_contents($directory.'/runme', '<?php echo "ran";');
+
+    [$status, $output] = runCpxCommand(['runme']);
+
+    expect($status)->toBe(1)
+        ->and($output)->toContain('Unrecognised command runme')
+        ->and($output)->toContain('To run a PHP file, use: cpx exec runme');
+});
+
+test('exec still runs php files directly', function () {
+    $directory = $this->temporaryDirectory('cpx-exec-file');
+    $this->useWorkingDirectory($directory);
+
+    file_put_contents($directory.'/script.php', '<?php echo "ran";');
+
+    [$status, $output] = runCpxCommand(['exec', 'script.php']);
 
     expect($status)->toBe(0)
-        ->and($output)->toContain('not-loaded');
+        ->and($output)->toContain('ran');
 });
 
 test('tinker runs the cached psysh package with the bundled config', function () {
