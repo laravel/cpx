@@ -20,6 +20,22 @@ test('it finds the autoloader in an ancestor directory', function () {
     unset($GLOBALS['cpxAutoloadHits']);
 });
 
+test('it finds the autoload root from a nested directory', function () {
+    $root = $this->temporaryDirectory('cpx-exec');
+    mkdir("{$root}/vendor", 0755, true);
+    mkdir("{$root}/nested/deep", 0755, true);
+    file_put_contents("{$root}/vendor/autoload.php", '<?php');
+
+    expect(PhpExecutionHelper::findAutoloadRoot("{$root}/nested/deep"))->toBe($root);
+});
+
+test('it returns null when no autoload root exists', function () {
+    $root = $this->temporaryDirectory('cpx-exec');
+    mkdir("{$root}/nested", 0755, true);
+
+    expect(PhpExecutionHelper::findAutoloadRoot("{$root}/nested"))->toBeNull();
+});
+
 test('it returns when no autoloader exists in any ancestor directory', function () {
     unset($GLOBALS['cpxAutoloadHits']);
 

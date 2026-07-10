@@ -19,25 +19,13 @@ class PhpExecutionHelper
             return;
         }
 
-        $autoloadRootDirectory = $path;
-        $autoloadFileSuffix = '/vendor/autoload.php';
-        $autoloadFile = $autoloadRootDirectory.$autoloadFileSuffix;
+        $autoloadRootDirectory = static::findAutoloadRoot($path);
 
-        while (! file_exists($autoloadFile)) {
-            $parentDirectory = realpath(dirname($autoloadRootDirectory));
-
-            // At a filesystem or drive root, dirname() returns its input unchanged.
-            if ($parentDirectory === false || $parentDirectory === $autoloadRootDirectory) {
-                break;
-            }
-
-            $autoloadRootDirectory = $parentDirectory;
-            $autoloadFile = $autoloadRootDirectory.$autoloadFileSuffix;
-        }
-
-        if (! file_exists($autoloadFile)) {
+        if ($autoloadRootDirectory === null) {
             return;
         }
+
+        $autoloadFile = "{$autoloadRootDirectory}/vendor/autoload.php";
 
         if ($shouldBeVerbose) {
             echo "Found autoload file at '{$autoloadFile}'".PHP_EOL;
@@ -67,6 +55,24 @@ class PhpExecutionHelper
 
         static::getClassAliasAutoloader($shouldBeVerbose)->addAliases($autoloadRootDirectory);
         spl_autoload_register(static::getClassAliasAutoloader($shouldBeVerbose)->aliasClass(...));
+    }
+
+    public static function findAutoloadRoot(string $path): ?string
+    {
+        $root = $path;
+
+        while (! file_exists("{$root}/vendor/autoload.php")) {
+            $parent = realpath(dirname($root));
+
+            // At a filesystem or drive root, dirname() returns its input unchanged.
+            if ($parent === false || $parent === $root) {
+                return null;
+            }
+
+            $root = $parent;
+        }
+
+        return $root;
     }
 
     public static function getClassAliasAutoloader(bool $shouldBeVerbose = false): ClassAliasAutoloader
