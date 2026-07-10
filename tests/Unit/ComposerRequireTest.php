@@ -21,9 +21,9 @@ test('it loads the sandbox autoloader reported by the cpx sandbox process', func
     );
 
     $bin = fakeSandboxBin($directory, sprintf(
-        '<?php file_put_contents(%s, json_encode(array_slice($argv, 1))); echo "install noise\n%s\n";',
+        '<?php file_put_contents(%s, json_encode(array_slice($argv, 1))); echo "install noise\n", %s, "\n";',
         var_export("{$directory}/argv.json", true),
-        "{$directory}/sandbox",
+        var_export("{$directory}/sandbox", true),
     ));
     $this->setEnvironmentVariable('CPX_EXEC_BIN', $bin);
 
@@ -57,7 +57,7 @@ test('it fails when the reported sandbox has no autoloader', function () {
     $directory = $this->temporaryDirectory('cpx-composer-require');
     mkdir("{$directory}/sandbox", 0755, true);
 
-    $bin = fakeSandboxBin($directory, sprintf('<?php echo "%s\n";', "{$directory}/sandbox"));
+    $bin = fakeSandboxBin($directory, sprintf('<?php echo %s, "\n";', var_export("{$directory}/sandbox", true)));
     $this->setEnvironmentVariable('CPX_EXEC_BIN', $bin);
 
     ComposerRequire::load('vendor/package');
