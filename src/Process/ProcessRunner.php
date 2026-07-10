@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cpx\Process;
 
+use Closure;
 use Laravel\Prompts\Support\Logger;
 use Symfony\Component\Process\Exception\ExceptionInterface;
 use Symfony\Component\Process\Process;
@@ -13,6 +14,8 @@ class ProcessRunner
     public const COULD_NOT_EXECUTE = 127;
 
     protected static ?Logger $logger = null;
+
+    private static ?Closure $fakeRunner = null;
 
     private static ?string $fakeInput = null;
 
@@ -33,6 +36,10 @@ class ProcessRunner
      */
     public function run(array $command, array $env = []): int
     {
+        if (self::$fakeRunner !== null) {
+            return (self::$fakeRunner)($command, $env);
+        }
+
         if ($this->isMissingExecutable($command[0] ?? null)) {
             return self::COULD_NOT_EXECUTE;
         }
@@ -56,6 +63,19 @@ class ProcessRunner
         } catch (ExceptionInterface) {
             return self::COULD_NOT_EXECUTE;
         }
+    }
+
+    /**
+     * @param  callable(list<string>, array<string, string|false>): int  $runner
+     */
+    public static function fake(callable $runner): void
+    {
+        self::$fakeRunner = $runner(...);
+    }
+
+    public static function clearFake(): void
+    {
+        self::$fakeRunner = null;
     }
 
     public static function fakeInput(string $input): void
