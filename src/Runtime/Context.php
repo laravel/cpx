@@ -16,16 +16,16 @@ readonly class Context
 
     public static function fromEnvironment(): self
     {
-        $file = getenv('CPX_EXEC_FILE');
+        $file = ExecVariable::File->get();
         $workingDirectory = is_string($file) && $file !== '' ? dirname($file) : (getcwd() ?: '.');
-        $shouldFindAutoloader = getenv('CPX_EXEC_FIND_AUTOLOADER') !== '0';
+        $shouldFindAutoloader = ExecVariable::FindAutoloader->get() !== '0';
 
         return new self(
             workingDirectory: $workingDirectory,
             autoloadRoot: $shouldFindAutoloader ? PhpExecutionHelper::findAutoloadRoot($workingDirectory) : null,
-            shouldBoot: getenv('CPX_EXEC_BOOT') !== '0',
-            shouldAliasClasses: getenv('CPX_EXEC_ALIAS') !== '0',
-            verbose: getenv('CPX_EXEC_VERBOSE') === '1',
+            shouldBoot: ExecVariable::Boot->get() !== '0',
+            shouldAliasClasses: ExecVariable::AliasClasses->get() !== '0',
+            verbose: ExecVariable::Verbose->get() === '1',
         );
     }
 }

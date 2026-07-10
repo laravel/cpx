@@ -15,23 +15,16 @@ readonly class ExecEnvironment
         public bool $verbose = false,
     ) {}
 
-    /** @return array{
-        CPX_EXEC_FILE: string|false,
-        CPX_EXEC_CODE: string|false,
-        CPX_EXEC_FIND_AUTOLOADER: '0'|'1',
-        CPX_EXEC_BOOT: '0'|'1',
-        CPX_EXEC_ALIAS: '0'|'1',
-        CPX_EXEC_VERBOSE: '0'|'1',
-    } */
+    /** @return array<string, string|false> */
     public function toEnvironment(): array
     {
         return [
-            'CPX_EXEC_FILE' => $this->file ?? false,
-            'CPX_EXEC_CODE' => $this->code ?? false,
-            'CPX_EXEC_FIND_AUTOLOADER' => $this->findAutoloader ? '1' : '0',
-            'CPX_EXEC_BOOT' => $this->boot ? '1' : '0',
-            'CPX_EXEC_ALIAS' => $this->aliasClasses ? '1' : '0',
-            'CPX_EXEC_VERBOSE' => $this->verbose ? '1' : '0',
+            ExecVariable::File->value => $this->file ?? false,
+            ExecVariable::Code->value => $this->code ?? false,
+            ExecVariable::FindAutoloader->value => $this->findAutoloader ? '1' : '0',
+            ExecVariable::Boot->value => $this->boot ? '1' : '0',
+            ExecVariable::AliasClasses->value => $this->aliasClasses ? '1' : '0',
+            ExecVariable::Verbose->value => $this->verbose ? '1' : '0',
         ];
     }
 }

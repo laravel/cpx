@@ -1,6 +1,7 @@
 <?php
 
 use Cpx\Runtime\Context;
+use Cpx\Runtime\ExecVariable;
 use Cpx\Runtime\PhpExecutionHelper;
 
 /**
@@ -19,10 +20,10 @@ $__cpxVariables = PhpExecutionHelper::prepare(Context::fromEnvironment());
 extract($__cpxVariables);
 unset($__cpxVariables);
 
-if (getenv('CPX_EXEC_CODE') !== false && getenv('CPX_EXEC_CODE') !== '') {
-    eval((string) getenv('CPX_EXEC_CODE'));
+if (ExecVariable::Code->get() !== false && ExecVariable::Code->get() !== '') {
+    eval((string) ExecVariable::Code->get());
 
     return;
 }
 
-require getenv('CPX_EXEC_FILE');
+require ExecVariable::File->get();

@@ -1,6 +1,7 @@
 <?php
 
 use Cpx\Runtime\Context;
+use Cpx\Runtime\ExecVariable;
 use Cpx\Runtime\PhpExecutionHelper;
 use Psy\Configuration;
 use Psy\Shell;
@@ -14,8 +15,8 @@ spl_autoload_register(static function (string $class): void {
 $__cpxVariables = PhpExecutionHelper::prepare(Context::fromEnvironment());
 
 // Prefer the project's own psysh; fall back to the cached package.
-if (! class_exists(Shell::class) && getenv('CPX_TINKER_PSYSH_AUTOLOAD') !== false) {
-    require getenv('CPX_TINKER_PSYSH_AUTOLOAD');
+if (! class_exists(Shell::class) && ExecVariable::PsyshAutoload->get() !== false) {
+    require ExecVariable::PsyshAutoload->get();
 }
 
 $__cpxShell = new Shell(new Configuration(['updateCheck' => 'never']));

@@ -8,6 +8,7 @@ use Cpx\Packages\Package;
 use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\Context;
 use Cpx\Runtime\ExecEnvironment;
+use Cpx\Runtime\ExecVariable;
 use Cpx\Runtime\LoaderRegistry;
 use Cpx\Runtime\PhpExecutionHelper;
 use Cpx\Runtime\ReplLauncher;
@@ -77,7 +78,7 @@ class TinkerCommand extends Command
     private function launchBundledPsysh(Context $context, array $tokens): int
     {
         $environment = (new ExecEnvironment(verbose: $context->verbose))->toEnvironment();
-        $environment['CPX_TINKER_PSYSH_AUTOLOAD'] = $this->psyshAutoloadPath($context);
+        $environment[ExecVariable::PsyshAutoload->value] = $this->psyshAutoloadPath($context);
 
         return (new ProcessRunner)->run(
             [PHP_BINARY, ChildScript::path('tinker-runner.php'), ...$tokens],
