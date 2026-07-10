@@ -24,6 +24,19 @@ test('it forwards explicit environment variables to the child process', function
         ->and(file_get_contents($logFile))->toBe("line1\nline2 'quoted'");
 });
 
+test('it runs the child process in the given working directory', function () {
+    $directory = $this->temporaryDirectory('cpx-process');
+    $binary = "{$directory}/cwd-probe";
+    $logFile = "{$directory}/cwd.txt";
+
+    writeExecutable($binary, "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', getcwd()); exit(0);\n");
+
+    $status = (new ProcessRunner)->run([PHP_BINARY, $binary], [], $directory);
+
+    expect($status)->toBe(0)
+        ->and(realpath((string) file_get_contents($logFile)))->toBe(realpath($directory));
+});
+
 test('it delivers shell metacharacters as literal argv tokens', function () {
     $directory = $this->temporaryDirectory('cpx-process');
     $binary = "{$directory}/argv";

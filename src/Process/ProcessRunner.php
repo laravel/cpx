@@ -34,10 +34,10 @@ class ProcessRunner
      * @param  list<string>  $command
      * @param  array<string, string|false>  $env
      */
-    public function run(array $command, array $env = []): int
+    public function run(array $command, array $env = [], ?string $cwd = null): int
     {
         if (self::$fakeRunner !== null) {
-            return (self::$fakeRunner)($command, $env);
+            return (self::$fakeRunner)($command, $env, $cwd);
         }
 
         if ($this->isMissingExecutable($command[0] ?? null)) {
@@ -45,7 +45,7 @@ class ProcessRunner
         }
 
         try {
-            $process = new Process($command, env: $env === [] ? null : $env, timeout: null);
+            $process = new Process($command, cwd: $cwd, env: $env === [] ? null : $env, timeout: null);
 
             if (static::$logger !== null) {
                 return $process->run($this->logOutput(...));
@@ -66,7 +66,7 @@ class ProcessRunner
     }
 
     /**
-     * @param  callable(list<string>, array<string, string|false>): int  $runner
+     * @param  callable(list<string>, array<string, string|false>, string|null): int  $runner
      */
     public static function fake(callable $runner): void
     {
