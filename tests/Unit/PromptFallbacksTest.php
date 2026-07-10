@@ -1,6 +1,6 @@
 <?php
 
-use Cpx\Runtime\PromptFallbacks;
+use Cpx\Support\PromptFallbacks;
 use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
 use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Input\ArrayInput;
