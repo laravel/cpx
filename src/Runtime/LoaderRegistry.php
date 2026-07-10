@@ -10,6 +10,7 @@ class LoaderRegistry
     public static function loaders(): array
     {
         return [
+            new LaravelLoader,
             new GenericLoader,
         ];
     }
