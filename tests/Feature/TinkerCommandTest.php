@@ -68,6 +68,18 @@ test('tinker detects the project root from a nested subdirectory', function () {
         ->and(json_decode((string) file_get_contents($log), true))->toBe(['tinker']);
 });
 
+test('tinker ignores global options before the command name when forwarding', function () {
+    $root = $this->temporaryDirectory('cpx-tinker');
+    $log = "{$root}/artisan.json";
+    laravelTinkerProject($root, $log);
+    $this->useWorkingDirectory($root);
+
+    [$status] = runCpxCommand(['-v', 'tinker', '--execute=2+2']);
+
+    expect($status)->toBe(0)
+        ->and(json_decode((string) file_get_contents($log), true))->toBe(['tinker', '--execute=2+2']);
+});
+
 test('tinker falls back to the bundled psysh outside laravel projects', function () {
     $this->useIsolatedComposerHome();
     prepareCachedPackage('psy/psysh', ['psysh']);

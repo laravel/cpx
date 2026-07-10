@@ -63,13 +63,7 @@ class TinkerCommand extends Command
     /** @return list<string> */
     private function forwardedTokens(InputInterface $input): array
     {
-        $tokens = $input instanceof ArgvInput ? $input->getRawTokens() : [];
-
-        if (($tokens[0] ?? null) === 'tinker') {
-            array_shift($tokens);
-        }
-
-        return $tokens;
+        return $input instanceof ArgvInput ? $input->getRawTokens(true) : [];
     }
 
     /**
