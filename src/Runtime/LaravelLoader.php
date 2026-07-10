@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Cpx\Runtime;
 
-class LaravelLoader implements ProjectBooter
+class LaravelLoader implements ProjectBooter, ReplLauncher
 {
     public function supports(Context $context): bool
     {
@@ -18,6 +18,16 @@ class LaravelLoader implements ProjectBooter
 
         return is_file("{$context->autoloadRoot}/artisan")
             && is_file("{$context->autoloadRoot}/bootstrap/app.php");
+    }
+
+    /** @return list<string>|null */
+    public function replCommand(Context $context): ?array
+    {
+        if ($context->autoloadRoot === null || ! is_dir("{$context->autoloadRoot}/vendor/laravel/tinker")) {
+            return null;
+        }
+
+        return [PHP_BINARY, "{$context->autoloadRoot}/artisan", 'tinker'];
     }
 
     /** @return array<string, object> */

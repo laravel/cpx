@@ -58,6 +58,22 @@ test('it exposes no variables when the bootstrap file is missing', function () {
     expect((new LaravelLoader)->boot(new Context($root, $root)))->toBe([]);
 });
 
+test('it provides the artisan tinker command when laravel/tinker is installed', function () {
+    $root = $this->temporaryDirectory('cpx-laravel');
+    mkdir("{$root}/vendor/laravel/tinker", 0755, true);
+    file_put_contents("{$root}/artisan", '<?php');
+
+    expect((new LaravelLoader)->replCommand(new Context($root, $root)))
+        ->toBe([PHP_BINARY, "{$root}/artisan", 'tinker']);
+});
+
+test('it provides no repl command when laravel/tinker is missing', function () {
+    $root = $this->temporaryDirectory('cpx-laravel');
+    file_put_contents("{$root}/artisan", '<?php');
+
+    expect((new LaravelLoader)->replCommand(new Context($root, $root)))->toBeNull();
+});
+
 test('it exposes no variables when the bootstrap file does not return an application', function () {
     $root = $this->temporaryDirectory('cpx-laravel');
     mkdir("{$root}/bootstrap", 0755, true);
