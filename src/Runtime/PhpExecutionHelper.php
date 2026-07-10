@@ -8,55 +8,6 @@ class PhpExecutionHelper
 {
     public static ClassAliasAutoloader $classAliasAutoloader;
 
-    public static function init(
-        string $path,
-        bool $shouldFindAutoloader = true,
-        bool $shouldLoadLaravelBootstrap = true,
-        bool $shouldAliasClasses = true,
-        bool $shouldBeVerbose = false,
-    ): void {
-        if (! $shouldFindAutoloader) {
-            return;
-        }
-
-        $autoloadRootDirectory = static::findAutoloadRoot($path);
-
-        if ($autoloadRootDirectory === null) {
-            return;
-        }
-
-        $autoloadFile = "{$autoloadRootDirectory}/vendor/autoload.php";
-
-        if ($shouldBeVerbose) {
-            echo "Found autoload file at '{$autoloadFile}'".PHP_EOL;
-        }
-
-        require_once $autoloadFile;
-
-        if ($shouldLoadLaravelBootstrap && file_exists($autoloadRootDirectory.'/bootstrap/app.php')) {
-            if ($shouldBeVerbose) {
-                echo "Found Laravel bootstrap file at '{$autoloadRootDirectory}/bootstrap/app.php'".PHP_EOL;
-            }
-
-            if (! defined('LARAVEL_START')) {
-                define('LARAVEL_START', microtime(true));
-            }
-
-            require_once $autoloadRootDirectory.'/bootstrap/app.php';
-        }
-
-        if (! $shouldAliasClasses) {
-            return;
-        }
-
-        if ($shouldBeVerbose) {
-            echo 'Aliasing classes'.PHP_EOL;
-        }
-
-        static::getClassAliasAutoloader($shouldBeVerbose)->addAliases($autoloadRootDirectory);
-        spl_autoload_register(static::getClassAliasAutoloader($shouldBeVerbose)->aliasClass(...));
-    }
-
     /**
      * @return array<string, object> the variables to expose to user code
      */
