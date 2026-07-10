@@ -25,6 +25,14 @@ readonly class ExecEnvironment
             ExecVariable::Boot->value => $this->boot ? '1' : '0',
             ExecVariable::AliasClasses->value => $this->aliasClasses ? '1' : '0',
             ExecVariable::Verbose->value => $this->verbose ? '1' : '0',
+            ExecVariable::Bin->value => self::binPath(),
         ];
+    }
+
+    private static function binPath(): string
+    {
+        return Environment::isPhar()
+            ? Environment::pharPath()
+            : dirname(__DIR__, 2).'/cpx';
     }
 }

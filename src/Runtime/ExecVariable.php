@@ -12,6 +12,7 @@ enum ExecVariable: string
     case Boot = 'CPX_EXEC_BOOT';
     case AliasClasses = 'CPX_EXEC_ALIAS';
     case Verbose = 'CPX_EXEC_VERBOSE';
+    case Bin = 'CPX_EXEC_BIN';
     case PsyshAutoload = 'CPX_TINKER_PSYSH_AUTOLOAD';
 
     public function get(): string|false

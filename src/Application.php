@@ -10,6 +10,7 @@ use Cpx\Commands\CleanCommand;
 use Cpx\Commands\ExecCommand;
 use Cpx\Commands\ListCommand;
 use Cpx\Commands\RunPackageCommand;
+use Cpx\Commands\SandboxCommand;
 use Cpx\Commands\TinkerCommand;
 use Cpx\Commands\UnaliasCommand;
 use Cpx\Commands\UpdateCommand;
@@ -77,6 +78,7 @@ class Application extends SymfonyApplication
             new UpdateCommand,
             new ExecCommand,
             new TinkerCommand,
+            new SandboxCommand,
             new RunPackageCommand($packageCommandRunner),
         ]);
     }

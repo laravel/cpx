@@ -37,7 +37,8 @@ arch('the package source declares strict types')
     ->toUseStrictTypes();
 
 test('the app does not call proc_open directly', function () {
-    $offenders = sourceFilesContaining('proc_open');
+    // ComposerRequire runs inside the dependency-free child, where ProcessRunner is unavailable by design.
+    $offenders = sourceFilesContaining('proc_open', except: ['src/Runtime/ComposerRequire.php']);
 
     expect($offenders)->toBe([]);
 });

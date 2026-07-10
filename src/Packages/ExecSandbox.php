@@ -48,25 +48,30 @@ class ExecSandbox
 
     public function load(): void
     {
+        $path = $this->ensureInstalled();
+
+        if (isset(PhpExecutionHelper::$classAliasAutoloader)) {
+            PhpExecutionHelper::$classAliasAutoloader->addAliases($path);
+        }
+
+        require_once "{$path}/vendor/autoload.php";
+    }
+
+    public function ensureInstalled(): string
+    {
         $updatedAt = match (true) {
             ! $this->isInstalled() => $this->install(),
             $this->shouldCheckForUpdates() => $this->update(),
             default => null,
         };
 
-        $autoloadFile = $this->path().'/vendor/autoload.php';
-
-        if (! file_exists($autoloadFile)) {
+        if (! file_exists($this->path().'/vendor/autoload.php')) {
             throw new ComposerInstallException("Autoload file not found in {$this->path()}/vendor/. Composer installation may have failed.");
         }
 
         $this->record($updatedAt);
 
-        if (isset(PhpExecutionHelper::$classAliasAutoloader)) {
-            PhpExecutionHelper::$classAliasAutoloader->addAliases($this->path());
-        }
-
-        require_once $autoloadFile;
+        return $this->path();
     }
 
     private function install(): int
