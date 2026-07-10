@@ -29,15 +29,16 @@ class ProcessRunner
 
     /**
      * @param  list<string>  $command
+     * @param  array<string, string|false>  $env
      */
-    public function run(array $command): int
+    public function run(array $command, array $env = []): int
     {
         if ($this->isMissingExecutable($command[0] ?? null)) {
             return self::COULD_NOT_EXECUTE;
         }
 
         try {
-            $process = new Process($command, timeout: null);
+            $process = new Process($command, env: $env === [] ? null : $env, timeout: null);
 
             if (static::$logger !== null) {
                 return $process->run($this->logOutput(...));
