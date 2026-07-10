@@ -57,6 +57,35 @@ class PhpExecutionHelper
         spl_autoload_register(static::getClassAliasAutoloader($shouldBeVerbose)->aliasClass(...));
     }
 
+    /**
+     * @return array<string, object> the variables to expose to user code
+     */
+    public static function prepare(Context $context): array
+    {
+        if ($context->autoloadRoot === null) {
+            return [];
+        }
+
+        if ($context->verbose) {
+            echo "Found autoload file at '{$context->autoloadRoot}/vendor/autoload.php'".PHP_EOL;
+        }
+
+        require_once "{$context->autoloadRoot}/vendor/autoload.php";
+
+        $variables = $context->shouldBoot ? LoaderRegistry::resolve($context)->boot($context) : [];
+
+        if ($context->shouldAliasClasses) {
+            if ($context->verbose) {
+                echo 'Aliasing classes'.PHP_EOL;
+            }
+
+            static::getClassAliasAutoloader($context->verbose)->addAliases($context->autoloadRoot);
+            spl_autoload_register(static::getClassAliasAutoloader($context->verbose)->aliasClass(...));
+        }
+
+        return $variables;
+    }
+
     public static function findAutoloadRoot(string $path): ?string
     {
         $root = $path;
