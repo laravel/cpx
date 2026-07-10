@@ -157,6 +157,18 @@ test('exec rejects the removed --load-laravel-bootstrap flag', function () {
         ->and($output)->toContain('--load-laravel-bootstrap');
 });
 
+test('exec rejects a directory target', function () {
+    $directory = $this->temporaryDirectory('cpx-exec');
+    $this->useWorkingDirectory($directory);
+
+    mkdir("{$directory}/subdir", 0755, true);
+
+    [$status, $output] = runCpxCommand(['exec', 'subdir']);
+
+    expect($status)->toBe(1)
+        ->and($output)->toContain("Cannot execute 'subdir' because it is not a file.");
+});
+
 test('exec fails when the file does not exist', function () {
     $directory = $this->temporaryDirectory('cpx-exec');
     $this->useWorkingDirectory($directory);

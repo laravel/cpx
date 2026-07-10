@@ -62,6 +62,12 @@ class ExecCommand extends Command
 
                 return self::FAILURE;
             }
+
+            if (! is_file($file)) {
+                error("Cannot execute '{$target}' because it is not a file.");
+
+                return self::FAILURE;
+            }
         }
 
         $environment = new ExecEnvironment(
