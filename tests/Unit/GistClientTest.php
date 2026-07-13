@@ -81,6 +81,20 @@ test('fetches the selected php file from the gists api', function () {
         ->and($file->content)->toBe('<?php // hi');
 });
 
+function respondingGistClient(int $status, string $body = ''): GistClient
+{
+    return new class($status, $body) extends GistClient
+    {
+        public function __construct(private readonly int $status, private readonly string $body) {}
+
+        /** @return array{status: int, content: string} */
+        protected function request(string $url): ?array
+        {
+            return ['status' => $this->status, 'content' => $this->body];
+        }
+    };
+}
+
 test('throws a friendly error on invalid json', function () {
     $client = stubbedGistClient([
         'https://api.github.com/gists/aa5a8f8cbc4f1e502dbb3ca546a4cbf3' => 'not-json',
@@ -92,6 +106,52 @@ test('throws a friendly error on invalid json', function () {
 test('throws when the download fails', function () {
     stubbedGistClient([])->fetchFile(gistUrl());
 })->throws(GistException::class, "Unable to download the gist from 'https://api.github.com/gists/aa5a8f8cbc4f1e502dbb3ca546a4cbf3'.");
+
+test('throws a not found error when the gist does not exist', function () {
+    respondingGistClient(404, '{"message":"Not Found"}')->fetchFile(gistUrl());
+})->throws(GistException::class, 'The gist could not be found on GitHub.');
+
+test('throws a rate limit error when github rejects the request', function (int $status) {
+    respondingGistClient($status, '{"message":"API rate limit exceeded"}')->fetchFile(gistUrl());
+})->with([
+    'forbidden' => 403,
+    'too many requests' => 429,
+])->throws(GistException::class, 'GitHub rate limit exceeded while downloading the gist.');
+
+test('throws a download error on other failure statuses', function () {
+    respondingGistClient(500)->fetchFile(gistUrl());
+})->throws(GistException::class, "Unable to download the gist from 'https://api.github.com/gists/aa5a8f8cbc4f1e502dbb3ca546a4cbf3'.");
+
+test('sends the github token only to the api host', function () {
+    $this->setEnvironmentVariable('GITHUB_TOKEN', 'secret-token');
+
+    $client = new class extends GistClient
+    {
+        /** @return list<string> */
+        public function headers(string $url): array
+        {
+            return $this->requestHeaders($url);
+        }
+    };
+
+    expect($client->headers('https://api.github.com/gists/aa5a8f8cbc4f1e502dbb3ca546a4cbf3'))->toContain('Authorization: Bearer secret-token')
+        ->and($client->headers('https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/script.php'))->not->toContain('Authorization: Bearer secret-token');
+});
+
+test('omits the authorization header without a github token', function () {
+    $this->setEnvironmentVariable('GITHUB_TOKEN', '');
+
+    $client = new class extends GistClient
+    {
+        /** @return list<string> */
+        public function headers(string $url): array
+        {
+            return $this->requestHeaders($url);
+        }
+    };
+
+    expect(implode("\n", $client->headers('https://api.github.com/gists/aa5a8f8cbc4f1e502dbb3ca546a4cbf3')))->not->toContain('Authorization');
+});
 
 test('honors the configured timeout', function () {
     $server = stream_socket_server('tcp://127.0.0.1:0');

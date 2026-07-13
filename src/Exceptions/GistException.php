@@ -29,9 +29,27 @@ class GistException extends Exception
         );
     }
 
-    public static function downloadFailed(string $url): self
+    public static function downloadFailed(string $url, ?int $status = null): self
     {
-        return new self("Unable to download the gist from '{$url}'.", 'Gist download failed');
+        return new self(
+            "Unable to download the gist from '{$url}'.",
+            'Gist download failed',
+            $status === null ? [] : ["GitHub responded with HTTP status {$status}."],
+        );
+    }
+
+    public static function gistNotFound(): self
+    {
+        return new self('The gist could not be found on GitHub.', 'Gist not found', [
+            'Check that the gist still exists and the id in the URL is correct.',
+        ]);
+    }
+
+    public static function rateLimited(): self
+    {
+        return new self('GitHub rate limit exceeded while downloading the gist.', 'GitHub rate limit', [
+            'Set the GITHUB_TOKEN environment variable to authenticate and raise the limit.',
+        ]);
     }
 
     public static function invalidResponse(): self
