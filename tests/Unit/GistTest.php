@@ -125,6 +125,53 @@ test('throws when the gist has no php files', function () {
     $gist->select(null);
 })->throws(GistException::class, 'The gist does not contain a PHP file.');
 
+test('select asks the chooser when multiple php files qualify', function () {
+    $gist = Gist::fromApi([
+        'files' => [
+            'first.php' => apiFile('first.php'),
+            'second.php' => apiFile('second.php'),
+            'README.md' => apiFile('README.md'),
+        ],
+    ]);
+
+    $offered = null;
+
+    $file = $gist->select(null, function (GistFile ...$files) use (&$offered): GistFile {
+        $offered = array_map(fn (GistFile $file): string => $file->filename, $files);
+
+        return $files[1];
+    });
+
+    expect($file->filename)->toBe('second.php')
+        ->and($offered)->toBe(['first.php', 'second.php']);
+});
+
+test('select does not ask the chooser for a single php file', function () {
+    $gist = Gist::fromApi([
+        'files' => [
+            'script.php' => apiFile('script.php'),
+            'README.md' => apiFile('README.md'),
+        ],
+    ]);
+
+    $file = $gist->select(null, fn (): GistFile => throw new RuntimeException('The chooser should not run.'));
+
+    expect($file->filename)->toBe('script.php');
+});
+
+test('a fragment bypasses the chooser', function () {
+    $gist = Gist::fromApi([
+        'files' => [
+            'first.php' => apiFile('first.php'),
+            'second.php' => apiFile('second.php'),
+        ],
+    ]);
+
+    $file = $gist->select('file-first-php', fn (): GistFile => throw new RuntimeException('The chooser should not run.'));
+
+    expect($file->filename)->toBe('first.php');
+});
+
 test('throws when multiple php files exist without a fragment', function () {
     $gist = Gist::fromApi([
         'files' => [

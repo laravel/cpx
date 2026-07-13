@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
+use Closure;
 use Cpx\Exceptions\GistException;
 use Cpx\Gists\GistClient;
+use Cpx\Gists\GistFile;
 use Cpx\Gists\GistUrl;
 use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\ExecEnvironment;
 use Cpx\Support\ChildScript;
 use Cpx\Support\Filesystem;
+use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
+use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -19,6 +23,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\error;
+use function Laravel\Prompts\select;
 
 #[AsCommand(
     name: 'exec',
@@ -64,7 +69,7 @@ class ExecCommand extends Command
 
             if ($gist !== null) {
                 try {
-                    $file = $temporaryGistFile = $this->downloadGist($gist);
+                    $file = $temporaryGistFile = $this->downloadGist($gist, $input);
                 } catch (GistException $exception) {
                     $exception->render();
 
@@ -114,9 +119,9 @@ class ExecCommand extends Command
     }
 
     /** @throws GistException When the gist cannot be downloaded or is not a runnable PHP script. */
-    private function downloadGist(GistUrl $gist): string
+    private function downloadGist(GistUrl $gist, InputInterface $input): string
     {
-        $script = (new GistClient)->fetchFile($gist);
+        $script = (new GistClient)->fetchFile($gist, $this->chooseGistFile($input));
         $file = Filesystem::joinPath(sys_get_temp_dir(), 'cpx-gist-'.bin2hex(random_bytes(8)).'.php');
 
         if (@file_put_contents($file, $script->content) === false) {
@@ -124,6 +129,35 @@ class ExecCommand extends Command
         }
 
         return $file;
+    }
+
+    /** @return (Closure(GistFile...): GistFile)|null */
+    private function chooseGistFile(InputInterface $input): ?Closure
+    {
+        if (! $input->isInteractive()) {
+            return null;
+        }
+
+        return function (GistFile ...$files): GistFile {
+            $files = array_values($files);
+
+            try {
+                $chosen = select(
+                    label: 'Which file of the gist would you like to run?',
+                    options: array_map(fn (GistFile $file): string => $file->filename, $files),
+                );
+            } catch (NonInteractiveValidationException) {
+                throw GistException::ambiguousPhpFiles($files);
+            }
+
+            foreach ($files as $file) {
+                if ($file->filename === $chosen) {
+                    return $file;
+                }
+            }
+
+            throw new RuntimeException("Unknown gist file '{$chosen}'.");
+        };
     }
 
     private function normalizeCode(string $code): string

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cpx\Gists;
 
+use Closure;
 use Cpx\Exceptions\GistException;
 
 readonly class Gist
@@ -58,8 +59,12 @@ readonly class Gist
         return new self($files);
     }
 
-    /** @throws GistException When no single PHP file can be selected. */
-    public function select(?string $fragment): GistFile
+    /**
+     * @param  (Closure(GistFile...): GistFile)|null  $choose
+     *
+     * @throws GistException
+     */
+    public function select(?string $fragment, ?Closure $choose = null): GistFile
     {
         if ($fragment !== null) {
             return $this->selectByFragment($fragment);
@@ -75,11 +80,15 @@ readonly class Gist
             throw GistException::notPhpGist();
         }
 
-        if (count($phpFiles) > 1) {
-            throw GistException::ambiguousPhpFiles($phpFiles);
+        if (count($phpFiles) === 1) {
+            return $phpFiles[0];
         }
 
-        return $phpFiles[0];
+        if ($choose !== null) {
+            return $choose(...$phpFiles);
+        }
+
+        throw GistException::ambiguousPhpFiles($phpFiles);
     }
 
     private function selectByFragment(string $fragment): GistFile

@@ -16,11 +16,15 @@ class GistClient
         //
     }
 
-    /** @throws GistException */
-    public function fetchFile(GistUrl $url): GistFile
+    /**
+     * @param  (Closure(GistFile...): GistFile)|null  $chooseFile
+     *
+     * @throws GistException
+     */
+    public function fetchFile(GistUrl $url, ?Closure $chooseFile = null): GistFile
     {
         if (self::$fakeFetcher !== null) {
-            return (self::$fakeFetcher)($url);
+            return (self::$fakeFetcher)($url, $chooseFile);
         }
 
         if ($url->rawUrl !== null) {
@@ -39,7 +43,7 @@ class GistClient
             throw GistException::invalidResponse();
         }
 
-        $file = Gist::fromApi($payload)->select($url->fragment);
+        $file = Gist::fromApi($payload)->select($url->fragment, $chooseFile);
 
         if (! $file->truncated || $file->rawUrl === null) {
             return $file;
@@ -54,7 +58,7 @@ class GistClient
     }
 
     /**
-     * @param  callable(GistUrl): GistFile  $fetcher
+     * @param  callable(GistUrl, (Closure(GistFile...): GistFile)|null): GistFile  $fetcher
      */
     public static function fake(callable $fetcher): void
     {

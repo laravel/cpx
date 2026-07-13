@@ -65,6 +65,21 @@ test('clearFake restores the real fetching path', function () {
     expect($client->fetchFile(gistUrl())->filename)->toBe('real.php');
 });
 
+test('passes the chooser through to file selection', function () {
+    $client = stubbedGistClient([
+        'https://api.github.com/gists/aa5a8f8cbc4f1e502dbb3ca546a4cbf3' => json_encode([
+            'files' => [
+                'first.php' => ['filename' => 'first.php', 'language' => 'PHP', 'content' => '<?php // first'],
+                'second.php' => ['filename' => 'second.php', 'language' => 'PHP', 'content' => '<?php // second'],
+            ],
+        ], JSON_THROW_ON_ERROR),
+    ]);
+
+    $file = $client->fetchFile(gistUrl(), fn (GistFile ...$files): GistFile => $files[1]);
+
+    expect($file->filename)->toBe('second.php');
+});
+
 test('fetches the selected php file from the gists api', function () {
     $client = stubbedGistClient([
         'https://api.github.com/gists/aa5a8f8cbc4f1e502dbb3ca546a4cbf3' => json_encode([

@@ -6,6 +6,8 @@ use Cpx\Exceptions\GistException;
 use Cpx\Gists\GistClient;
 use Cpx\Gists\GistFile;
 use Cpx\Gists\GistUrl;
+use Laravel\Prompts\Key;
+use Laravel\Prompts\Prompt;
 
 const GIST_URL = 'https://gist.github.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3';
 
@@ -123,6 +125,62 @@ test('exec deletes the gist temp file after a failing run', function () {
 
     expect($status)->toBe(5)
         ->and(gistTempFiles())->toBe($before);
+});
+
+test('exec prompts for the file of a multi-php gist', function () {
+    $directory = $this->temporaryDirectory('cpx-exec-gist');
+    $this->useWorkingDirectory($directory);
+    $marker = "{$directory}/marker.txt";
+
+    Prompt::fake([Key::DOWN, Key::ENTER]);
+
+    GistClient::fake(fn (GistUrl $url, ?Closure $choose): GistFile => $choose(
+        new GistFile(filename: 'first.php', language: 'PHP', content: '<?php file_put_contents('.var_export($marker, true).', "first");'),
+        new GistFile(filename: 'second.php', language: 'PHP', content: '<?php file_put_contents('.var_export($marker, true).', "second");'),
+    ));
+
+    [$status, $output] = runCpxCommand(['exec', GIST_URL]);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Which file of the gist would you like to run?')
+        ->and(file_get_contents($marker))->toBe('second');
+})->skipOnWindows();
+
+test('exec falls back to the ambiguous files callout when the terminal cannot prompt', function () {
+    $directory = $this->temporaryDirectory('cpx-exec-gist');
+    $this->useWorkingDirectory($directory);
+
+    GistClient::fake(fn (GistUrl $url, ?Closure $choose): GistFile => $choose(
+        new GistFile(filename: 'first.php', language: 'PHP', content: '<?php'),
+        new GistFile(filename: 'second.php', language: 'PHP', content: '<?php'),
+    ));
+
+    [$status, $output] = runCpxCommand(['exec', GIST_URL]);
+
+    expect($status)->toBe(1)
+        ->and($output)->toContain('The gist contains multiple PHP files');
+});
+
+test('exec keeps the ambiguous files callout when non-interactive', function () {
+    $directory = $this->temporaryDirectory('cpx-exec-gist');
+    $this->useWorkingDirectory($directory);
+
+    $received = 'unset';
+
+    GistClient::fake(function (GistUrl $url, ?Closure $choose) use (&$received): GistFile {
+        $received = $choose;
+
+        throw GistException::ambiguousPhpFiles([
+            new GistFile(filename: 'first.php', language: 'PHP', content: '<?php'),
+            new GistFile(filename: 'second.php', language: 'PHP', content: '<?php'),
+        ]);
+    });
+
+    [$status, $output] = runCpxCommand(['exec', GIST_URL, '--no-interaction']);
+
+    expect($status)->toBe(1)
+        ->and($received)->toBeNull()
+        ->and($output)->toContain('The gist contains multiple PHP files');
 });
 
 test('exec passes a pinned revision to the client', function () {
