@@ -12,7 +12,9 @@ readonly class Context
         public bool $shouldBoot = true,
         public bool $shouldAliasClasses = true,
         public bool $verbose = false,
-    ) {}
+    ) {
+        //
+    }
 
     public static function fromEnvironment(): self
     {

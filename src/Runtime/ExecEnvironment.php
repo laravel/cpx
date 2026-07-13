@@ -13,7 +13,9 @@ readonly class ExecEnvironment
         public bool $boot = true,
         public bool $aliasClasses = true,
         public bool $verbose = false,
-    ) {}
+    ) {
+        //
+    }
 
     /** @return array<string, string|false> */
     public function toEnvironment(): array
