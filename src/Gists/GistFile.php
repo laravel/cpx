@@ -23,6 +23,11 @@ readonly class GistFile
     /** The anchor slug GitHub generates for this file, e.g. `file-my-script-php`. */
     public function fragment(): string
     {
-        return 'file-'.strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $this->filename));
+        return 'file-'.self::slug($this->filename);
+    }
+
+    public static function slug(string $value): string
+    {
+        return strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $value));
     }
 }

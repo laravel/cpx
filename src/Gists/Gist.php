@@ -68,7 +68,7 @@ readonly class Gist
 
     private function selectByFragment(string $fragment): GistFile
     {
-        $normalized = strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $fragment));
+        $normalized = GistFile::slug($fragment);
 
         foreach ($this->files as $file) {
             if ($file->fragment() !== $normalized) {
