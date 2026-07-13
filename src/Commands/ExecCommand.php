@@ -119,7 +119,9 @@ class ExecCommand extends Command
         $script = (new GistClient)->fetchFile($gist);
         $file = Filesystem::joinPath(sys_get_temp_dir(), 'cpx-gist-'.bin2hex(random_bytes(8)).'.php');
 
-        file_put_contents($file, $script->content);
+        if (@file_put_contents($file, $script->content) === false) {
+            throw GistException::unwritableTemporaryFile($file);
+        }
 
         return $file;
     }

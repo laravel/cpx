@@ -92,4 +92,9 @@ class GistException extends Exception
     {
         return new self("The gist file '{$file->filename}' is not a PHP script.", 'Gist is not runnable');
     }
+
+    public static function unwritableTemporaryFile(string $file): self
+    {
+        return new self("Unable to write the gist to a temporary file at '{$file}'.");
+    }
 }
