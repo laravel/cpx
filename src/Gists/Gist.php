@@ -34,12 +34,24 @@ readonly class Gist
                 throw GistException::invalidResponse();
             }
 
+            $content = $entry['content'] ?? null;
+            $truncated = ($entry['truncated'] ?? false) === true;
+            $rawUrl = is_string($entry['raw_url'] ?? null) ? $entry['raw_url'] : null;
+
+            if (! is_string($content) && ! $truncated) {
+                throw GistException::invalidResponse();
+            }
+
+            if ($truncated && $rawUrl === null) {
+                throw GistException::invalidResponse();
+            }
+
             $files[] = new GistFile(
                 filename: $entry['filename'],
                 language: is_string($entry['language'] ?? null) ? $entry['language'] : null,
-                content: is_string($entry['content'] ?? null) ? $entry['content'] : '',
-                truncated: ($entry['truncated'] ?? false) === true,
-                rawUrl: is_string($entry['raw_url'] ?? null) ? $entry['raw_url'] : null,
+                content: is_string($content) ? $content : '',
+                truncated: $truncated,
+                rawUrl: $rawUrl,
             );
         }
 

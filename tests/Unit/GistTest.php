@@ -125,4 +125,6 @@ test('throws on malformed payloads', function (array $payload) {
     'empty files' => [['files' => []]],
     'non-array file entry' => [['files' => ['script.php' => 'oops']]],
     'file without filename' => [['files' => ['script.php' => ['content' => '<?php']]]],
+    'file without content' => [['files' => ['script.php' => ['filename' => 'script.php', 'language' => 'PHP']]]],
+    'truncated file without raw url' => [['files' => ['script.php' => ['filename' => 'script.php', 'language' => 'PHP', 'content' => '<?php', 'truncated' => true]]]],
 ])->throws(GistException::class, 'Unexpected response from the GitHub gists API.');
