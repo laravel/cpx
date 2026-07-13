@@ -20,6 +20,11 @@ readonly class GistFile
             || str_ends_with(strtolower($this->filename), '.php');
     }
 
+    public function hasPhpTag(): bool
+    {
+        return str_starts_with($this->content, '<?php');
+    }
+
     /** The anchor slug GitHub generates for this file, e.g. `file-my-script-php`. */
     public function fragment(): string
     {

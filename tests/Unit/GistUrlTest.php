@@ -10,7 +10,8 @@ test('parses a gist url with a username', function () {
     expect($url)->not->toBeNull()
         ->and($url->id)->toBe('aa5a8f8cbc4f1e502dbb3ca546a4cbf3')
         ->and($url->revision)->toBeNull()
-        ->and($url->fragment)->toBeNull();
+        ->and($url->fragment)->toBeNull()
+        ->and($url->rawUrl)->toBeNull();
 });
 
 test('parses a gist url without a username', function () {
@@ -54,11 +55,43 @@ test('returns null for non-gist targets', function (string $target) {
     'relative path' => 'script.php',
     'absolute path' => '/home/user/script.php',
     'repository url' => 'https://github.com/WendellAdriel/cpx',
-    'raw gist url' => 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/script.php',
     'non-hex id' => 'https://gist.github.com/WendellAdriel/not-a-gist-id',
     'non-hex revision segment' => 'https://gist.github.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/latest',
+    'raw url without a file name' => 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/',
+    'raw url without a raw segment' => 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/script.php',
     'empty string' => '',
 ]);
+
+test('parses a raw gist url pinned to a blob sha', function () {
+    $url = GistUrl::tryFrom('https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/55cc3f108fcf0cea924596fc1f00c9285e93e14d/script.php');
+
+    expect($url)->not->toBeNull()
+        ->and($url->id)->toBe('aa5a8f8cbc4f1e502dbb3ca546a4cbf3')
+        ->and($url->rawUrl)->toBe('https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/55cc3f108fcf0cea924596fc1f00c9285e93e14d/script.php')
+        ->and($url->filename)->toBe('script.php')
+        ->and($url->revision)->toBeNull()
+        ->and($url->fragment)->toBeNull();
+});
+
+test('parses a raw gist url without a blob sha', function () {
+    $url = GistUrl::tryFrom('https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/script.php');
+
+    expect($url)->not->toBeNull()
+        ->and($url->rawUrl)->toBe('https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/script.php')
+        ->and($url->filename)->toBe('script.php');
+});
+
+test('prefixes scheme-less raw gist urls with https', function () {
+    $url = GistUrl::tryFrom('gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/script.php');
+
+    expect($url?->rawUrl)->toBe('https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/script.php');
+});
+
+test('decodes percent-encoded raw gist file names', function () {
+    $url = GistUrl::tryFrom('https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/My%20Second%20Script.php');
+
+    expect($url?->filename)->toBe('My Second Script.php');
+});
 
 test('parses a revision-pinned gist url', function () {
     $url = GistUrl::tryFrom('https://gist.github.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/5c30e34cbe89298a1e12b6ba816eef25d15fdbcc');

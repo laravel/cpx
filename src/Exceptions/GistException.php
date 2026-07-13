@@ -63,7 +63,7 @@ class GistException extends Exception
     {
         return new self("Unable to parse the gist URL '{$target}'.", 'Unsupported gist URL', [
             "Use the gist page link, like 'https://gist.github.com/user/<id>', optionally followed by a '/<revision>' or '#file-...' fragment.",
-            'Raw gist links (gist.githubusercontent.com) cannot be executed directly.',
+            "Raw gist links are supported when they include the file name, like '.../raw/<sha>/script.php'.",
         ]);
     }
 

@@ -23,6 +23,10 @@ class GistClient
             return (self::$fakeFetcher)($url);
         }
 
+        if ($url->rawUrl !== null) {
+            return $this->fetchRawFile($url->rawUrl, (string) $url->filename);
+        }
+
         $endpoint = "https://api.github.com/gists/{$url->id}";
 
         if ($url->revision !== null) {
@@ -127,6 +131,23 @@ class GistClient
         }
 
         return $headers;
+    }
+
+    /** @throws GistException */
+    private function fetchRawFile(string $rawUrl, string $filename): GistFile
+    {
+        $file = new GistFile(
+            filename: $filename,
+            language: null,
+            content: $this->httpGet($rawUrl),
+            rawUrl: $rawUrl,
+        );
+
+        if (! $file->isPhp() && ! $file->hasPhpTag()) {
+            throw GistException::notPhpFile($file);
+        }
+
+        return $file;
     }
 
     /** @param array<int, mixed> $headers */

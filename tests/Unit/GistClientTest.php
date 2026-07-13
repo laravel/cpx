@@ -111,6 +111,52 @@ test('fetches a revision-pinned gist from the revision endpoint', function () {
     expect($client->fetchFile($url)->content)->toBe('<?php // pinned');
 });
 
+test('downloads raw gist urls directly', function () {
+    $rawUrl = 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/55cc3f108fcf0cea924596fc1f00c9285e93e14d/script.php';
+
+    $client = stubbedGistClient([$rawUrl => '<?php // raw']);
+    $url = GistUrl::tryFrom($rawUrl);
+
+    assert($url instanceof GistUrl);
+
+    $file = $client->fetchFile($url);
+
+    expect($file->filename)->toBe('script.php')
+        ->and($file->content)->toBe('<?php // raw')
+        ->and($file->rawUrl)->toBe($rawUrl);
+});
+
+test('downloads extensionless raw gist files that start with a php tag', function () {
+    $rawUrl = 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/script';
+
+    $client = stubbedGistClient([$rawUrl => "<?php echo 'extensionless';"]);
+    $url = GistUrl::tryFrom($rawUrl);
+
+    assert($url instanceof GistUrl);
+
+    expect($client->fetchFile($url)->content)->toBe("<?php echo 'extensionless';");
+});
+
+test('throws when an extensionless raw gist file lacks a php tag', function () {
+    $rawUrl = 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/script';
+
+    $url = GistUrl::tryFrom($rawUrl);
+
+    assert($url instanceof GistUrl);
+
+    stubbedGistClient([$rawUrl => 'plain text'])->fetchFile($url);
+})->throws(GistException::class, "The gist file 'script' is not a PHP script.");
+
+test('throws when a raw gist url does not point at a php file', function () {
+    $rawUrl = 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/notes.md';
+
+    $url = GistUrl::tryFrom($rawUrl);
+
+    assert($url instanceof GistUrl);
+
+    stubbedGistClient([$rawUrl => '# just a readme'])->fetchFile($url);
+})->throws(GistException::class, "The gist file 'notes.md' is not a PHP script.");
+
 test('throws a friendly error on invalid json', function () {
     $client = stubbedGistClient([
         'https://api.github.com/gists/aa5a8f8cbc4f1e502dbb3ca546a4cbf3' => 'not-json',

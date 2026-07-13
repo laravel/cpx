@@ -145,6 +145,30 @@ test('exec passes a pinned revision to the client', function () {
         ->and($received?->revision)->toBe($revision);
 });
 
+test('exec runs a raw gist url in a child process', function () {
+    $directory = $this->temporaryDirectory('cpx-exec-gist');
+    $this->useWorkingDirectory($directory);
+    $marker = "{$directory}/marker.txt";
+
+    $received = null;
+
+    GistClient::fake(function (GistUrl $url) use (&$received, $marker): GistFile {
+        $received = $url;
+
+        return new GistFile(
+            filename: 'script.php',
+            language: null,
+            content: '<?php file_put_contents('.var_export($marker, true).', "ran-raw-gist");',
+        );
+    });
+
+    [$status] = runCpxCommand(['exec', 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/55cc3f108fcf0cea924596fc1f00c9285e93e14d/script.php']);
+
+    expect($status)->toBe(0)
+        ->and(file_get_contents($marker))->toBe('ran-raw-gist')
+        ->and($received?->rawUrl)->toContain('/raw/55cc3f108fcf0cea924596fc1f00c9285e93e14d/script.php');
+});
+
 test('exec reports unsupported gist urls', function (string $target) {
     $directory = $this->temporaryDirectory('cpx-exec-gist');
     $this->useWorkingDirectory($directory);
@@ -154,7 +178,7 @@ test('exec reports unsupported gist urls', function (string $target) {
     expect($status)->toBe(1)
         ->and($output)->toContain('Unable to parse the gist URL');
 })->with([
-    'raw gist url' => 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/script.php',
+    'raw gist url without a file name' => 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/',
     'non-hex id' => 'https://gist.github.com/WendellAdriel/not-a-gist-id',
 ]);
 
