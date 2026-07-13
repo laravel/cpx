@@ -52,6 +52,14 @@ class GistException extends Exception
         ]);
     }
 
+    public static function unsupportedUrl(string $target): self
+    {
+        return new self("Unable to parse the gist URL '{$target}'.", 'Unsupported gist URL', [
+            "Use the gist page link, like 'https://gist.github.com/user/<id>', optionally followed by a '/<revision>' or '#file-...' fragment.",
+            'Raw gist links (gist.githubusercontent.com) cannot be executed directly.',
+        ]);
+    }
+
     public static function invalidResponse(): self
     {
         return new self('Unexpected response from the GitHub gists API.', 'Gist download failed');

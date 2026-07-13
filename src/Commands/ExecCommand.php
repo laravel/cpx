@@ -70,6 +70,10 @@ class ExecCommand extends Command
 
                     return self::FAILURE;
                 }
+            } elseif (GistUrl::isGistHost($target)) {
+                GistException::unsupportedUrl($target)->render();
+
+                return self::FAILURE;
             } else {
                 $file = realpath($target);
 

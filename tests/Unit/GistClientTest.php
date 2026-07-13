@@ -95,6 +95,22 @@ function respondingGistClient(int $status, string $body = ''): GistClient
     };
 }
 
+test('fetches a revision-pinned gist from the revision endpoint', function () {
+    $revision = str_repeat('5c30e34c', 5);
+
+    $client = stubbedGistClient([
+        "https://api.github.com/gists/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/{$revision}" => json_encode([
+            'files' => ['script.php' => ['filename' => 'script.php', 'language' => 'PHP', 'content' => '<?php // pinned']],
+        ], JSON_THROW_ON_ERROR),
+    ]);
+
+    $url = GistUrl::tryFrom("https://gist.github.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/{$revision}");
+
+    assert($url instanceof GistUrl);
+
+    expect($client->fetchFile($url)->content)->toBe('<?php // pinned');
+});
+
 test('throws a friendly error on invalid json', function () {
     $client = stubbedGistClient([
         'https://api.github.com/gists/aa5a8f8cbc4f1e502dbb3ca546a4cbf3' => 'not-json',

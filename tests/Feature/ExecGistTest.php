@@ -125,6 +125,39 @@ test('exec deletes the gist temp file after a failing run', function () {
         ->and(gistTempFiles())->toBe($before);
 });
 
+test('exec passes a pinned revision to the client', function () {
+    $directory = $this->temporaryDirectory('cpx-exec-gist');
+    $this->useWorkingDirectory($directory);
+
+    $received = null;
+
+    GistClient::fake(function (GistUrl $url) use (&$received): GistFile {
+        $received = $url;
+
+        return new GistFile(filename: 'script.php', language: 'PHP', content: '<?php');
+    });
+
+    $revision = str_repeat('5c30e34c', 5);
+
+    [$status] = runCpxCommand(['exec', GIST_URL."/{$revision}"]);
+
+    expect($status)->toBe(0)
+        ->and($received?->revision)->toBe($revision);
+});
+
+test('exec reports unsupported gist urls', function (string $target) {
+    $directory = $this->temporaryDirectory('cpx-exec-gist');
+    $this->useWorkingDirectory($directory);
+
+    [$status, $output] = runCpxCommand(['exec', $target]);
+
+    expect($status)->toBe(1)
+        ->and($output)->toContain('Unable to parse the gist URL');
+})->with([
+    'raw gist url' => 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/script.php',
+    'non-hex id' => 'https://gist.github.com/WendellAdriel/not-a-gist-id',
+]);
+
 test('exec still reports missing local files as missing', function () {
     $directory = $this->temporaryDirectory('cpx-exec-gist');
     $this->useWorkingDirectory($directory);

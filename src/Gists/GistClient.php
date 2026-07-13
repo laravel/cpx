@@ -23,7 +23,13 @@ class GistClient
             return (self::$fakeFetcher)($url);
         }
 
-        $payload = json_decode($this->httpGet("https://api.github.com/gists/{$url->id}"), true);
+        $endpoint = "https://api.github.com/gists/{$url->id}";
+
+        if ($url->revision !== null) {
+            $endpoint .= "/{$url->revision}";
+        }
+
+        $payload = json_decode($this->httpGet($endpoint), true);
 
         if (! is_array($payload)) {
             throw GistException::invalidResponse();
