@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
+use Cpx\Exceptions\GistException;
+use Cpx\Gists\GistClient;
+use Cpx\Gists\GistUrl;
 use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\ExecEnvironment;
 use Cpx\Support\ChildScript;
+use Cpx\Support\Filesystem;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -18,13 +22,13 @@ use function Laravel\Prompts\error;
 
 #[AsCommand(
     name: 'exec',
-    description: 'Invoke a PHP file or inline PHP code',
+    description: 'Invoke a PHP file, inline PHP code, or a GitHub gist',
 )]
 class ExecCommand extends Command
 {
     protected function configure(): void
     {
-        $this->addArgument('file', InputArgument::OPTIONAL, 'PHP file to invoke');
+        $this->addArgument('file', InputArgument::OPTIONAL, 'PHP file or GitHub gist URL to invoke');
         $this->addOption('run', 'r', InputOption::VALUE_REQUIRED, 'Run PHP code without <?php ?> tags');
         $this->addOption('find-autoloader', null, InputOption::VALUE_NEGATABLE, 'Find and load the nearest Composer autoloader', true);
         $this->addOption('boot', null, InputOption::VALUE_NEGATABLE, 'Boot the detected framework when available', true);
@@ -35,6 +39,7 @@ class ExecCommand extends Command
     {
         $code = null;
         $file = null;
+        $temporaryGistFile = null;
 
         if ($input->getOption('run') !== null) {
             $run = $input->getOption('run');
@@ -55,34 +60,64 @@ class ExecCommand extends Command
                 return self::FAILURE;
             }
 
-            $file = realpath($target);
+            $gist = GistUrl::tryFrom($target);
 
-            if ($file === false) {
-                error("File does not exist at '{$target}'");
+            if ($gist !== null) {
+                try {
+                    $file = $temporaryGistFile = $this->downloadGist($gist);
+                } catch (GistException $exception) {
+                    $exception->render();
 
-                return self::FAILURE;
-            }
+                    return self::FAILURE;
+                }
+            } else {
+                $file = realpath($target);
 
-            if (! is_file($file)) {
-                error("Cannot execute '{$target}' because it is not a file.");
+                if ($file === false) {
+                    error("File does not exist at '{$target}'");
 
-                return self::FAILURE;
+                    return self::FAILURE;
+                }
+
+                if (! is_file($file)) {
+                    error("Cannot execute '{$target}' because it is not a file.");
+
+                    return self::FAILURE;
+                }
             }
         }
 
         $environment = new ExecEnvironment(
             file: $file,
             code: $code,
+            workingDirectory: $temporaryGistFile === null ? null : (getcwd() ?: null),
             findAutoloader: $input->getOption('find-autoloader') === true,
             boot: $input->getOption('boot') === true,
             aliasClasses: $input->getOption('alias-classes') === true,
             verbose: $output->isVerbose(),
         );
 
-        return (new ProcessRunner)->run(
-            [PHP_BINARY, ChildScript::path('exec-bootstrap.php')],
-            $environment->toEnvironment(),
-        );
+        try {
+            return (new ProcessRunner)->run(
+                [PHP_BINARY, ChildScript::path('exec-bootstrap.php')],
+                $environment->toEnvironment(),
+            );
+        } finally {
+            if ($temporaryGistFile !== null) {
+                @unlink($temporaryGistFile);
+            }
+        }
+    }
+
+    /** @throws GistException When the gist cannot be downloaded or is not a runnable PHP script. */
+    private function downloadGist(GistUrl $gist): string
+    {
+        $script = (new GistClient)->fetchFile($gist);
+        $file = Filesystem::joinPath(sys_get_temp_dir(), 'cpx-gist-'.bin2hex(random_bytes(8)).'.php');
+
+        file_put_contents($file, $script->content);
+
+        return $file;
     }
 
     private function normalizeCode(string $code): string

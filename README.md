@@ -118,6 +118,7 @@ cpx gives you multiple ways to run PHP code quickly, perfect for running scratch
 
 - `cpx exec <file.php>` will run a plain PHP file. This is the only way to run a file — a bare `cpx <file.php>` is not routed to exec.
 - `cpx exec -r <raw php code>` will execute the given PHP code.
+- `cpx exec <gist url>` will download a GitHub gist (like `https://gist.github.com/user/id`) and run it, similar to how npx can run gists. The gist must contain exactly one PHP file — for multi-file gists, append the file's anchor from the gist page (like `#file-my-script-php`) to pick the one to run. The script executes against your current directory, so autoloading and framework bootstrapping still apply.
 - `cpx tinker` will open an interactive REPL in the terminal for your project.
 
 When using these commands, you get the following benefits:
