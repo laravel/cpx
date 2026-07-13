@@ -45,6 +45,13 @@ class GistException extends Exception
         ]);
     }
 
+    public static function invalidToken(): self
+    {
+        return new self('GitHub rejected the provided GITHUB_TOKEN.', 'GitHub authentication failed', [
+            'Check that the GITHUB_TOKEN environment variable holds a valid token.',
+        ]);
+    }
+
     public static function rateLimited(): self
     {
         return new self('GitHub rate limit exceeded while downloading the gist.', 'GitHub rate limit', [

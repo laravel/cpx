@@ -75,6 +75,7 @@ class GistClient
 
         return match (true) {
             $status >= 200 && $status < 300 => $response['content'],
+            $status === 401 => throw GistException::invalidToken(),
             $status === 404 => throw GistException::gistNotFound(),
             $status === 403, $status === 429 => throw GistException::rateLimited(),
             default => throw GistException::downloadFailed($url, $status),

@@ -127,6 +127,10 @@ test('throws a not found error when the gist does not exist', function () {
     respondingGistClient(404, '{"message":"Not Found"}')->fetchFile(gistUrl());
 })->throws(GistException::class, 'The gist could not be found on GitHub.');
 
+test('throws an invalid token error when authentication fails', function () {
+    respondingGistClient(401, '{"message":"Bad credentials"}')->fetchFile(gistUrl());
+})->throws(GistException::class, 'GitHub rejected the provided GITHUB_TOKEN.');
+
 test('throws a rate limit error when github rejects the request', function (int $status) {
     respondingGistClient($status, '{"message":"API rate limit exceeded"}')->fetchFile(gistUrl());
 })->with([
