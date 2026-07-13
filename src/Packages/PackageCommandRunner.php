@@ -14,13 +14,18 @@ use function Laravel\Prompts\error;
 use function Laravel\Prompts\task;
 
 /**
- * Runs a non-built-in cpx target by resolving it to a local project binary,
- * a user alias, or a vendor/package and executing it.
+ * Runs a non-built-in cpx target by resolving it to a local PHP file, an
+ * explicit package directory, a local project binary, a user alias, or a
+ * vendor/package and executing it.
  */
 class PackageCommandRunner
 {
     public function run(PackageInvocation $invocation, OutputInterface $output, bool $skipLocal = false): int
     {
+        if (LocalPackage::supports($invocation->target)) {
+            return LocalPackage::fromPath($invocation->target)->runCommand($invocation);
+        }
+
         try {
             $package = $this->findPackage($invocation->target);
         } catch (InvalidArgumentException) {

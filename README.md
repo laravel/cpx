@@ -24,7 +24,7 @@ composer global update cpx/cpx
 
 ## Usage
 
-You can run a command using cpx by passing through the package name and the command you want to run:
+You can run a command using cpx by passing through the package name or an explicit local package directory and the command you want to run:
 
 > Note: A package name is what you'd use to require the package in your `composer.json` file, e.g. `friendsofphp/php-cs-fixer`
 > You can also use constraints to specify a version, e.g. `friendsofphp/php-cs-fixer:^3.0`
@@ -42,6 +42,25 @@ cpx <package-name> [arguments]
 ```
 
 Behind the scenes, cpx will install the package into a separate directory and run the command, keeping it separate from both your project and global Composer dependencies (unless the package is already installed in your project — see below). Subsequent runs of the same package will use the same installation and run quickly, unless you specify a different version or there is an update to the package available.
+
+### Local package directories
+
+When developing a Composer package locally, pass its directory to run its declared binary directly from the source checkout:
+
+```bash
+cpx /absolute/path/to/package --version
+cpx ~/path/to/package --version
+cpx ./path/to/package --version
+cpx ../path/to/package --version
+```
+
+The directory must contain a valid `composer.json` and its dependencies must already be installed at `vendor/autoload.php`. For packages with multiple binaries, pass the binary name after the directory just as you would after a package name:
+
+```bash
+cpx ../package binary-name --flag
+```
+
+cpx does not run Composer, copy the package, cache it, or include it in package maintenance commands when an explicit local directory is used. Run `composer install` in the package directory yourself whenever its dependencies need to be installed.
 
 ### Local project binaries
 

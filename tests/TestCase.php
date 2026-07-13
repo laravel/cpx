@@ -136,6 +136,44 @@ abstract class TestCase extends BaseTestCase
         return $root;
     }
 
+    /**
+     * @param  string|list<string>  $bins
+     */
+    protected function prepareLocalPackage(array|string $bins = ['bin/package'], ?string $name = 'vendor/package', ?string $root = null): string
+    {
+        $root ??= $this->temporaryDirectory('cpx-local-package');
+
+        if (! is_dir($root)) {
+            mkdir($root, 0755, true);
+        }
+
+        $composer = ['bin' => $bins];
+
+        if ($name !== null) {
+            $composer['name'] = $name;
+        }
+
+        file_put_contents("{$root}/composer.json", json_encode($composer, JSON_THROW_ON_ERROR));
+        mkdir("{$root}/vendor", 0755, true);
+        file_put_contents("{$root}/vendor/autoload.php", '<?php');
+
+        return $root;
+    }
+
+    protected function writeLocalPackageBinary(string $root, string $path, string $contents): string
+    {
+        $binary = "{$root}/{$path}";
+        $directory = dirname($binary);
+
+        if (! is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        writeExecutable($binary, $contents);
+
+        return $binary;
+    }
+
     protected function writeLocalBinary(string $root, string $name, string $contents, ?string $binDir = null): string
     {
         $directory = "{$root}/".($binDir ?? 'vendor/bin');
