@@ -68,6 +68,10 @@ readonly class Gist
         $phpFiles = array_values(array_filter($this->files, fn (GistFile $file): bool => $file->isPhp()));
 
         if ($phpFiles === []) {
+            $phpFiles = array_values(array_filter($this->files, fn (GistFile $file): bool => $file->hasPhpTag()));
+        }
+
+        if ($phpFiles === []) {
             throw GistException::notPhpGist();
         }
 
@@ -87,7 +91,7 @@ readonly class Gist
                 continue;
             }
 
-            if (! $file->isPhp()) {
+            if (! $file->isPhp() && ! $file->hasPhpTag()) {
                 throw GistException::notPhpFile($file);
             }
 

@@ -15,7 +15,7 @@ function apiFile(string $filename, array $overrides = []): array
     return [
         'filename' => $filename,
         'language' => str_ends_with($filename, '.php') ? 'PHP' : null,
-        'content' => "<?php echo '{$filename}';",
+        'content' => str_ends_with($filename, '.php') ? "<?php echo '{$filename}';" : "content of {$filename}",
         'truncated' => false,
         'raw_url' => "https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/{$filename}",
         ...$overrides,
@@ -63,6 +63,45 @@ test('detects php by extension when the language is null', function () {
     $file = new GistFile(filename: 'script.php', language: null, content: '<?php');
 
     expect($file->isPhp())->toBeTrue();
+});
+
+test('does not treat extensionless files as php from metadata alone', function () {
+    $file = new GistFile(filename: 'script', language: null, content: "<?php echo 'hi';");
+
+    expect($file->isPhp())->toBeFalse()
+        ->and($file->hasPhpTag())->toBeTrue();
+});
+
+test('falls back to a leading php tag when metadata marks no file as php', function () {
+    $gist = Gist::fromApi([
+        'files' => [
+            'script' => apiFile('script', ['content' => "<?php echo 'hi';"]),
+            'README.md' => apiFile('README.md'),
+        ],
+    ]);
+
+    expect($gist->select(null)->filename)->toBe('script');
+});
+
+test('metadata matches win over the php tag fallback', function () {
+    $gist = Gist::fromApi([
+        'files' => [
+            'script.php' => apiFile('script.php'),
+            'snippet' => apiFile('snippet', ['content' => "<?php echo 'hi';"]),
+        ],
+    ]);
+
+    expect($gist->select(null)->filename)->toBe('script.php');
+});
+
+test('selects an extensionless file by fragment when it has a php tag', function () {
+    $gist = Gist::fromApi([
+        'files' => [
+            'script' => apiFile('script', ['content' => "<?php echo 'hi';"]),
+        ],
+    ]);
+
+    expect($gist->select('file-script')->filename)->toBe('script');
 });
 
 test('selects a php file by fragment from a multi-file gist', function () {
