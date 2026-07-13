@@ -3,7 +3,7 @@
 use Cpx\Runtime\Context;
 
 beforeEach(function () {
-    foreach (['CPX_EXEC_FILE', 'CPX_EXEC_FIND_AUTOLOADER', 'CPX_EXEC_BOOT', 'CPX_EXEC_ALIAS', 'CPX_EXEC_VERBOSE'] as $variable) {
+    foreach (['CPX_EXEC_FILE', 'CPX_EXEC_WORKING_DIRECTORY', 'CPX_EXEC_FIND_AUTOLOADER', 'CPX_EXEC_BOOT', 'CPX_EXEC_ALIAS', 'CPX_EXEC_VERBOSE'] as $variable) {
         $this->setEnvironmentVariable($variable, '');
     }
 });
@@ -33,6 +33,21 @@ test('it starts discovery from the executed file directory', function () {
     $context = Context::fromEnvironment();
 
     expect($context->workingDirectory)->toBe("{$directory}/nested")
+        ->and($context->autoloadRoot)->toBe($directory);
+});
+
+test('an explicit working directory overrides the executed file directory', function () {
+    $directory = $this->temporaryDirectory('cpx-context');
+    mkdir("{$directory}/vendor", 0755, true);
+    file_put_contents("{$directory}/vendor/autoload.php", '<?php');
+    file_put_contents("{$directory}/script.php", '<?php');
+
+    $this->setEnvironmentVariable('CPX_EXEC_FILE', sys_get_temp_dir().'/cpx-gist-elsewhere.php');
+    $this->setEnvironmentVariable('CPX_EXEC_WORKING_DIRECTORY', $directory);
+
+    $context = Context::fromEnvironment();
+
+    expect($context->workingDirectory)->toBe($directory)
         ->and($context->autoloadRoot)->toBe($directory);
 });
 

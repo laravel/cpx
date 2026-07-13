@@ -8,6 +8,7 @@ enum ExecVariable: string
 {
     case File = 'CPX_EXEC_FILE';
     case Code = 'CPX_EXEC_CODE';
+    case WorkingDirectory = 'CPX_EXEC_WORKING_DIRECTORY';
     case FindAutoloader = 'CPX_EXEC_FIND_AUTOLOADER';
     case Boot = 'CPX_EXEC_BOOT';
     case AliasClasses = 'CPX_EXEC_ALIAS';

@@ -9,6 +9,7 @@ readonly class ExecEnvironment
     public function __construct(
         public ?string $file = null,
         public ?string $code = null,
+        public ?string $workingDirectory = null,
         public bool $findAutoloader = true,
         public bool $boot = true,
         public bool $aliasClasses = true,
@@ -23,6 +24,7 @@ readonly class ExecEnvironment
         return [
             ExecVariable::File->value => $this->file ?? false,
             ExecVariable::Code->value => $this->code ?? false,
+            ExecVariable::WorkingDirectory->value => $this->workingDirectory ?? false,
             ExecVariable::FindAutoloader->value => $this->findAutoloader ? '1' : '0',
             ExecVariable::Boot->value => $this->boot ? '1' : '0',
             ExecVariable::AliasClasses->value => $this->aliasClasses ? '1' : '0',

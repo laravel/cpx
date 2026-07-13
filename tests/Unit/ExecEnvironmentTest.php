@@ -7,6 +7,7 @@ test('it serializes defaults with unset file and code', function () {
     expect((new ExecEnvironment)->toEnvironment())->toBe([
         'CPX_EXEC_FILE' => false,
         'CPX_EXEC_CODE' => false,
+        'CPX_EXEC_WORKING_DIRECTORY' => false,
         'CPX_EXEC_FIND_AUTOLOADER' => '1',
         'CPX_EXEC_BOOT' => '1',
         'CPX_EXEC_ALIAS' => '1',
@@ -19,6 +20,7 @@ test('it serializes explicit values', function () {
     $environment = new ExecEnvironment(
         file: '/project/script.php',
         code: 'exit(0);',
+        workingDirectory: '/project',
         findAutoloader: false,
         boot: false,
         aliasClasses: false,
@@ -28,6 +30,7 @@ test('it serializes explicit values', function () {
     expect($environment->toEnvironment())->toBe([
         'CPX_EXEC_FILE' => '/project/script.php',
         'CPX_EXEC_CODE' => 'exit(0);',
+        'CPX_EXEC_WORKING_DIRECTORY' => '/project',
         'CPX_EXEC_FIND_AUTOLOADER' => '0',
         'CPX_EXEC_BOOT' => '0',
         'CPX_EXEC_ALIAS' => '0',
