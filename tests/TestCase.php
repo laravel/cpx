@@ -3,6 +3,7 @@
 namespace Tests;
 
 use Cpx\Composer\ComposerRunner;
+use Cpx\Gists\GistClient;
 use Cpx\Packages\BinExecutable;
 use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\Environment;
@@ -45,6 +46,7 @@ abstract class TestCase extends BaseTestCase
     protected function tearDown(): void
     {
         ComposerRunner::clearFake();
+        GistClient::clearFake();
         Environment::clearFakePharPath();
         BinExecutable::clearFakeWindows();
         ProcessRunner::clearFake();
