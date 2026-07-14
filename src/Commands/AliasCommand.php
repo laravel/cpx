@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cpx\Commands;
 
 use Cpx\Exceptions\PackageNotFoundException;
+use Cpx\Packages\LocalPackage;
 use Cpx\Packages\Package;
 use Cpx\Packages\UserAliases;
 use InvalidArgumentException;
@@ -144,7 +145,7 @@ class AliasCommand extends Command
 
     private function resolvePackage(InputInterface $input): Package
     {
-        return Package::parse($this->resolvePackageName($input));
+        return $this->parsePackage($this->resolvePackageName($input));
     }
 
     private function resolvePackageName(InputInterface $input): string
@@ -168,12 +169,19 @@ class AliasCommand extends Command
     private function validatePackage(string $value): ?string
     {
         try {
-            Package::parse($value);
+            $this->parsePackage($value);
 
             return null;
         } catch (InvalidArgumentException $e) {
             return $e->getMessage();
         }
+    }
+
+    private function parsePackage(string $value): Package
+    {
+        return LocalPackage::supports($value)
+            ? LocalPackage::parse($value)
+            : Package::parse($value);
     }
 
     private function resolveName(InputInterface $input, Package $package): string

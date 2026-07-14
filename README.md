@@ -43,6 +43,25 @@ cpx <package-name> [arguments]
 
 Behind the scenes, cpx will install the package into a separate directory and run the command, keeping it separate from both your project and global Composer dependencies (unless the package is already installed in your project — see below). Subsequent runs of the same package will use the same installation and run quickly, unless you specify a different version or there is an update to the package available.
 
+### Local package directories
+
+When developing a Composer package locally, pass its directory to run its declared binary directly from the source checkout:
+
+```bash
+cpx /absolute/path/to/package --version
+cpx ~/path/to/package --version
+cpx ./path/to/package --version
+cpx ../path/to/package --version
+```
+
+The directory must contain a valid `composer.json` and its dependencies must already be installed at `vendor/autoload.php`. For packages with multiple binaries, pass the binary name after the directory just as you would after a package name:
+
+```bash
+cpx ../package binary-name --flag
+```
+
+cpx does not run Composer, copy the package, cache it, or include it in package maintenance commands when an explicit local directory is used. Run `composer install` in the package directory yourself whenever its dependencies need to be installed.
+
 ### Local project binaries
 
 Like `npx`, cpx prefers a binary that is already installed in your project. Before installing an isolated copy, cpx finds the nearest Composer project (walking up from the current directory) and runs the matching binary from its configured `bin-dir` (`vendor/bin` by default):

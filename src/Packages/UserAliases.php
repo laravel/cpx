@@ -51,7 +51,9 @@ class UserAliases
                 throw new MalformedAliasesException($file);
             }
 
-            $aliases[$name] = Package::parse($package)->withBin($bin);
+            $aliases[$name] = (LocalPackage::supports($package)
+                ? LocalPackage::parse($package)
+                : Package::parse($package))->withBin($bin);
         }
 
         return new self($aliases);

@@ -34,6 +34,41 @@ test('it defaults the alias name to the package short name when omitted', functi
         ->and(UserAliases::open()->find('pint')?->fullPackageString())->toBe('laravel/pint');
 });
 
+test('it creates an alias for a relative local package path and persists its canonical root', function () {
+    $this->useIsolatedComposerHome();
+    $workspace = $this->temporaryDirectory('cpx-workspace');
+    $root = $this->prepareLocalPackage('bin/pint', 'laravel/pint', "{$workspace}/pint");
+    $project = "{$workspace}/project";
+
+    mkdir($project, 0755, true);
+    $this->useWorkingDirectory($project);
+
+    $calls = [];
+    fakeComposer($calls);
+
+    $tester = aliasCommandTester();
+    $status = $tester->run(['command' => 'alias', 'package' => '../pint', 'name' => 'mypint']);
+
+    expect($status)->toBe(0)
+        ->and($calls)->toBe([])
+        ->and(UserAliases::open()->find('mypint')?->fullPackageString())->toBe($root)
+        ->and(json_decode((string) file_get_contents(cpx_path('aliases.json')), true))->toBe([
+            'mypint' => ['package' => $root, 'bin' => null],
+        ]);
+});
+
+test('it expands a home-relative local package path and defaults to the package short name', function () {
+    $composerHome = $this->useIsolatedComposerHome();
+    $home = dirname($composerHome);
+    $root = $this->prepareLocalPackage('bin/pint', 'laravel/pint', "{$home}/Laravel/pint");
+
+    $tester = aliasCommandTester();
+    $status = $tester->run(['command' => 'alias', 'package' => '~/Laravel/pint']);
+
+    expect($status)->toBe(0)
+        ->and(UserAliases::open()->find('pint')?->fullPackageString())->toBe($root);
+});
+
 test('it fails gracefully when the package is omitted outside of an interactive terminal', function () {
     $this->useIsolatedComposerHome();
 
@@ -118,6 +153,28 @@ test('it pins the alias to the binary chosen with --bin for a multi-binary packa
 
     expect($alias?->fullPackageString())->toBe('vendor/package')
         ->and($alias?->bin)->toBe('bar');
+});
+
+test('it pins a local package alias to the binary chosen with --bin', function () {
+    $this->useIsolatedComposerHome();
+    $root = $this->prepareLocalPackage(['bin/foo', 'bin/bar'], 'vendor/package');
+
+    $tester = aliasCommandTester();
+    $status = $tester->run([
+        'command' => 'alias',
+        'package' => $root,
+        'name' => 'tool',
+        '--bin' => 'bar',
+    ]);
+
+    $alias = UserAliases::open()->find('tool');
+
+    expect($status)->toBe(0)
+        ->and($alias?->fullPackageString())->toBe($root)
+        ->and($alias?->bin)->toBe('bar')
+        ->and(json_decode((string) file_get_contents(cpx_path('aliases.json')), true))->toBe([
+            'tool' => ['package' => $root, 'bin' => 'bar'],
+        ]);
 });
 
 test('it persists the chosen binary to the aliases file', function () {
