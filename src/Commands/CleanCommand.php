@@ -27,8 +27,10 @@ class CleanCommand extends Command
             }
         }
 
-        foreach ($metadata->execCache as $sandboxDir => $packageMetadata) {
-            $lastRun = strtotime($packageMetadata->lastRunAt ?? '1970-01-01 00:00:00');
+        foreach ($metadata->execCache as $sandboxDir => $cacheEntry) {
+            $lastRun = is_array($cacheEntry)
+                ? (int) ($cacheEntry['last_run'] ?? 0)
+                : strtotime($cacheEntry->lastRunAt ?? '1970-01-01 00:00:00');
 
             if ($this->console->hasOption('all') || $lastRun < $timeLimit) {
                 $packageDirectory = cpx_path(".exec_cache/{$sandboxDir}");
