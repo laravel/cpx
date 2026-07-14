@@ -6,7 +6,7 @@ use Cpx\Exceptions\ComposerInstallException;
 use Cpx\Packages\ExecSandbox;
 use Cpx\Support\Filesystem;
 
-if (! function_exists('composer_require')) {
+if (! function_exists('cpx_require')) {
     /**
      * Dynamically requires Composer packages in a sandboxed environment.
      *
@@ -14,7 +14,7 @@ if (! function_exists('composer_require')) {
      *
      * @throws ComposerInstallException If the Composer require command fails.
      */
-    function composer_require(string ...$packages): void
+    function cpx_require(string ...$packages): void
     {
         ExecSandbox::forPackages($packages)->load();
     }

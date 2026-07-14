@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Cpx\Runtime;
+namespace Cpx\Support;
 
 use Closure;
 use Laravel\Prompts\ConfirmPrompt;

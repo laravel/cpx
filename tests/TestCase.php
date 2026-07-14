@@ -47,6 +47,7 @@ abstract class TestCase extends BaseTestCase
         ComposerRunner::clearFake();
         Environment::clearFakePharPath();
         BinExecutable::clearFakeWindows();
+        ProcessRunner::clearFake();
         ProcessRunner::clearFakeInput();
 
         if ($this->workingDirectory !== null) {

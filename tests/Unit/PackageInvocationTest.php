@@ -12,8 +12,7 @@ test('it separates the target from forwarded argv tokens', function () {
 test('it preserves the double-dash separator for the target command', function () {
     $invocation = PackageInvocation::fromRawTokens(['vendor/package', '--', '--literal', '-x']);
 
-    expect($invocation->forwardedTokens())->toBe(['--', '--literal', '-x'])
-        ->and($invocation->hasOption('literal'))->toBeFalse();
+    expect($invocation->forwardedTokens())->toBe(['--', '--literal', '-x']);
 });
 
 test('it preserves forwarded tokens without shell interpretation', function () {
@@ -32,22 +31,6 @@ test('it preserves forwarded tokens without shell interpretation', function () {
     $invocation = PackageInvocation::fromRawTokens(['vendor/package', ...$tokens]);
 
     expect($invocation->forwardedTokens())->toBe($tokens);
-});
-
-test('it exposes file fallback options without rebuilding a shell command', function () {
-    $invocation = PackageInvocation::fromRawTokens([
-        'script.php',
-        '--find-autoloader=false',
-        '--load-laravel-bootstrap',
-        '--alias-classes',
-        '0',
-    ]);
-
-    expect($invocation->hasOption('find-autoloader'))->toBeTrue()
-        ->and($invocation->option('find-autoloader'))->toBe('false')
-        ->and($invocation->hasOption('load-laravel-bootstrap'))->toBeTrue()
-        ->and($invocation->option('load-laravel-bootstrap'))->toBeNull()
-        ->and($invocation->option('alias-classes'))->toBe('0');
 });
 
 test('it can consume the first forwarded token for multi-binary packages', function () {

@@ -97,7 +97,7 @@ While cpx will automatically check for updates to a Composer package when you ru
 
 cpx gives you multiple ways to run PHP code quickly, perfect for running scratch files or quickly running code in your project.
 
-- `cpx exec <file.php>` will run a plain PHP file.
+- `cpx exec <file.php>` will run a plain PHP file. This is the only way to run a file — a bare `cpx <file.php>` is not routed to exec.
 - `cpx exec -r <raw php code>` will execute the given PHP code.
 - `cpx tinker` will open an interactive REPL in the terminal for your project.
 
@@ -105,8 +105,10 @@ When using these commands, you get the following benefits:
 
 - **Automatic Autoloaders** - When running a PHP file, it will automatically detect and use Composer's autoloader if it exists in the current or a parent directory
 - **Class Aliasing** - If a class is used in the file but the namespace isn't imported, cpx will try to find an appropriate one to alias.
-- **Laravel Bootstrapping** - If the autoloader directory happens to be a Laravel project directory, cpx will bootstrap the application, setting up service providers and such.
-- **composer_require()** - You can use the function like `composer_require('vendor/package')` in the executed script and those packages will be autoloaded into the file.
+- **Framework Bootstrapping** - In a Laravel project, cpx fully boots the application (config, facades, and `.env` all work, with `$app` in scope). In a Symfony project, it boots the kernel and exposes `$kernel` and `$container`. Pass `--no-boot` to skip the framework boot.
+- **The right REPL** - In a Laravel project with `laravel/tinker` installed, `cpx tinker` runs your project's own `php artisan tinker` (extra arguments like `--execute` are forwarded). Everywhere else it opens a PsySH shell with your project booted.
+- **Process isolation** - Your code runs in its own PHP process, so it never collides with cpx's bundled dependencies, and `exit()` codes pass through.
+- **cpx_require()** - You can use the function like `cpx_require('vendor/package')` in the executed script and those packages will be autoloaded into the file. The function is also available inside `cpx tinker`, including when it proxies to your project's own `artisan tinker`.
 
 ### cpx help
 

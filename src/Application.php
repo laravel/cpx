@@ -10,12 +10,13 @@ use Cpx\Commands\CleanCommand;
 use Cpx\Commands\ExecCommand;
 use Cpx\Commands\ListCommand;
 use Cpx\Commands\RunPackageCommand;
+use Cpx\Commands\SandboxCommand;
 use Cpx\Commands\TinkerCommand;
 use Cpx\Commands\UnaliasCommand;
 use Cpx\Commands\UpdateCommand;
 use Cpx\Composer\ComposerRunner;
 use Cpx\Packages\PackageCommandRunner;
-use Cpx\Runtime\PromptFallbacks;
+use Cpx\Support\PromptFallbacks;
 use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Input\ArgvInput;
@@ -77,6 +78,7 @@ class Application extends SymfonyApplication
             new UpdateCommand,
             new ExecCommand,
             new TinkerCommand,
+            new SandboxCommand,
             new RunPackageCommand($packageCommandRunner),
         ]);
     }
