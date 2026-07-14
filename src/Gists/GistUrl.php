@@ -18,7 +18,9 @@ readonly class GistUrl
         public ?string $fragment = null,
         public ?string $rawUrl = null,
         public ?string $filename = null,
-    ) {}
+    ) {
+        //
+    }
 
     public static function tryFrom(string $target): ?self
     {

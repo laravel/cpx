@@ -12,7 +12,9 @@ readonly class GistFile
         public string $content,
         public bool $truncated = false,
         public ?string $rawUrl = null,
-    ) {}
+    ) {
+        //
+    }
 
     public function isPhp(): bool
     {
