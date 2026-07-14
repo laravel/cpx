@@ -16,10 +16,14 @@ $__cpxVariables = PhpExecutionHelper::prepare(Context::fromEnvironment());
 extract($__cpxVariables);
 unset($__cpxVariables);
 
-if (ExecVariable::Code->get() !== false && ExecVariable::Code->get() !== '') {
-    eval((string) ExecVariable::Code->get());
+$__cpxCode = (string) ExecVariable::Code->get();
+
+if ($__cpxCode !== '') {
+    eval($__cpxCode);
 
     return;
 }
+
+unset($__cpxCode);
 
 require ExecVariable::File->get();
