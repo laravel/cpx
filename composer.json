@@ -34,8 +34,7 @@
         }
     },
     "require": {
-        "php": "^8.3",
-        "symfony/var-dumper": "^7.4"
+        "php": "^8.3"
     },
     "require-dev": {
         "composer/composer": "^2.8",
@@ -48,7 +47,8 @@
         "pestphp/pest-plugin-type-coverage": "^4.0",
         "phpstan/phpstan": "^2.2",
         "symfony/console": "^7.4|^8.0",
-        "symfony/process": "^7.4|^8.0"
+        "symfony/process": "^7.4|^8.0",
+        "symfony/var-dumper": "^7.4|^8.0"
     },
     "bin": [
         "builds/cpx"
