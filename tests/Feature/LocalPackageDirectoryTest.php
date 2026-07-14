@@ -2,6 +2,42 @@
 
 use Cpx\Packages\BinExecutable;
 
+test('an aliased local package directory runs from its saved source without invoking composer', function () {
+    $this->useIsolatedComposerHome();
+    $root = $this->prepareLocalPackage('bin/tool', 'vendor/tool');
+    $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
+
+    $this->writeLocalPackageBinary($root, 'bin/tool', argvLoggingBinary($logFile, 23));
+
+    $calls = [];
+    fakeComposer($calls);
+
+    [$aliasStatus] = runCpxCommand(['alias', $root, 'local-tool']);
+    [$runStatus, $output] = runCpxCommand(['local-tool', '--flag']);
+
+    expect($aliasStatus)->toBe(0)
+        ->and($runStatus)->toBe(23)
+        ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['--flag'])
+        ->and($calls)->toBe([])
+        ->and($output)->toContain("Running tool from {$root}");
+});
+
+test('an aliased local multi-bin package runs its pinned binary', function () {
+    $this->useIsolatedComposerHome();
+    $root = $this->prepareLocalPackage(['bin/foo', 'bin/bar'], 'vendor/package');
+    $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
+
+    $this->writeLocalPackageBinary($root, 'bin/foo', noopBinary(99));
+    $this->writeLocalPackageBinary($root, 'bin/bar', argvLoggingBinary($logFile));
+
+    [$aliasStatus] = runCpxCommand(['alias', $root, 'tool', '--bin=bar']);
+    [$runStatus] = runCpxCommand(['tool', 'foo', '--flag']);
+
+    expect($aliasStatus)->toBe(0)
+        ->and($runStatus)->toBe(0)
+        ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['foo', '--flag']);
+});
+
 test('an absolute local package directory runs without invoking composer', function () {
     $this->useIsolatedComposerHome();
     $root = $this->prepareLocalPackage('bin/tool', 'vendor/tool');

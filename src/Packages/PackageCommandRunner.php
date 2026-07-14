@@ -23,13 +23,17 @@ class PackageCommandRunner
     public function run(PackageInvocation $invocation, OutputInterface $output, bool $skipLocal = false): int
     {
         if (LocalPackage::supports($invocation->target)) {
-            return LocalPackage::fromPath($invocation->target)->runCommand($invocation);
+            return LocalPackage::parse($invocation->target)->runCommand($invocation);
         }
 
         try {
             $package = $this->findPackage($invocation->target);
         } catch (InvalidArgumentException) {
             return $this->unrecognised($invocation->target);
+        }
+
+        if ($package instanceof LocalPackage) {
+            return $package->runCommand($invocation);
         }
 
         if (! $skipLocal) {

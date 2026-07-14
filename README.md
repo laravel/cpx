@@ -24,7 +24,7 @@ composer global update cpx/cpx
 
 ## Usage
 
-You can run a command using cpx by passing through the package name or an explicit local package directory and the command you want to run:
+You can run a command using cpx by passing through the package name and the command you want to run:
 
 > Note: A package name is what you'd use to require the package in your `composer.json` file, e.g. `friendsofphp/php-cs-fixer`
 > You can also use constraints to specify a version, e.g. `friendsofphp/php-cs-fixer:^3.0`

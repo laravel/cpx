@@ -26,7 +26,7 @@ test('it only supports explicit directory path syntax', function (string $target
 test('it exposes the canonical root and composer package short name', function () {
     $root = $this->prepareLocalPackage(['bin/tool'], 'vendor/tool');
 
-    $package = LocalPackage::fromPath($root.'/../'.basename($root));
+    $package = LocalPackage::parse($root.'/../'.basename($root));
 
     expect($package->root)->toBe($root)
         ->and($package->name)->toBe('tool');
@@ -37,7 +37,7 @@ test('it rejects a non-directory path when resolved directly', function () {
     $path = "{$root}/package.txt";
     file_put_contents($path, 'contents');
 
-    expect(fn () => LocalPackage::fromPath($path))
+    expect(fn () => LocalPackage::parse($path))
         ->toThrow(InvalidArgumentException::class, "Local package path '{$path}' is not a directory.");
 });
 
@@ -46,6 +46,6 @@ test('it fails to expand a home path when no home directory is available', funct
         $this->setEnvironmentVariable($variable, '');
     }
 
-    expect(fn () => LocalPackage::fromPath('~/package'))
+    expect(fn () => LocalPackage::parse('~/package'))
         ->toThrow(InvalidArgumentException::class, 'the home directory could not be determined');
 });

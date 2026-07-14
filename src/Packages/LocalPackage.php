@@ -9,22 +9,23 @@ use Cpx\Process\ProcessRunner;
 use Cpx\Support\Filesystem;
 use InvalidArgumentException;
 use JsonException;
+use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 
-readonly class LocalPackage
+class LocalPackage extends Package
 {
     /**
-     * @param  array<string, string>  $binaries
+     * @param  array<string, string>  $localBinaries
      */
     private function __construct(
         public string $root,
-        public string $name,
-        private array $binaries,
+        string $name,
+        private array $localBinaries,
     ) {
-        //
+        parent::__construct(vendor: '', name: $name);
     }
 
     public static function supports(string $target): bool
@@ -46,7 +47,7 @@ readonly class LocalPackage
         return false;
     }
 
-    public static function fromPath(string $path): self
+    public static function parse(string $path): self
     {
         $expandedPath = self::expandHomeDirectory($path);
         $root = realpath($expandedPath);
@@ -94,22 +95,44 @@ readonly class LocalPackage
         return new self(
             root: $root,
             name: self::packageName($composer, $root),
-            binaries: self::binaries($composer),
+            localBinaries: self::manifestBinaries($composer),
         );
     }
 
-    public function runCommand(PackageInvocation $invocation): int
+    public function fullPackageString(): string
     {
-        if ($this->binaries === []) {
+        return $this->root;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function binaries(string $installDir): array
+    {
+        return $this->localBinaries;
+    }
+
+    public function installOrUpdatePackage(bool $updateCheck = true): string
+    {
+        return $this->root;
+    }
+
+    public function runCommand(PackageInvocation $invocation, bool $autoUpdate = true): int
+    {
+        if ($this->localBinaries === []) {
             error("No bin command found in {$this->root}.");
 
             return Command::FAILURE;
         }
 
-        $resolved = BinResolver::resolve($this->binaries, $invocation, $this->name);
+        $resolved = BinResolver::resolve($this->localBinaries, $invocation, $this->name, $this->bin);
+
+        if ($resolved === null && $this->bin !== null) {
+            throw new RuntimeException("The requested bin command '{$this->bin}' was not found in {$this}.");
+        }
 
         if ($resolved === null) {
-            error("More than 1 bin command found in {$this->root}: ".implode(', ', array_keys($this->binaries)).'.');
+            error("More than 1 bin command found in {$this->root}: ".implode(', ', array_keys($this->localBinaries)).'.');
 
             return Command::FAILURE;
         }
@@ -178,7 +201,7 @@ readonly class LocalPackage
      * @param  array<array-key, mixed>  $composer
      * @return array<string, string>
      */
-    private static function binaries(array $composer): array
+    private static function manifestBinaries(array $composer): array
     {
         $declared = $composer['bin'] ?? [];
         $binaries = [];
