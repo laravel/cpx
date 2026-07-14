@@ -1,7 +1,13 @@
 <?php
 
 use Cpx\Process\ProcessRunner;
+use Cpx\Runtime\ExecEnvironment;
 use Cpx\Support\ChildScript;
+
+function tinkerRuntimePrelude(): string
+{
+    return sprintf("require '%s';", addcslashes(ChildScript::path('child-runtime.php'), "\\'"));
+}
 
 function laravelTinkerProject(string $root, string $artisanLog, bool $withTinker = true): void
 {
@@ -42,7 +48,7 @@ test('tinker proxies to artisan tinker in a laravel project', function () {
     [$status] = runCpxCommand(['tinker']);
 
     expect($status)->toBe(0)
-        ->and(json_decode((string) file_get_contents($log), true))->toBe(['tinker']);
+        ->and(json_decode((string) file_get_contents($log), true))->toBe(['tinker', ChildScript::path('child-runtime.php')]);
 });
 
 test('tinker forwards extra tokens to artisan tinker', function () {
@@ -54,7 +60,19 @@ test('tinker forwards extra tokens to artisan tinker', function () {
     [$status] = runCpxCommand(['tinker', '--execute=2+2']);
 
     expect($status)->toBe(0)
-        ->and(json_decode((string) file_get_contents($log), true))->toBe(['tinker', '--execute=2+2']);
+        ->and(json_decode((string) file_get_contents($log), true))->toBe(['tinker', ChildScript::path('child-runtime.php'), '--execute='.tinkerRuntimePrelude().' 2+2']);
+});
+
+test('tinker requires the runtime in a split --execute token', function () {
+    $root = $this->temporaryDirectory('cpx-tinker');
+    $log = "{$root}/artisan.json";
+    laravelTinkerProject($root, $log);
+    $this->useWorkingDirectory($root);
+
+    [$status] = runCpxCommand(['tinker', '--execute', '2+2']);
+
+    expect($status)->toBe(0)
+        ->and(json_decode((string) file_get_contents($log), true))->toBe(['tinker', ChildScript::path('child-runtime.php'), '--execute', tinkerRuntimePrelude().' 2+2']);
 });
 
 test('tinker detects the project root from a nested subdirectory', function () {
@@ -67,7 +85,7 @@ test('tinker detects the project root from a nested subdirectory', function () {
     [$status] = runCpxCommand(['tinker']);
 
     expect($status)->toBe(0)
-        ->and(json_decode((string) file_get_contents($log), true))->toBe(['tinker']);
+        ->and(json_decode((string) file_get_contents($log), true))->toBe(['tinker', ChildScript::path('child-runtime.php')]);
 });
 
 test('tinker ignores global options before the command name when forwarding', function () {
@@ -79,7 +97,23 @@ test('tinker ignores global options before the command name when forwarding', fu
     [$status] = runCpxCommand(['-v', 'tinker', '--execute=2+2']);
 
     expect($status)->toBe(0)
-        ->and(json_decode((string) file_get_contents($log), true))->toBe(['tinker', '--execute=2+2']);
+        ->and(json_decode((string) file_get_contents($log), true))->toBe(['tinker', ChildScript::path('child-runtime.php'), '--execute='.tinkerRuntimePrelude().' 2+2']);
+});
+
+test('tinker exposes cpx_require to the artisan proxy', function () {
+    $root = $this->temporaryDirectory('cpx-tinker');
+    laravelTinkerProject($root, "{$root}/artisan.json");
+    $this->useWorkingDirectory($root);
+
+    $commands = [];
+    $environments = [];
+    fakeProcessRunner($commands, $environments);
+
+    [$status] = runCpxCommand(['tinker']);
+
+    expect($status)->toBe(0)
+        ->and($commands[0])->toContain(ChildScript::path('child-runtime.php'))
+        ->and($environments[0]['CPX_EXEC_BIN'])->toBe(ExecEnvironment::binPath());
 });
 
 test('tinker runs the artisan proxy from the project root', function () {

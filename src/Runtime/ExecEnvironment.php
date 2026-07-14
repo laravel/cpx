@@ -31,7 +31,7 @@ readonly class ExecEnvironment
         ];
     }
 
-    private static function binPath(): string
+    public static function binPath(): string
     {
         return Environment::isPhar()
             ? Environment::pharPath()

@@ -108,7 +108,7 @@ When using these commands, you get the following benefits:
 - **Framework Bootstrapping** - In a Laravel project, cpx fully boots the application (config, facades, and `.env` all work, with `$app` in scope). In a Symfony project, it boots the kernel and exposes `$kernel` and `$container`. Pass `--no-boot` to skip the framework boot.
 - **The right REPL** - In a Laravel project with `laravel/tinker` installed, `cpx tinker` runs your project's own `php artisan tinker` (extra arguments like `--execute` are forwarded). Everywhere else it opens a PsySH shell with your project booted.
 - **Process isolation** - Your code runs in its own PHP process, so it never collides with cpx's bundled dependencies, and `exit()` codes pass through.
-- **composer_require()** - You can use the function like `composer_require('vendor/package')` in the executed script and those packages will be autoloaded into the file.
+- **cpx_require()** - You can use the function like `cpx_require('vendor/package')` in the executed script and those packages will be autoloaded into the file. The function is also available inside `cpx tinker`, including when it proxies to your project's own `artisan tinker`.
 
 ### cpx help
 
