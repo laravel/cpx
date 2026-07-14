@@ -10,7 +10,7 @@ readonly class GistUrl
 
     private const RAW_PATTERN = '~\A(?:https?://)?(gist\.githubusercontent\.com/[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?/([0-9a-f]{20}|[0-9a-f]{32})/raw/(?:[0-9a-f]{40}/)?([^#?/]+))\z~';
 
-    private const HOST_PATTERN = '~\A(?:https?://)?gist\.github(?:usercontent)?\.com/~i';
+    private const URL_PATTERN = '~\A(?:[a-z][a-z0-9+.-]*://|gist\.github(?:usercontent)?\.com/)~i';
 
     private function __construct(
         public string $id,
@@ -41,8 +41,8 @@ readonly class GistUrl
         return null;
     }
 
-    public static function isGistHost(string $target): bool
+    public static function isUrl(string $target): bool
     {
-        return preg_match(self::HOST_PATTERN, $target) === 1;
+        return preg_match(self::URL_PATTERN, $target) === 1;
     }
 }

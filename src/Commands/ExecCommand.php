@@ -75,7 +75,7 @@ class ExecCommand extends Command
 
                     return self::FAILURE;
                 }
-            } elseif (GistUrl::isGistHost($target)) {
+            } elseif (GistUrl::isUrl($target)) {
                 GistException::unsupportedUrl($target)->render();
 
                 return self::FAILURE;

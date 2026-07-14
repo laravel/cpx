@@ -108,17 +108,20 @@ test('parses a revision-pinned gist url with a fragment', function () {
         ->and($url?->fragment)->toBe('file-my-script-php');
 });
 
-test('recognizes gist hosts', function (string $target) {
-    expect(GistUrl::isGistHost($target))->toBeTrue();
+test('recognizes url targets', function (string $target) {
+    expect(GistUrl::isUrl($target))->toBeTrue();
 })->with([
     'gist page' => 'https://gist.github.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3',
-    'scheme-less url' => 'gist.github.com/WendellAdriel/not-a-gist-id',
+    'scheme-less gist url' => 'gist.github.com/WendellAdriel/not-a-gist-id',
     'raw gist url' => 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/script.php',
+    'repository url' => 'https://github.com/WendellAdriel/cpx',
+    'other host url' => 'http://example.com/script.php',
 ]);
 
-test('does not treat other targets as gist hosts', function (string $target) {
-    expect(GistUrl::isGistHost($target))->toBeFalse();
+test('does not treat local paths as urls', function (string $target) {
+    expect(GistUrl::isUrl($target))->toBeFalse();
 })->with([
     'local path' => 'script.php',
-    'repository url' => 'https://github.com/WendellAdriel/cpx',
+    'scheme-less host path' => 'example.com/script.php',
+    'windows drive path' => 'C:\\scripts\\demo.php',
 ]);

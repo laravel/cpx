@@ -238,6 +238,8 @@ test('exec reports unsupported gist urls', function (string $target) {
 })->with([
     'raw gist url without a file name' => 'https://gist.githubusercontent.com/WendellAdriel/aa5a8f8cbc4f1e502dbb3ca546a4cbf3/raw/',
     'non-hex id' => 'https://gist.github.com/WendellAdriel/not-a-gist-id',
+    'repository url' => 'https://github.com/WendellAdriel/cpx/blob/main/README.md',
+    'non-github url' => 'https://example.com/script.php',
 ]);
 
 test('exec still reports missing local files as missing', function () {
