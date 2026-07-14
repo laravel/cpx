@@ -1,6 +1,6 @@
 <?php
 
-use Cpx\Runtime\ComposerRequire;
+use Cpx\Runtime\CpxRequire;
 
 function fakeSandboxBin(string $directory, string $script): string
 {
@@ -28,11 +28,11 @@ test('it loads the sandbox autoloader reported by the cpx sandbox process', func
     $this->setEnvironmentVariable('CPX_EXEC_BIN', $bin);
 
     ob_start();
-    ComposerRequire::load('vendor/package');
+    CpxRequire::load('vendor/package');
     $echoed = (string) ob_get_clean();
 
     expect($GLOBALS[$marker] ?? false)->toBeTrue()
-        ->and(json_decode((string) file_get_contents("{$directory}/argv.json"), true))->toBe([ComposerRequire::COMMAND, 'vendor/package'])
+        ->and(json_decode((string) file_get_contents("{$directory}/argv.json"), true))->toBe([CpxRequire::COMMAND, 'vendor/package'])
         ->and($echoed)->toContain('install noise');
 
     unset($GLOBALS[$marker]);
@@ -41,7 +41,7 @@ test('it loads the sandbox autoloader reported by the cpx sandbox process', func
 test('it fails clearly when the cpx binary location is missing', function () {
     $this->setEnvironmentVariable('CPX_EXEC_BIN', '');
 
-    ComposerRequire::load('vendor/package');
+    CpxRequire::load('vendor/package');
 })->throws(RuntimeException::class, 'CPX_EXEC_BIN');
 
 test('it fails when the sandbox process exits with an error', function () {
@@ -50,7 +50,7 @@ test('it fails when the sandbox process exits with an error', function () {
     $bin = fakeSandboxBin($directory, '<?php exit(1);');
     $this->setEnvironmentVariable('CPX_EXEC_BIN', $bin);
 
-    ComposerRequire::load('vendor/package');
+    CpxRequire::load('vendor/package');
 })->throws(RuntimeException::class, 'Failed to install: vendor/package');
 
 test('it fails when the reported sandbox has no autoloader', function () {
@@ -60,5 +60,5 @@ test('it fails when the reported sandbox has no autoloader', function () {
     $bin = fakeSandboxBin($directory, sprintf('<?php echo %s, "\n";', var_export("{$directory}/sandbox", true)));
     $this->setEnvironmentVariable('CPX_EXEC_BIN', $bin);
 
-    ComposerRequire::load('vendor/package');
+    CpxRequire::load('vendor/package');
 })->throws(RuntimeException::class, 'Autoload file not found');

@@ -6,8 +6,8 @@ namespace Cpx\Runtime;
 
 use RuntimeException;
 
-/** Child-process bridge for composer_require(): a spawned cpx process installs the sandbox. */
-class ComposerRequire
+/** Child-process bridge for cpx_require(): a spawned cpx process installs the sandbox. */
+class CpxRequire
 {
     public const COMMAND = '__cpx_sandbox';
 
@@ -39,7 +39,7 @@ class ComposerRequire
         $cpx = ExecVariable::Bin->get();
 
         if (! is_string($cpx) || $cpx === '') {
-            throw new RuntimeException('composer_require() needs the '.ExecVariable::Bin->value.' environment variable pointing at the cpx binary.');
+            throw new RuntimeException('cpx_require() needs the '.ExecVariable::Bin->value.' environment variable pointing at the cpx binary.');
         }
 
         $process = proc_open(

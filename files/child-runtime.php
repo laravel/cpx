@@ -1,10 +1,10 @@
 <?php
 
-use Cpx\Runtime\ComposerRequire;
+use Cpx\Runtime\CpxRequire;
 
 /**
  * Shared prelude for cpx child processes: registers the dependency-free
- * Cpx\Runtime autoloader and bridges composer_require() to a spawned cpx,
+ * Cpx\Runtime autoloader and bridges cpx_require() to a spawned cpx,
  * keeping the phar's bundled dependencies out of the child.
  */
 spl_autoload_register(static function (string $class): void {
@@ -13,14 +13,14 @@ spl_autoload_register(static function (string $class): void {
     }
 });
 
-if (! function_exists('composer_require')) {
+if (! function_exists('cpx_require')) {
     /**
      * Dynamically requires Composer packages in a sandboxed environment.
      *
      * @param  string  ...$packages  List of packages to require in the format vendor/package[:version].
      */
-    function composer_require(string ...$packages): void
+    function cpx_require(string ...$packages): void
     {
-        ComposerRequire::load(...$packages);
+        CpxRequire::load(...$packages);
     }
 }

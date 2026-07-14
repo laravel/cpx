@@ -2,15 +2,15 @@
 
 use Cpx\Cache\ExecSandboxMetadata;
 use Cpx\Cache\Metadata;
-use Cpx\Runtime\ComposerRequire;
+use Cpx\Runtime\CpxRequire;
 
-test('composer_require installs into a safe sandbox key and records a typed exec entry', function () {
+test('cpx_require installs into a safe sandbox key and records a typed exec entry', function () {
     $this->useIsolatedComposerHome();
 
     $calls = [];
     fakeComposer($calls);
 
-    composer_require('laravel/pint');
+    cpx_require('laravel/pint');
 
     $key = hash('sha256', 'laravel/pint');
     $sandbox = Metadata::open()->execCache[$key];
@@ -32,7 +32,7 @@ test('the hidden sandbox command installs the packages and prints the sandbox pa
     $calls = [];
     fakeComposer($calls);
 
-    [$status, $output] = runCpxCommand([ComposerRequire::COMMAND, 'laravel/pint']);
+    [$status, $output] = runCpxCommand([CpxRequire::COMMAND, 'laravel/pint']);
 
     $key = hash('sha256', 'laravel/pint');
 

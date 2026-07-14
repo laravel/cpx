@@ -157,12 +157,12 @@ test('exec rejects the removed --load-laravel-bootstrap flag', function () {
         ->and($output)->toContain('--load-laravel-bootstrap');
 });
 
-test('exec defines composer_require in the child process', function () {
+test('exec defines cpx_require in the child process', function () {
     $directory = $this->temporaryDirectory('cpx-exec');
     $this->useWorkingDirectory($directory);
     $marker = "{$directory}/marker.txt";
 
-    [$status] = runCpxCommand(['exec', '-r', 'file_put_contents('.var_export($marker, true).', var_export(function_exists("composer_require"), true));']);
+    [$status] = runCpxCommand(['exec', '-r', 'file_put_contents('.var_export($marker, true).', var_export(function_exists("cpx_require"), true));']);
 
     expect($status)->toBe(0)
         ->and(file_get_contents($marker))->toBe('true');

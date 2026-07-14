@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Cpx\Commands;
 
 use Cpx\Packages\ExecSandbox;
-use Cpx\Runtime\ComposerRequire;
+use Cpx\Runtime\CpxRequire;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -13,7 +13,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
-    name: ComposerRequire::COMMAND,
+    name: CpxRequire::COMMAND,
     hidden: true,
 )]
 class SandboxCommand extends Command
