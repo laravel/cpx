@@ -19,8 +19,9 @@ if (! class_exists(Shell::class) && ExecVariable::PsyshAutoload->get() !== false
 $__cpxExecute = null;
 $__cpxIncludes = [];
 $__cpxTokens = array_slice($argv, 1);
+$__cpxTokenCount = count($__cpxTokens);
 
-for ($__cpxIndex = 0; $__cpxIndex < count($__cpxTokens); $__cpxIndex++) {
+for ($__cpxIndex = 0; $__cpxIndex < $__cpxTokenCount; $__cpxIndex++) {
     $__cpxToken = $__cpxTokens[$__cpxIndex];
 
     if ($__cpxToken === '--execute') {
