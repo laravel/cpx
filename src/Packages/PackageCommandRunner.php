@@ -11,7 +11,7 @@ use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\error;
-use function Laravel\Prompts\info;
+use function Laravel\Prompts\task;
 
 /**
  * Runs a non-built-in cpx target by resolving it to a local project binary,
@@ -57,7 +57,11 @@ class PackageCommandRunner
 
     private function runLocal(ResolvedBin $resolved): int
     {
-        info('Running '.basename($resolved->command)." from {$resolved->command}");
+        task(
+            label: 'Running '.basename($resolved->command)." from {$resolved->command}",
+            callback: fn (): bool => true,
+            keepSummary: true,
+        );
 
         return (new ProcessRunner)->run(BinExecutable::commandFor($resolved->command, $resolved->invocation->forwardedTokens()));
     }
