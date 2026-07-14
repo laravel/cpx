@@ -99,6 +99,15 @@ test('it discovers the kernel through array psr-4 paths', function () {
     expect($variables)->toHaveKeys(['kernel', 'container']);
 });
 
+test('it discovers the kernel through psr-4 paths outside src', function () {
+    $root = $this->temporaryDirectory('cpx-symfony');
+    symfonyKernelFixture($root, 'CpxSymfonyFixtureAppPath', 'app/');
+
+    $variables = (new SymfonyLoader)->boot(new Context($root, $root));
+
+    expect($variables)->toHaveKeys(['kernel', 'container']);
+});
+
 test('it discovers the kernel when the psr-4 path has no trailing slash', function () {
     $root = $this->temporaryDirectory('cpx-symfony');
     symfonyKernelFixture($root, 'CpxSymfonyFixtureBarePath', 'src');

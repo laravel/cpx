@@ -87,8 +87,8 @@ class SymfonyLoader implements ProjectBooter
             return null;
         }
 
-        foreach ($psr4 as $namespace => $paths) {
-            if (! is_string($namespace) || ! $this->mapsToSrc($paths)) {
+        foreach (array_keys($psr4) as $namespace) {
+            if (! is_string($namespace)) {
                 continue;
             }
 
@@ -100,17 +100,6 @@ class SymfonyLoader implements ProjectBooter
         }
 
         return null;
-    }
-
-    private function mapsToSrc(mixed $paths): bool
-    {
-        foreach (is_array($paths) ? $paths : [$paths] as $path) {
-            if (is_string($path) && rtrim($path, '/') === 'src') {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private function environment(): string
