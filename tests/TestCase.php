@@ -157,7 +157,7 @@ abstract class TestCase extends BaseTestCase
         mkdir("{$root}/vendor", 0755, true);
         file_put_contents("{$root}/vendor/autoload.php", '<?php');
 
-        return $root;
+        return realpath($root) ?: $root;
     }
 
     protected function writeLocalPackageBinary(string $root, string $path, string $contents): string
