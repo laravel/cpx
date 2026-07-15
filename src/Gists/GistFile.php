@@ -24,7 +24,7 @@ readonly class GistFile
 
     public function hasPhpTag(): bool
     {
-        return str_starts_with($this->content, '<?php');
+        return str_starts_with(ltrim($this->content, " \t\n\r\0\x0B\xEF\xBB\xBF"), '<?php');
     }
 
     /** The anchor slug GitHub generates for this file, e.g. `file-my-script-php`. */

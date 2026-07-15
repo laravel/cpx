@@ -72,6 +72,22 @@ test('does not treat extensionless files as php from metadata alone', function (
         ->and($file->hasPhpTag())->toBeTrue();
 });
 
+test('detects a php tag behind leading whitespace or a utf-8 bom', function (string $content) {
+    $file = new GistFile(filename: 'script', language: null, content: $content);
+
+    expect($file->hasPhpTag())->toBeTrue();
+})->with([
+    'leading newline' => "\n<?php echo 'hi';",
+    'leading spaces' => "  <?php echo 'hi';",
+    'utf-8 bom' => "\xEF\xBB\xBF<?php echo 'hi';",
+]);
+
+test('does not detect a php tag that only appears mid-content', function () {
+    $file = new GistFile(filename: 'notes', language: null, content: 'Some notes about <?php scripts.');
+
+    expect($file->hasPhpTag())->toBeFalse();
+});
+
 test('falls back to a leading php tag when metadata marks no file as php', function () {
     $gist = Gist::fromApi([
         'files' => [
