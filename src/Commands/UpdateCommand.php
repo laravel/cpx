@@ -90,13 +90,14 @@ class UpdateCommand extends Command
     protected function updateDirectory(string $directory): void
     {
         $relative = ltrim(str_replace(Filesystem::normalizePath(cpx_path()), '', Filesystem::normalizePath($directory)), '/');
+        $package = implode('/', array_slice(explode('/', $relative), 0, 2));
 
         task(
             label: "Updating {$relative}",
-            callback: function (Logger $logger) use ($directory, $relative): void {
-                $previousVersion = ComposerRunner::getCurrentVersion($directory);
+            callback: function (Logger $logger) use ($directory, $relative, $package): void {
+                $previousVersion = ComposerRunner::getCurrentVersion($directory, $package);
                 ProcessRunner::withLogger($logger, fn () => ComposerRunner::run(['update'], $directory));
-                $newVersion = ComposerRunner::getCurrentVersion($directory);
+                $newVersion = ComposerRunner::getCurrentVersion($directory, $package);
 
                 if ($previousVersion !== $newVersion) {
                     $logger->success("{$relative} was upgraded from {$previousVersion} to {$newVersion}.");

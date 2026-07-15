@@ -94,7 +94,7 @@ class ComposerRunner
         return array_values((array) $composerData['bin']);
     }
 
-    public static function getCurrentVersion(string $directory): string
+    public static function getCurrentVersion(string $directory, string $package): string
     {
         $unknown = 'unknown';
 
@@ -111,9 +111,17 @@ class ComposerRunner
         }
 
         $lockData = json_decode($contents, true);
-        $version = is_array($lockData) ? ($lockData['packages'][0]['version'] ?? null) : null;
+        $lockedPackages = is_array($lockData) ? (array) ($lockData['packages'] ?? []) : [];
 
-        return is_string($version) ? $version : $unknown;
+        foreach ($lockedPackages as $locked) {
+            if (is_array($locked) && ($locked['name'] ?? null) === $package) {
+                $version = $locked['version'] ?? null;
+
+                return is_string($version) ? $version : $unknown;
+            }
+        }
+
+        return $unknown;
     }
 
     /** @return list<string> */
