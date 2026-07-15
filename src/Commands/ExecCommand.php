@@ -42,10 +42,6 @@ class ExecCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $code = null;
-        $file = null;
-        $temporaryGistFile = null;
-
         if ($input->getOption('run') !== null) {
             $run = $input->getOption('run');
 
@@ -55,67 +51,79 @@ class ExecCommand extends Command
                 return self::FAILURE;
             }
 
-            $code = $this->normalizeCode($run);
-        } else {
-            $target = $input->getArgument('file');
+            return $this->runScript($input, $output, code: $this->normalizeCode($run));
+        }
 
-            if (! is_string($target) || $target === '') {
-                error('Please supply the path to a file to execute.');
+        $target = $input->getArgument('file');
+
+        if (! is_string($target) || $target === '') {
+            error('Please supply the path to a file to execute.');
+
+            return self::FAILURE;
+        }
+
+        $gist = GistUrl::tryFrom($target);
+
+        if ($gist !== null) {
+            try {
+                $file = $this->downloadGist($gist, $input);
+            } catch (GistException $exception) {
+                $exception->render();
 
                 return self::FAILURE;
             }
 
-            $gist = GistUrl::tryFrom($target);
-
-            if ($gist !== null) {
-                try {
-                    $file = $temporaryGistFile = $this->downloadGist($gist, $input);
-                } catch (GistException $exception) {
-                    $exception->render();
-
-                    return self::FAILURE;
-                }
-            } elseif (GistUrl::isUrl($target)) {
-                GistException::unsupportedUrl($target)->render();
-
-                return self::FAILURE;
-            } else {
-                $file = realpath($target);
-
-                if ($file === false) {
-                    error("File does not exist at '{$target}'");
-
-                    return self::FAILURE;
-                }
-
-                if (! is_file($file)) {
-                    error("Cannot execute '{$target}' because it is not a file.");
-
-                    return self::FAILURE;
-                }
+            try {
+                return $this->runScript($input, $output, file: $file, workingDirectory: getcwd() ?: null);
+            } finally {
+                @unlink($file);
             }
         }
 
+        if (GistUrl::isUrl($target)) {
+            GistException::unsupportedUrl($target)->render();
+
+            return self::FAILURE;
+        }
+
+        $file = realpath($target);
+
+        if ($file === false) {
+            error("File does not exist at '{$target}'");
+
+            return self::FAILURE;
+        }
+
+        if (! is_file($file)) {
+            error("Cannot execute '{$target}' because it is not a file.");
+
+            return self::FAILURE;
+        }
+
+        return $this->runScript($input, $output, file: $file);
+    }
+
+    private function runScript(
+        InputInterface $input,
+        OutputInterface $output,
+        ?string $file = null,
+        ?string $code = null,
+        ?string $workingDirectory = null,
+    ): int {
         $environment = new ExecEnvironment(
             file: $file,
             code: $code,
-            workingDirectory: $temporaryGistFile === null ? null : (getcwd() ?: null),
+            workingDirectory: $workingDirectory,
             findAutoloader: $input->getOption('find-autoloader') === true,
             boot: $input->getOption('boot') === true,
             aliasClasses: $input->getOption('alias-classes') === true,
             verbose: $output->isVerbose(),
         );
 
-        try {
-            return (new ProcessRunner)->run(
-                [PHP_BINARY, ChildScript::path('exec-bootstrap.php')],
-                $environment->toEnvironment(),
-            );
-        } finally {
-            if ($temporaryGistFile !== null) {
-                @unlink($temporaryGistFile);
-            }
-        }
+        return (new ProcessRunner)->run(
+            [PHP_BINARY, ChildScript::path('exec-bootstrap.php')],
+            $environment->toEnvironment(),
+        );
     }
 
     /** @throws GistException When the gist cannot be downloaded or is not a runnable PHP script. */
