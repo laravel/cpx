@@ -45,6 +45,24 @@ test('it throws a uniform message when the runner reports a failure', function (
     ComposerRunner::run(['update']);
 })->throws(ComposerCommandException::class, 'Composer command failed: update');
 
+test('it reads the locked version of the requested package by name', function () {
+    $directory = $this->temporaryDirectory('cpx-lock');
+
+    file_put_contents("{$directory}/composer.lock", json_encode([
+        'packages' => [
+            ['name' => 'clue/ndjson-react', 'version' => 'v1.3.0'],
+            ['name' => 'friendsofphp/php-cs-fixer', 'version' => 'v3.64.0'],
+        ],
+    ], JSON_THROW_ON_ERROR));
+
+    expect(ComposerRunner::getCurrentVersion($directory, 'friendsofphp/php-cs-fixer'))->toBe('v3.64.0')
+        ->and(ComposerRunner::getCurrentVersion($directory, 'vendor/missing'))->toBe('unknown');
+});
+
+test('it reports an unknown version when the lock file is missing', function () {
+    expect(ComposerRunner::getCurrentVersion($this->temporaryDirectory('cpx-no-lock'), 'vendor/package'))->toBe('unknown');
+});
+
 test('it boots composer in-process and returns the exit code', function () {
     $this->useIsolatedComposerHome();
 

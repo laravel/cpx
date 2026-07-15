@@ -280,14 +280,15 @@ class Package
         task(
             label: "Updating {$this}",
             callback: function (Logger $logger) use ($installDir): void {
-                $previousVersion = ComposerRunner::getCurrentVersion($installDir);
+                $package = "{$this->vendor}/{$this->name}";
+                $previousVersion = ComposerRunner::getCurrentVersion($installDir, $package);
                 ProcessRunner::withLogger($logger, fn () => ComposerRunner::run(['update'], $installDir));
-                $newVersion = ComposerRunner::getCurrentVersion($installDir);
+                $newVersion = ComposerRunner::getCurrentVersion($installDir, $package);
 
                 if ($previousVersion !== $newVersion) {
-                    $logger->success("{$this} was upgraded from {$previousVersion} to {$newVersion}.");
+                    $logger->label("{$this} was upgraded from {$previousVersion} to {$newVersion}");
                 } else {
-                    $logger->line("{$this} is already up-to-date.");
+                    $logger->label("{$this} is already up-to-date");
                 }
 
                 Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));

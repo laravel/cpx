@@ -6,7 +6,9 @@ namespace Cpx\Commands;
 
 use Cpx\Composer\ComposerRunner;
 use Cpx\Packages\Package;
+use Cpx\Process\ProcessRunner;
 use Cpx\Support\Filesystem;
+use Laravel\Prompts\Support\Logger;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -14,6 +16,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\info;
+use function Laravel\Prompts\task;
 
 #[AsCommand(
     name: 'update',
@@ -86,9 +89,23 @@ class UpdateCommand extends Command
 
     protected function updateDirectory(string $directory): void
     {
-        $relative = str_replace(Filesystem::normalizePath(cpx_path()), '', Filesystem::normalizePath($directory));
+        $relative = ltrim(str_replace(Filesystem::normalizePath(cpx_path()), '', Filesystem::normalizePath($directory)), '/');
+        $package = implode('/', array_slice(explode('/', $relative), 0, 2));
 
-        info("Updating {$relative}");
-        ComposerRunner::run(['update'], $directory);
+        task(
+            label: "Updating {$relative}",
+            callback: function (Logger $logger) use ($directory, $relative, $package): void {
+                $previousVersion = ComposerRunner::getCurrentVersion($directory, $package);
+                ProcessRunner::withLogger($logger, fn () => ComposerRunner::run(['update'], $directory));
+                $newVersion = ComposerRunner::getCurrentVersion($directory, $package);
+
+                if ($previousVersion !== $newVersion) {
+                    $logger->label("{$relative} was upgraded from {$previousVersion} to {$newVersion}");
+                } else {
+                    $logger->label("{$relative} is already up-to-date");
+                }
+            },
+            keepSummary: true,
+        );
     }
 }
