@@ -18,8 +18,14 @@ readonly class Context
 
     public static function fromEnvironment(): self
     {
+        $override = ExecVariable::WorkingDirectory->get();
         $file = ExecVariable::File->get();
-        $workingDirectory = is_string($file) && $file !== '' ? dirname($file) : (getcwd() ?: '.');
+
+        $workingDirectory = match (true) {
+            is_string($override) && $override !== '' => $override,
+            is_string($file) && $file !== '' => dirname($file),
+            default => getcwd() ?: '.',
+        };
         $shouldFindAutoloader = ExecVariable::FindAutoloader->get() !== '0';
 
         return new self(

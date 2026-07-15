@@ -4,9 +4,17 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
+use Closure;
+use Cpx\Exceptions\GistException;
+use Cpx\Gists\GistClient;
+use Cpx\Gists\GistFile;
+use Cpx\Gists\GistUrl;
 use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\ExecEnvironment;
 use Cpx\Support\ChildScript;
+use Cpx\Support\Filesystem;
+use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
+use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -15,16 +23,17 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\error;
+use function Laravel\Prompts\select;
 
 #[AsCommand(
     name: 'exec',
-    description: 'Invoke a PHP file or inline PHP code',
+    description: 'Invoke a PHP file, inline PHP code, or a GitHub gist',
 )]
 class ExecCommand extends Command
 {
     protected function configure(): void
     {
-        $this->addArgument('file', InputArgument::OPTIONAL, 'PHP file to invoke');
+        $this->addArgument('file', InputArgument::OPTIONAL, 'PHP file or GitHub gist URL to invoke');
         $this->addOption('run', 'r', InputOption::VALUE_REQUIRED, 'Run PHP code without <?php ?> tags');
         $this->addOption('find-autoloader', null, InputOption::VALUE_NEGATABLE, 'Find and load the nearest Composer autoloader', true);
         $this->addOption('boot', null, InputOption::VALUE_NEGATABLE, 'Boot the detected framework when available', true);
@@ -33,9 +42,6 @@ class ExecCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $code = null;
-        $file = null;
-
         if ($input->getOption('run') !== null) {
             $run = $input->getOption('run');
 
@@ -45,34 +51,69 @@ class ExecCommand extends Command
                 return self::FAILURE;
             }
 
-            $code = $this->normalizeCode($run);
-        } else {
-            $target = $input->getArgument('file');
+            return $this->runScript($input, $output, code: $this->normalizeCode($run));
+        }
 
-            if (! is_string($target) || $target === '') {
-                error('Please supply the path to a file to execute.');
+        $target = $input->getArgument('file');
+
+        if (! is_string($target) || $target === '') {
+            error('Please supply the path to a file to execute.');
+
+            return self::FAILURE;
+        }
+
+        $gist = GistUrl::tryFrom($target);
+
+        if ($gist !== null) {
+            try {
+                $file = $this->downloadGist($gist, $input);
+            } catch (GistException $exception) {
+                $exception->render();
 
                 return self::FAILURE;
             }
 
-            $file = realpath($target);
-
-            if ($file === false) {
-                error("File does not exist at '{$target}'");
-
-                return self::FAILURE;
-            }
-
-            if (! is_file($file)) {
-                error("Cannot execute '{$target}' because it is not a file.");
-
-                return self::FAILURE;
+            try {
+                return $this->runScript($input, $output, file: $file, workingDirectory: getcwd() ?: null);
+            } finally {
+                @unlink($file);
             }
         }
 
+        if (GistUrl::isUrl($target)) {
+            GistException::unsupportedUrl($target)->render();
+
+            return self::FAILURE;
+        }
+
+        $file = realpath($target);
+
+        if ($file === false) {
+            error("File does not exist at '{$target}'");
+
+            return self::FAILURE;
+        }
+
+        if (! is_file($file)) {
+            error("Cannot execute '{$target}' because it is not a file.");
+
+            return self::FAILURE;
+        }
+
+        return $this->runScript($input, $output, file: $file);
+    }
+
+    private function runScript(
+        InputInterface $input,
+        OutputInterface $output,
+        ?string $file = null,
+        ?string $code = null,
+        ?string $workingDirectory = null,
+    ): int {
         $environment = new ExecEnvironment(
             file: $file,
             code: $code,
+            workingDirectory: $workingDirectory,
             findAutoloader: $input->getOption('find-autoloader') === true,
             boot: $input->getOption('boot') === true,
             aliasClasses: $input->getOption('alias-classes') === true,
@@ -83,6 +124,48 @@ class ExecCommand extends Command
             [PHP_BINARY, ChildScript::path('exec-bootstrap.php')],
             $environment->toEnvironment(),
         );
+    }
+
+    /** @throws GistException When the gist cannot be downloaded or is not a runnable PHP script. */
+    private function downloadGist(GistUrl $gist, InputInterface $input): string
+    {
+        $script = (new GistClient)->fetchFile($gist, $this->chooseGistFile($input));
+        $file = Filesystem::joinPath(sys_get_temp_dir(), 'cpx-gist-'.bin2hex(random_bytes(8)).'.php');
+
+        if (@file_put_contents($file, $script->content) === false) {
+            throw GistException::unwritableTemporaryFile($file);
+        }
+
+        return $file;
+    }
+
+    /** @return (Closure(GistFile...): GistFile)|null */
+    private function chooseGistFile(InputInterface $input): ?Closure
+    {
+        if (! $input->isInteractive()) {
+            return null;
+        }
+
+        return function (GistFile ...$files): GistFile {
+            $files = array_values($files);
+
+            try {
+                $chosen = select(
+                    label: 'Which file of the gist would you like to run?',
+                    options: array_map(fn (GistFile $file): string => $file->filename, $files),
+                );
+            } catch (NonInteractiveValidationException) {
+                throw GistException::ambiguousPhpFiles($files);
+            }
+
+            foreach ($files as $file) {
+                if ($file->filename === $chosen) {
+                    return $file;
+                }
+            }
+
+            throw new RuntimeException("Unknown gist file '{$chosen}'.");
+        };
     }
 
     private function normalizeCode(string $code): string

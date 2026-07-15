@@ -6,6 +6,7 @@ namespace Cpx\Process;
 
 use Closure;
 use Laravel\Prompts\Support\Logger;
+use RuntimeException;
 use Symfony\Component\Process\Exception\ExceptionInterface;
 use Symfony\Component\Process\Process;
 
@@ -18,6 +19,8 @@ class ProcessRunner
     private static ?Closure $fakeRunner = null;
 
     private static ?string $fakeInput = null;
+
+    private bool $failedToWrite = false;
 
     public static function withLogger(Logger $logger, callable $callback): mixed
     {
@@ -117,6 +120,15 @@ class ProcessRunner
 
     private function writeOutput(string $type, string $buffer): void
     {
-        fwrite($type === Process::ERR ? STDERR : STDOUT, $buffer);
+        // Process::__destruct drains the pipes again; only the first failed write may throw.
+        if ($this->failedToWrite) {
+            return;
+        }
+
+        if (@fwrite($type === Process::ERR ? STDERR : STDOUT, $buffer) === false) {
+            $this->failedToWrite = true;
+
+            throw new RuntimeException('Unable to write the child process output.');
+        }
     }
 }

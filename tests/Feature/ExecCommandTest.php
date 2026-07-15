@@ -203,3 +203,27 @@ test('exec fails when inline code is empty', function () {
     expect($status)->toBe(1)
         ->and($output)->toContain('Please supply code to execute with the -r option.');
 });
+
+test('exec reports an error when its stdout closes mid-stream', function () {
+    $code = 'echo str_repeat("a", 1000), PHP_EOL; usleep(300000); echo str_repeat("b", 100000), PHP_EOL;';
+
+    $process = proc_open(
+        [PHP_BINARY, dirname(__DIR__, 2).'/cpx', 'exec', '-r', $code],
+        [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+        $pipes,
+    );
+
+    assert(is_resource($process));
+
+    fgets($pipes[1]);
+    fclose($pipes[1]);
+    fclose($pipes[0]);
+
+    $stderr = (string) stream_get_contents($pipes[2]);
+    fclose($pipes[2]);
+
+    $status = proc_close($process);
+
+    expect($status)->toBe(1)
+        ->and($stderr)->toContain('Unable to write the child process output.');
+})->skipOnWindows();
