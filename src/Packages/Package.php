@@ -286,9 +286,9 @@ class Package
                 $newVersion = ComposerRunner::getCurrentVersion($installDir, $package);
 
                 if ($previousVersion !== $newVersion) {
-                    $logger->success("{$this} was upgraded from {$previousVersion} to {$newVersion}.");
+                    $logger->label("{$this} was upgraded from {$previousVersion} to {$newVersion}");
                 } else {
-                    $logger->line("{$this} is already up-to-date.");
+                    $logger->label("{$this} is already up-to-date");
                 }
 
                 Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));

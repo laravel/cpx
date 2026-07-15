@@ -100,9 +100,9 @@ class UpdateCommand extends Command
                 $newVersion = ComposerRunner::getCurrentVersion($directory, $package);
 
                 if ($previousVersion !== $newVersion) {
-                    $logger->success("{$relative} was upgraded from {$previousVersion} to {$newVersion}.");
+                    $logger->label("{$relative} was upgraded from {$previousVersion} to {$newVersion}");
                 } else {
-                    $logger->line("{$relative} is already up-to-date.");
+                    $logger->label("{$relative} is already up-to-date");
                 }
             },
             keepSummary: true,
