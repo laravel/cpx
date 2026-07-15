@@ -140,9 +140,10 @@ test('update requests a composer update for each installed package directory', f
     $calls = [];
     fakeComposer($calls);
 
-    [$status] = runCpxCommand(['update']);
+    [$status, $output] = runCpxCommand(['update']);
 
     expect($status)->toBe(0)
+        ->and($output)->toContain('Updating laravel/pint/latest')
         ->and($calls)->toHaveCount(1)
         ->and($calls[0][0])->toBe('update')
         ->and($calls[0])->toContain('--working-dir='.cpx_path('laravel/pint/latest'));
