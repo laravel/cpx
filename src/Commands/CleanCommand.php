@@ -6,6 +6,7 @@ namespace Cpx\Commands;
 
 use Cpx\Cache\ExecSandboxMetadata;
 use Cpx\Cache\Metadata;
+use Cpx\Commands\Concerns\OutputsJson;
 use Cpx\Support\Filesystem;
 use InvalidArgumentException;
 use Laravel\Prompts\Elements\Element;
@@ -29,6 +30,8 @@ use function Laravel\Prompts\task;
 )]
 class CleanCommand extends Command
 {
+    use OutputsJson;
+
     private const SECONDS_PER_DAY = 24 * 60 * 60;
 
     private const DEFAULT_DAYS = 30;
@@ -38,17 +41,34 @@ class CleanCommand extends Command
         $this->addOption('all', null, InputOption::VALUE_NONE, 'Clean all cached packages and sandboxes');
         $this->addOption('sandbox', null, InputOption::VALUE_NONE, 'Clean only sandbox (exec) caches');
         $this->addOption('days', null, InputOption::VALUE_REQUIRED, 'Clean packages older than this number of days');
+        $this->addJsonOption();
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $json = $this->wantsJson($input);
+
         try {
             $days = $this->resolveDays($input->getOption('days'));
         } catch (InvalidArgumentException) {
+            if ($json) {
+                return $this->outputJsonFailure($output, 'The --days option must be a positive integer.', status: self::INVALID);
+            }
+
             return $this->rejectInvalidDays();
         }
 
         [$mode, $timeLimit] = $this->resolve($input, $days);
+
+        if ($json) {
+            $result = Metadata::transaction(
+                fn (Metadata $metadata): CleanResult => $this->clean($metadata, $mode, $timeLimit, new Logger('cpx')),
+            );
+
+            return $result->hasFailures()
+                ? $this->outputJsonFailure($output, $result->failures, ['removed' => $result->removed])
+                : $this->outputJsonSuccess($output, ['removed' => $result->removed]);
+        }
 
         $result = task(
             label: 'Cleaning cpx caches',

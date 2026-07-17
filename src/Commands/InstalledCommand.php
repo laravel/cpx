@@ -6,6 +6,7 @@ namespace Cpx\Commands;
 
 use Cpx\Cache\Metadata;
 use Cpx\Cache\PackageMetadata;
+use Cpx\Commands\Concerns\OutputsJson;
 use Laravel\Prompts\Elements\Element;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -21,17 +22,36 @@ use function Laravel\Prompts\info;
 )]
 class InstalledCommand extends Command
 {
+    use OutputsJson;
+
+    protected function configure(): void
+    {
+        $this->addJsonOption();
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $metadata = Metadata::open();
+
+        ksort($metadata->packages);
+
+        if ($this->wantsJson($input)) {
+            return $this->outputJsonSuccess($output, [
+                'packages' => array_map(
+                    fn (PackageMetadata $packageMetadata): array => [
+                        'name' => $packageMetadata->package->fullPackageString(),
+                        'last_run' => $packageMetadata->lastRunForDisplay(),
+                    ],
+                    array_values($metadata->packages),
+                ),
+            ]);
+        }
 
         if (empty($metadata->packages)) {
             info('There are no installed packages.');
 
             return self::SUCCESS;
         }
-
-        ksort($metadata->packages);
 
         callout('Installed Packages:', [
             Element::keyValueList(array_combine(
