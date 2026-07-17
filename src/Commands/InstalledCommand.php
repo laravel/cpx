@@ -16,10 +16,10 @@ use function Laravel\Prompts\callout;
 use function Laravel\Prompts\info;
 
 #[AsCommand(
-    name: 'list',
+    name: 'installed',
     description: 'List installed cpx packages',
 )]
-class ListCommand extends Command
+class InstalledCommand extends Command
 {
     protected function execute(InputInterface $input, OutputInterface $output): int
     {

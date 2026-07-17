@@ -96,9 +96,9 @@ Your aliases are saved under `~/.cpx/` and can be listed with `cpx aliases`.
 
 Use `cpx unalias <name>` to remove one of your aliases, e.g. `cpx unalias pint`. Leave off the name and cpx will prompt you for it.
 
-### cpx list
+### cpx installed
 
-`cpx list` shows all the packages you have run via cpx and have installed.
+`cpx installed` shows all the packages you have run via cpx and have installed. Running `cpx` with no arguments (or `cpx list`) shows every available cpx command.
 
 ### cpx update
 

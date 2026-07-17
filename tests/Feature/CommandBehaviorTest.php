@@ -20,7 +20,7 @@ test('it can run through Symfony tester utilities without exiting', function () 
 });
 
 test('command help options use Symfony command help', function () {
-    [$status, $output] = runCpxCommand(['list', '--help']);
+    [$status, $output] = runCpxCommand(['installed', '--help']);
 
     expect($status)->toBe(0)
         ->and($output)->toContain('List installed cpx packages')
@@ -33,20 +33,32 @@ test('empty invocations run the default list command', function () {
     [$status, $output] = runCpxCommand([]);
 
     expect($status)->toBe(0)
-        ->and($output)->toContain('There are no installed packages.');
+        ->and($output)->toContain('Available commands')
+        ->and($output)->not->toContain('There are no installed packages.');
 });
 
-test('list shows when no packages are installed', function () {
+test('installed shows when no packages are installed', function () {
     $this->useIsolatedComposerHome();
 
-    [$status, $output] = runCpxCommand(['list']);
+    [$status, $output] = runCpxCommand(['installed']);
 
     expect($status)->toBe(0)
         ->and($output)->toContain('There are no installed packages.')
         ->and($output)->not->toContain('Available commands');
 });
 
-test('list renders installed packages with their last run timestamp', function () {
+test('list shows the available cpx commands', function () {
+    $this->useIsolatedComposerHome();
+
+    [$status, $output] = runCpxCommand(['list']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Available commands')
+        ->and($output)->toContain('installed')
+        ->and($output)->not->toContain('There are no installed packages.');
+});
+
+test('installed renders installed packages with their last run timestamp', function () {
     $this->useIsolatedComposerHome();
 
     mkdir(dirname(cpx_path('.cpx_metadata.json')), 0755, true);
@@ -57,7 +69,7 @@ test('list renders installed packages with their last run timestamp', function (
         'execCache' => [],
     ], JSON_THROW_ON_ERROR));
 
-    [$status, $output] = runCpxCommand(['list']);
+    [$status, $output] = runCpxCommand(['installed']);
 
     expect($status)->toBe(0)
         ->and($output)->toContain('Installed Packages:')
