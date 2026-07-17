@@ -16,6 +16,7 @@ use Cpx\Commands\UnaliasCommand;
 use Cpx\Commands\UpdateCommand;
 use Cpx\Composer\ComposerRunner;
 use Cpx\Packages\PackageCommandRunner;
+use Cpx\Support\Interactivity;
 use Cpx\Support\PromptFallbacks;
 use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Application as SymfonyApplication;
@@ -53,6 +54,13 @@ class Application extends SymfonyApplication
             if ($this->shouldRunPackageFallback($input)) {
                 $input = new ArgvInput(['cpx', RunPackageCommand::NAME, '--', ...$tokens]);
             }
+        }
+
+        Interactivity::detect($input);
+
+        if (! Interactivity::isInteractive()) {
+            $input->setInteractive(false);
+            Prompt::interactive(false);
         }
 
         return parent::run($input, $output);

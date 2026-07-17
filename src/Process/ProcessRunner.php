@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cpx\Process;
 
 use Closure;
+use Cpx\Support\Interactivity;
 use Laravel\Prompts\Support\Logger;
 use RuntimeException;
 use Symfony\Component\Process\Exception\ExceptionInterface;
@@ -54,7 +55,7 @@ class ProcessRunner
                 return $process->run($this->logOutput(...));
             }
 
-            if (self::$fakeInput === null && Process::isTtySupported()) {
+            if (self::$fakeInput === null && Interactivity::isInteractive() && Process::isTtySupported()) {
                 $process->setTty(true);
 
                 return $process->run();

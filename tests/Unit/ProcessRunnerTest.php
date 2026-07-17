@@ -1,6 +1,8 @@
 <?php
 
 use Cpx\Process\ProcessRunner;
+use Cpx\Support\Interactivity;
+use Symfony\Component\Process\Process;
 
 test('it returns the child exit code when using inherited stdio', function () {
     $directory = $this->temporaryDirectory('cpx-process');
@@ -105,6 +107,34 @@ test('it reports a missing executable as a could-not-execute exit code', functio
 
     expect((new ProcessRunner)->run(["{$directory}/missing"]))->toBe(ProcessRunner::COULD_NOT_EXECUTE);
 });
+
+test('it does not allocate a tty for the child when non-interactive', function () {
+    ProcessRunner::clearFakeInput();
+    Interactivity::fake(false);
+
+    $directory = $this->temporaryDirectory('cpx-process');
+    $binary = "{$directory}/tty-probe";
+    $logFile = "{$directory}/tty.txt";
+
+    writeExecutable($binary, "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', stream_isatty(STDOUT) ? 'tty' : 'not-tty'); exit(0);\n");
+
+    expect((new ProcessRunner)->run([PHP_BINARY, $binary]))->toBe(0)
+        ->and(file_get_contents($logFile))->toBe('not-tty');
+});
+
+test('it allocates a tty for the child when interactive', function () {
+    ProcessRunner::clearFakeInput();
+    Interactivity::fake(true);
+
+    $directory = $this->temporaryDirectory('cpx-process');
+    $binary = "{$directory}/tty-probe";
+    $logFile = "{$directory}/tty.txt";
+
+    writeExecutable($binary, "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', stream_isatty(STDOUT) ? 'tty' : 'not-tty'); exit(0);\n");
+
+    expect((new ProcessRunner)->run([PHP_BINARY, $binary]))->toBe(0)
+        ->and(file_get_contents($logFile))->toBe('tty');
+})->skip(fn (): bool => ! Process::isTtySupported(), 'TTY is not supported in this environment');
 
 test('it keeps the parent stdio streams usable across sequential runs', function () {
     $directory = $this->temporaryDirectory('cpx-process');
