@@ -8,7 +8,7 @@ use Cpx\Commands\AliasCommand;
 use Cpx\Commands\AliasesCommand;
 use Cpx\Commands\CleanCommand;
 use Cpx\Commands\ExecCommand;
-use Cpx\Commands\ListCommand;
+use Cpx\Commands\InstalledCommand;
 use Cpx\Commands\RunPackageCommand;
 use Cpx\Commands\SandboxCommand;
 use Cpx\Commands\TinkerCommand;
@@ -70,7 +70,7 @@ class Application extends SymfonyApplication
     private function registerCommands(PackageCommandRunner $packageCommandRunner): void
     {
         $this->addCommands([
-            new ListCommand,
+            new InstalledCommand,
             new AliasCommand,
             new AliasesCommand,
             new UnaliasCommand,
