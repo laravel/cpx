@@ -9,7 +9,10 @@ use Cpx\Composer\ComposerRunner;
 use Cpx\Exceptions\ComposerCommandException;
 use Cpx\Packages\Package;
 use Cpx\Process\ProcessRunner;
+use Cpx\Support\Failure;
 use Cpx\Support\Filesystem;
+use Cpx\Support\SilentLogger;
+use InvalidArgumentException;
 use Laravel\Prompts\Elements\Element;
 use Laravel\Prompts\Support\Logger;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -52,11 +55,15 @@ class UpdateCommand extends Command
 
         $target = (string) $input->getArgument('target');
 
-        match (true) {
-            str_contains($target, '/') => $this->updatePackage(Package::parse($target)),
-            $target !== '' => $this->updateVendor($target),
-            default => $this->updateAllPackages(),
-        };
+        try {
+            match (true) {
+                str_contains($target, '/') => $this->updatePackage(Package::parse($target)),
+                $target !== '' => $this->updateVendor($target),
+                default => $this->updateAllPackages(),
+            };
+        } catch (InvalidArgumentException $exception) {
+            return Failure::render($output, $exception->getMessage());
+        }
 
         if ($this->json) {
             return $this->errors === []
@@ -137,26 +144,7 @@ class UpdateCommand extends Command
         $package = implode('/', array_slice(explode('/', $relative), 0, 2));
 
         if ($this->json) {
-            $previousVersion = ComposerRunner::getCurrentVersion($directory, $package);
-            $error = null;
-
-            try {
-                ProcessRunner::withLogger(new Logger('cpx'), fn () => ComposerRunner::run(['update'], $directory));
-            } catch (ComposerCommandException $exception) {
-                $error = $exception->getMessage();
-                $this->errors[] = "{$relative}: {$error}";
-            }
-
-            $newVersion = ComposerRunner::getCurrentVersion($directory, $package);
-            $updated = $error === null && $previousVersion !== $newVersion;
-
-            $this->packages[] = [
-                'package' => $relative,
-                'updated' => $updated,
-                'from' => $previousVersion,
-                'to' => $newVersion,
-                'reason' => $error ?? ($updated ? null : 'already up-to-date'),
-            ];
+            $this->record($relative, $this->attemptUpdate($directory, $package, new SilentLogger));
 
             return;
         }
@@ -164,27 +152,57 @@ class UpdateCommand extends Command
         task(
             label: "Updating {$relative}",
             callback: function (Logger $logger) use ($directory, $relative, $package): void {
-                $previousVersion = ComposerRunner::getCurrentVersion($directory, $package);
+                $outcome = $this->attemptUpdate($directory, $package, $logger);
+                $this->record($relative, $outcome);
 
-                try {
-                    ProcessRunner::withLogger($logger, fn () => ComposerRunner::run(['update'], $directory));
-                } catch (ComposerCommandException $exception) {
-                    $this->errors[] = "{$relative}: {$exception->getMessage()}";
-                    $logger->error($exception->getMessage());
-                    $logger->label("{$relative} could not be updated");
-
-                    return;
+                if ($outcome['error'] !== null) {
+                    $logger->error($outcome['error']);
                 }
 
-                $newVersion = ComposerRunner::getCurrentVersion($directory, $package);
-
-                if ($previousVersion !== $newVersion) {
-                    $logger->label("{$relative} was upgraded from {$previousVersion} to {$newVersion}");
-                } else {
-                    $logger->label("{$relative} is already up-to-date");
-                }
+                $logger->label(match (true) {
+                    $outcome['error'] !== null => "{$relative} could not be updated",
+                    $outcome['from'] !== $outcome['to'] => "{$relative} was upgraded from {$outcome['from']} to {$outcome['to']}",
+                    default => "{$relative} is already up-to-date",
+                });
             },
             keepSummary: true,
         );
+    }
+
+    /** @return array{from: string, to: string, error: string|null} */
+    private function attemptUpdate(string $directory, string $package, Logger $logger): array
+    {
+        $from = ComposerRunner::getCurrentVersion($directory, $package);
+        $error = null;
+
+        try {
+            ProcessRunner::withLogger($logger, fn () => ComposerRunner::run(['update'], $directory));
+        } catch (ComposerCommandException $exception) {
+            $error = $exception->getMessage();
+        }
+
+        return [
+            'from' => $from,
+            'to' => ComposerRunner::getCurrentVersion($directory, $package),
+            'error' => $error,
+        ];
+    }
+
+    /** @param array{from: string, to: string, error: string|null} $outcome */
+    private function record(string $relative, array $outcome): void
+    {
+        $updated = $outcome['error'] === null && $outcome['from'] !== $outcome['to'];
+
+        if ($outcome['error'] !== null) {
+            $this->errors[] = "{$relative}: {$outcome['error']}";
+        }
+
+        $this->packages[] = [
+            'package' => $relative,
+            'updated' => $updated,
+            'from' => $outcome['from'],
+            'to' => $outcome['to'],
+            'reason' => $outcome['error'] ?? ($updated ? null : 'already up-to-date'),
+        ];
     }
 }
