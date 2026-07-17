@@ -161,7 +161,7 @@ class AliasCommand extends Command
     {
         $current = $aliases->find($name);
 
-        if ($current === null || $input->getOption('force') === true) {
+        if ($current === null || $input->getOption('force')) {
             return true;
         }
 

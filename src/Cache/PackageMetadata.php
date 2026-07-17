@@ -21,7 +21,7 @@ class PackageMetadata
         return $this->package->installPath();
     }
 
-    public function lastRun(): ?string
+    public function lastRunForDisplay(): ?string
     {
         return $this->lastRunAt === null ? null : date('Y-m-d H:i:s', $this->lastRunAt);
     }

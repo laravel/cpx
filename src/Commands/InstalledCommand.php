@@ -40,7 +40,7 @@ class InstalledCommand extends Command
                 'packages' => array_map(
                     fn (PackageMetadata $packageMetadata): array => [
                         'name' => $packageMetadata->package->fullPackageString(),
-                        'last_run' => $packageMetadata->lastRun(),
+                        'last_run' => $packageMetadata->lastRunForDisplay(),
                     ],
                     array_values($metadata->packages),
                 ),
@@ -60,7 +60,7 @@ class InstalledCommand extends Command
                     $metadata->packages,
                 ),
                 array_map(
-                    fn (PackageMetadata $packageMetadata): string => 'Last Run: '.($packageMetadata->lastRun() ?? 'N/A'),
+                    fn (PackageMetadata $packageMetadata): string => 'Last Run: '.($packageMetadata->lastRunForDisplay() ?? 'N/A'),
                     $metadata->packages,
                 ),
             )),
