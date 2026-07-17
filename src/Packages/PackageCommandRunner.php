@@ -6,8 +6,8 @@ namespace Cpx\Packages;
 
 use Cpx\Input\PackageInvocation;
 use Cpx\Process\ProcessRunner;
-use Cpx\Support\Failure;
 use Cpx\Support\Interactivity;
+use Cpx\Support\Result;
 use InvalidArgumentException;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -78,7 +78,7 @@ class PackageCommandRunner
 
     private function unrecognised(string $target, OutputInterface $output): int
     {
-        $status = Failure::render($output, "Unrecognised command {$target}");
+        $status = Result::failure($output, "Unrecognised command {$target}");
 
         if (Interactivity::isInteractive() && (str_ends_with(strtolower($target), '.php') || is_file($target))) {
             info("To run a PHP file, use: cpx exec {$target}");

@@ -17,8 +17,8 @@ use Cpx\Commands\UpdateCommand;
 use Cpx\Composer\ComposerRunner;
 use Cpx\Packages\PackageCommandRunner;
 use Cpx\Support\Interactivity;
-use Cpx\Support\JsonEnvelope;
 use Cpx\Support\PromptFallbacks;
+use Cpx\Support\Result;
 use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Command\Command;
@@ -73,7 +73,7 @@ class Application extends SymfonyApplication
         try {
             return parent::run($input, $output);
         } catch (Throwable $exception) {
-            JsonEnvelope::failure($exception->getMessage())->write($output);
+            Result::failure($output, $exception->getMessage());
 
             if ($output instanceof ConsoleOutputInterface) {
                 $this->renderThrowable($exception, $output->getErrorOutput());

@@ -11,9 +11,9 @@ use Cpx\Exceptions\PackageNotFoundException;
 use Cpx\Input\PackageInvocation;
 use Cpx\Process\ProcessRunner;
 use Cpx\Support\Arr;
-use Cpx\Support\Failure;
 use Cpx\Support\Filesystem;
 use Cpx\Support\Interactivity;
+use Cpx\Support\Result;
 use InvalidArgumentException;
 use Laravel\Prompts\Support\Logger;
 use RuntimeException;
@@ -141,25 +141,25 @@ class Package
                 return Command::FAILURE;
             }
 
-            return Failure::render($output, $exception->getMessage());
+            return Result::failure($output, $exception->getMessage());
         }
         $packageDir = $this->packagePath($installDir);
         $binScripts = $this->binaries($installDir);
 
         if (empty($binScripts)) {
-            return Failure::render($output, "No bin command found in {$this}.");
+            return Result::failure($output, "No bin command found in {$this}.");
         }
 
         $resolved = $this->resolveBinCommand($binScripts, $invocation);
 
         if ($resolved === null) {
-            return Failure::render($output, "More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.');
+            return Result::failure($output, "More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.');
         }
 
         $binPath = "{$packageDir}/{$resolved->command}";
 
         if (! file_exists($binPath)) {
-            return Failure::render($output, 'Command '.basename($resolved->command)." not found in {$this}.");
+            return Result::failure($output, 'Command '.basename($resolved->command)." not found in {$this}.");
         }
 
         task(

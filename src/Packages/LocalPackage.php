@@ -6,8 +6,8 @@ namespace Cpx\Packages;
 
 use Cpx\Input\PackageInvocation;
 use Cpx\Process\ProcessRunner;
-use Cpx\Support\Failure;
 use Cpx\Support\Filesystem;
+use Cpx\Support\Result;
 use InvalidArgumentException;
 use JsonException;
 use RuntimeException;
@@ -120,7 +120,7 @@ class LocalPackage extends Package
     public function runCommand(PackageInvocation $invocation, OutputInterface $output, bool $autoUpdate = true): int
     {
         if ($this->localBinaries === []) {
-            return Failure::render($output, "No bin command found in {$this->root}.");
+            return Result::failure($output, "No bin command found in {$this->root}.");
         }
 
         $resolved = BinResolver::resolve($this->localBinaries, $invocation, $this->name, $this->bin);
@@ -130,13 +130,13 @@ class LocalPackage extends Package
         }
 
         if ($resolved === null) {
-            return Failure::render($output, "More than 1 bin command found in {$this->root}: ".implode(', ', array_keys($this->localBinaries)).'.');
+            return Result::failure($output, "More than 1 bin command found in {$this->root}: ".implode(', ', array_keys($this->localBinaries)).'.');
         }
 
         $binPath = Filesystem::joinPath($this->root, $resolved->command);
 
         if (! is_file($binPath)) {
-            return Failure::render($output, 'Command '.basename($resolved->command)." not found in {$this->root}.");
+            return Result::failure($output, 'Command '.basename($resolved->command)." not found in {$this->root}.");
         }
 
         info('Running '.basename($resolved->command)." from {$this->root}");
