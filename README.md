@@ -140,7 +140,7 @@ cpx detects when it is not running in an interactive terminal — inside an AI a
 
 - Child processes never get a TTY.
 - Prompts fall back to their defaults instead of waiting for input — pass positional arguments and `--bin` to control everything explicitly. Overwriting an existing alias with `cpx alias` requires the `--force` option and fails otherwise.
-- cpx's own commands (`list`, `aliases`, `alias`, `unalias`, `clean`, and `update`) respond with a single line of JSON instead of formatted text:
+- cpx's own commands (`installed`, `aliases`, `alias`, `unalias`, `clean`, and `update`) respond with a single line of JSON instead of formatted text:
 
 ```json
 {"success": true, "errors": [], "summary": {"packages": [{"name": "laravel/pint", "last_run": "2024-01-02 03:04:05"}]}}

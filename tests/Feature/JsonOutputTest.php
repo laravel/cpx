@@ -16,7 +16,7 @@ function runCpxJsonCommand(array $arguments): array
     return [$status, json_decode($output, true, 512, JSON_THROW_ON_ERROR), $output];
 }
 
-test('list outputs the package list as json', function () {
+test('installed outputs the package list as json', function () {
     $this->useIsolatedComposerHome();
 
     mkdir(dirname(cpx_path('.cpx_metadata.json')), 0755, true);
@@ -27,7 +27,7 @@ test('list outputs the package list as json', function () {
         'execCache' => [],
     ], JSON_THROW_ON_ERROR));
 
-    [$status, $payload] = runCpxJsonCommand(['list', '--json']);
+    [$status, $payload] = runCpxJsonCommand(['installed', '--json']);
 
     expect($status)->toBe(0)
         ->and($payload)->toBe([
@@ -41,16 +41,16 @@ test('list outputs the package list as json', function () {
         ]);
 });
 
-test('list outputs an empty package list as json', function () {
+test('installed outputs an empty package list as json', function () {
     $this->useIsolatedComposerHome();
 
-    [$status, $payload] = runCpxJsonCommand(['list', '--json']);
+    [$status, $payload] = runCpxJsonCommand(['installed', '--json']);
 
     expect($status)->toBe(0)
         ->and($payload)->toBe(['success' => true, 'errors' => [], 'summary' => ['packages' => []]]);
 });
 
-test('list reports a never-run package with a null last_run', function () {
+test('installed reports a never-run package with a null last_run', function () {
     $this->useIsolatedComposerHome();
 
     mkdir(dirname(cpx_path('.cpx_metadata.json')), 0755, true);
@@ -61,7 +61,7 @@ test('list reports a never-run package with a null last_run', function () {
         'execCache' => [],
     ], JSON_THROW_ON_ERROR));
 
-    [$status, $payload] = runCpxJsonCommand(['list', '--json']);
+    [$status, $payload] = runCpxJsonCommand(['installed', '--json']);
 
     expect($status)->toBe(0)
         ->and($payload['summary']['packages'])->toBe([
@@ -73,7 +73,7 @@ test('non-interactive runs output json without the flag', function () {
     $this->useIsolatedComposerHome();
     Interactivity::fake(false);
 
-    [$status, $payload] = runCpxJsonCommand(['list']);
+    [$status, $payload] = runCpxJsonCommand(['installed']);
 
     expect($status)->toBe(0)
         ->and($payload['success'])->toBeTrue();
@@ -82,7 +82,7 @@ test('non-interactive runs output json without the flag', function () {
 test('json output is a single line', function () {
     $this->useIsolatedComposerHome();
 
-    [, , $output] = runCpxJsonCommand(['list', '--json']);
+    [, , $output] = runCpxJsonCommand(['installed', '--json']);
 
     expect(str_ends_with($output, PHP_EOL))->toBeTrue()
         ->and(rtrim($output, PHP_EOL))->not->toContain("\n");
@@ -475,7 +475,7 @@ test('non-interactive package runs omit cpx progress output', function () {
 test('interactive runs keep the human output', function () {
     $this->useIsolatedComposerHome();
 
-    [$status, $output] = runCpxCommand(['list']);
+    [$status, $output] = runCpxCommand(['installed']);
 
     expect($status)->toBe(0)
         ->and($output)->toContain('There are no installed packages.');
