@@ -8,6 +8,7 @@ use Cpx\Cache\ExecSandboxMetadata;
 use Cpx\Cache\Metadata;
 use Cpx\Commands\Concerns\OutputsJson;
 use Cpx\Support\Filesystem;
+use Cpx\Support\Result;
 use Cpx\Support\SilentLogger;
 use InvalidArgumentException;
 use Laravel\Prompts\Elements\Element;
@@ -20,7 +21,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\callout;
-use function Laravel\Prompts\error;
 use function Laravel\Prompts\number;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\task;
@@ -52,11 +52,7 @@ class CleanCommand extends Command
         try {
             $days = $this->resolveDays($input->getOption('days'));
         } catch (InvalidArgumentException) {
-            if ($json) {
-                return $this->outputJsonFailure($output, 'The --days option must be a positive integer.', status: self::INVALID);
-            }
-
-            return $this->rejectInvalidDays();
+            return Result::failure($output, 'The --days option must be a positive integer.', status: self::INVALID);
         }
 
         [$mode, $timeLimit] = $this->resolve($input, $days);
@@ -67,8 +63,8 @@ class CleanCommand extends Command
             );
 
             return $result->hasFailures()
-                ? $this->outputJsonFailure($output, $result->failures, ['removed' => $result->removed])
-                : $this->outputJsonSuccess($output, ['removed' => $result->removed]);
+                ? Result::failure($output, $result->failures, ['removed' => $result->removed])
+                : Result::success($output, ['removed' => $result->removed]);
         }
 
         $result = task(
@@ -286,12 +282,5 @@ class CleanCommand extends Command
     private function timeLimitForDays(int $days): int
     {
         return time() - ($days * self::SECONDS_PER_DAY);
-    }
-
-    private function rejectInvalidDays(): int
-    {
-        error('The --days option must be a positive integer.');
-
-        return self::INVALID;
     }
 }

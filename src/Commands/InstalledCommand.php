@@ -7,6 +7,7 @@ namespace Cpx\Commands;
 use Cpx\Cache\Metadata;
 use Cpx\Cache\PackageMetadata;
 use Cpx\Commands\Concerns\OutputsJson;
+use Cpx\Support\Result;
 use Laravel\Prompts\Elements\Element;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -36,7 +37,7 @@ class InstalledCommand extends Command
         ksort($metadata->packages);
 
         if ($this->wantsJson($input)) {
-            return $this->outputJsonSuccess($output, [
+            return Result::success($output, [
                 'packages' => array_map(
                     fn (PackageMetadata $packageMetadata): array => [
                         'name' => $packageMetadata->package->fullPackageString(),

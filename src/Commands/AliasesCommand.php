@@ -7,6 +7,7 @@ namespace Cpx\Commands;
 use Cpx\Commands\Concerns\OutputsJson;
 use Cpx\Packages\Package;
 use Cpx\Packages\UserAliases;
+use Cpx\Support\Result;
 use Laravel\Prompts\Elements\Element;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -36,7 +37,7 @@ class AliasesCommand extends Command
         ksort($userAliases);
 
         if ($this->wantsJson($input)) {
-            return $this->outputJsonSuccess($output, [
+            return Result::success($output, [
                 'aliases' => (object) array_map(fn (Package $package): string => $package->displayString(), $userAliases),
             ]);
         }

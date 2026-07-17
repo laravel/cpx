@@ -9,8 +9,8 @@ use Cpx\Composer\ComposerRunner;
 use Cpx\Exceptions\ComposerCommandException;
 use Cpx\Packages\Package;
 use Cpx\Process\ProcessRunner;
-use Cpx\Support\Failure;
 use Cpx\Support\Filesystem;
+use Cpx\Support\Result;
 use Cpx\Support\SilentLogger;
 use InvalidArgumentException;
 use Laravel\Prompts\Elements\Element;
@@ -62,13 +62,13 @@ class UpdateCommand extends Command
                 default => $this->updateAllPackages(),
             };
         } catch (InvalidArgumentException $exception) {
-            return Failure::render($output, $exception->getMessage());
+            return Result::failure($output, $exception->getMessage());
         }
 
         if ($this->json) {
             return $this->errors === []
-                ? $this->outputJsonSuccess($output, ['packages' => $this->packages])
-                : $this->outputJsonFailure($output, $this->errors, ['packages' => $this->packages]);
+                ? Result::success($output, ['packages' => $this->packages])
+                : Result::failure($output, $this->errors, ['packages' => $this->packages]);
         }
 
         if ($this->errors === []) {

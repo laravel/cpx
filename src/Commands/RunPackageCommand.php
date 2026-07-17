@@ -6,8 +6,8 @@ namespace Cpx\Commands;
 
 use Cpx\Input\PackageInvocation;
 use Cpx\Packages\PackageCommandRunner;
-use Cpx\Support\Failure;
 use Cpx\Support\Interactivity;
+use Cpx\Support\Result;
 use InvalidArgumentException;
 use Laravel\Prompts\Output\BufferedConsoleOutput;
 use Laravel\Prompts\Prompt;
@@ -64,7 +64,7 @@ class RunPackageCommand extends SymfonyCommand
         try {
             return $this->packageCommandRunner->run(PackageInvocation::fromRawTokens($tokens), $output, $skipLocal);
         } catch (InvalidArgumentException $e) {
-            return Failure::render($output, $e->getMessage());
+            return Result::failure($output, $e->getMessage());
         }
     }
 }

@@ -9,6 +9,7 @@ use Cpx\Exceptions\PackageNotFoundException;
 use Cpx\Packages\LocalPackage;
 use Cpx\Packages\Package;
 use Cpx\Packages\UserAliases;
+use Cpx\Support\Result;
 use InvalidArgumentException;
 use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
 use Laravel\Prompts\Output\BufferedConsoleOutput;
@@ -22,7 +23,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\callout;
 use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\task;
@@ -70,26 +70,20 @@ class AliasCommand extends Command
             $package = $this->resolveBinary($input, $package);
         } catch (PackageNotFoundException $e) {
             if ($json) {
-                return $this->outputJsonFailure($output, $e->getMessage());
+                return Result::failure($output, $e->getMessage());
             }
 
             $e->render();
 
             return self::FAILURE;
         } catch (InvalidArgumentException|NonInteractiveValidationException $e) {
-            if ($json) {
-                return $this->outputJsonFailure($output, $e->getMessage());
-            }
-
-            error($e->getMessage());
-
-            return self::FAILURE;
+            return Result::failure($output, $e->getMessage());
         }
 
         if ($json) {
             $aliases->put($name, $package)->save();
 
-            return $this->outputJsonSuccess($output, [
+            return Result::success($output, [
                 'alias' => $name,
                 'package' => $package->displayString(),
             ]);

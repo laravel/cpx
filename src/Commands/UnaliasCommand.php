@@ -6,6 +6,7 @@ namespace Cpx\Commands;
 
 use Cpx\Commands\Concerns\OutputsJson;
 use Cpx\Packages\UserAliases;
+use Cpx\Support\Result;
 use InvalidArgumentException;
 use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -14,7 +15,6 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
 
@@ -46,19 +46,13 @@ class UnaliasCommand extends Command
         try {
             $name = $this->resolveName($input, $aliases);
         } catch (InvalidArgumentException|NonInteractiveValidationException $e) {
-            if ($json) {
-                return $this->outputJsonFailure($output, $e->getMessage());
-            }
-
-            error($e->getMessage());
-
-            return self::FAILURE;
+            return Result::failure($output, $e->getMessage());
         }
 
         $aliases->remove($name)->save();
 
         if ($json) {
-            return $this->outputJsonSuccess($output, ['removed' => $name]);
+            return Result::success($output, ['removed' => $name]);
         }
 
         info("Alias \"{$name}\" removed.");
