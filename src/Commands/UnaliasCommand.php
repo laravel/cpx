@@ -76,6 +76,10 @@ class UnaliasCommand extends Command
             return $name;
         }
 
+        if ($aliases->all() === []) {
+            throw new InvalidArgumentException('An alias name must be provided.');
+        }
+
         return (string) select(
             label: 'Which alias would you like to remove?',
             options: array_keys($aliases->all()),
