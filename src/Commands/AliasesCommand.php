@@ -37,7 +37,7 @@ class AliasesCommand extends Command
 
         if ($this->wantsJson($input)) {
             return $this->outputJsonSuccess($output, [
-                'aliases' => array_map(fn (Package $package): string => $package->displayString(), $userAliases),
+                'aliases' => (object) array_map(fn (Package $package): string => $package->displayString(), $userAliases),
             ]);
         }
 

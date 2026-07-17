@@ -35,6 +35,14 @@ test('envelopes are written as a single raw json line with unescaped slashes', f
     expect($output->fetch())->toBe('{"success":true,"errors":[],"summary":{"package":"laravel/pint"}}'.PHP_EOL);
 });
 
+test('an empty summary is written as a json object', function () {
+    $output = new BufferedOutput;
+
+    JsonEnvelope::failure('Boom')->write($output);
+
+    expect($output->fetch())->toBe('{"success":false,"errors":["Boom"],"summary":{}}'.PHP_EOL);
+});
+
 test('failure envelopes are written with their errors and summary', function () {
     $output = new BufferedOutput;
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cpx\Support;
 
+use stdClass;
 use Symfony\Component\Console\Output\OutputInterface;
 
 readonly class JsonEnvelope
@@ -39,7 +40,8 @@ readonly class JsonEnvelope
             json_encode([
                 'success' => $this->success,
                 'errors' => $this->errors,
-                'summary' => $this->summary,
+                // An empty summary must encode as a JSON object, not an array.
+                'summary' => $this->summary === [] ? new stdClass : $this->summary,
             ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
             OutputInterface::OUTPUT_RAW,
         );

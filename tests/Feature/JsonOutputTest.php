@@ -50,6 +50,25 @@ test('list outputs an empty package list as json', function () {
         ->and($payload)->toBe(['success' => true, 'errors' => [], 'summary' => ['packages' => []]]);
 });
 
+test('list reports a never-run package with a null last_run', function () {
+    $this->useIsolatedComposerHome();
+
+    mkdir(dirname(cpx_path('.cpx_metadata.json')), 0755, true);
+    file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
+        'packages' => [
+            'laravel/pint' => ['last_updated' => null, 'last_run' => null],
+        ],
+        'execCache' => [],
+    ], JSON_THROW_ON_ERROR));
+
+    [$status, $payload] = runCpxJsonCommand(['list', '--json']);
+
+    expect($status)->toBe(0)
+        ->and($payload['summary']['packages'])->toBe([
+            ['name' => 'laravel/pint', 'last_run' => null],
+        ]);
+});
+
 test('non-interactive runs output json without the flag', function () {
     $this->useIsolatedComposerHome();
     Interactivity::fake(false);
@@ -81,6 +100,15 @@ test('aliases outputs the alias map as json', function () {
             'errors' => [],
             'summary' => ['aliases' => ['mypint' => 'laravel/pint']],
         ]);
+});
+
+test('an empty alias map is written as a json object', function () {
+    $this->useIsolatedComposerHome();
+
+    [$status, , $output] = runCpxJsonCommand(['aliases', '--json']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('"aliases":{}');
 });
 
 test('alias creates an alias and reports it as json', function () {
@@ -299,6 +327,26 @@ test('update flags an upgraded package as updated in json', function () {
         ->and($payload['summary']['packages'])->toBe([
             ['package' => 'laravel/pint/latest', 'updated' => true, 'from' => 'v1.0.0', 'to' => 'v2.0.0', 'reason' => null],
         ]);
+});
+
+test('update reports an invalid target as a json failure', function () {
+    $this->useIsolatedComposerHome();
+
+    [$status, $payload] = runCpxJsonCommand(['update', 'not-a-valid//package', '--json']);
+
+    expect($status)->toBe(1)
+        ->and($payload['success'])->toBeFalse()
+        ->and($payload['errors'])->toBe(['A package name should be in the format "<vendor>/<package>[:version]".']);
+});
+
+test('console errors are reported as a json failure when non-interactive', function () {
+    Interactivity::fake(false);
+
+    [$status, $payload] = runCpxJsonCommand(['clean', '--bogus']);
+
+    expect($status)->toBe(1)
+        ->and($payload['success'])->toBeFalse()
+        ->and($payload['errors'][0])->toContain('--bogus');
 });
 
 test('run reports an unrecognised command as a json failure when non-interactive', function () {
