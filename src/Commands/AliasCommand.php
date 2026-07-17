@@ -49,7 +49,6 @@ class AliasCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $json = $this->wantsJson($input);
-        $force = $input->getOption('force') === true;
 
         if ($json) {
             // Package installation renders task progress even when non-interactive.
@@ -62,11 +61,7 @@ class AliasCommand extends Command
 
             $aliases = UserAliases::open();
 
-            if ($json) {
-                if (! $force && $aliases->has($name)) {
-                    return $this->outputJsonFailure($output, "The alias \"{$name}\" already exists. Use the --force option to overwrite it.");
-                }
-            } elseif (! $this->confirmOverwrite($input, $aliases, $name)) {
+            if (! $this->confirmOverwrite($input, $aliases, $name, $json)) {
                 info("Alias \"{$name}\" was left unchanged.");
 
                 return self::SUCCESS;
@@ -162,12 +157,16 @@ class AliasCommand extends Command
         );
     }
 
-    private function confirmOverwrite(InputInterface $input, UserAliases $aliases, string $name): bool
+    private function confirmOverwrite(InputInterface $input, UserAliases $aliases, string $name, bool $json): bool
     {
         $current = $aliases->find($name);
 
-        if ($current === null || $input->getOption('force')) {
+        if ($current === null || $input->getOption('force') === true) {
             return true;
+        }
+
+        if ($json) {
+            throw new InvalidArgumentException("The alias \"{$name}\" already exists. Use the --force option to overwrite it.");
         }
 
         warning("The alias \"{$name}\" is currently mapped to {$current->displayString()}.");

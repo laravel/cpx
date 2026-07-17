@@ -65,13 +65,7 @@ class ExecCommand extends Command
             try {
                 $file = $this->downloadGist($gist, $input);
             } catch (GistException $exception) {
-                if (! Interactivity::isInteractive()) {
-                    return Failure::render($output, $exception->getMessage());
-                }
-
-                $exception->render();
-
-                return self::FAILURE;
+                return $this->gistFailure($exception, $output);
             }
 
             try {
@@ -82,15 +76,7 @@ class ExecCommand extends Command
         }
 
         if (GistUrl::isUrl($target)) {
-            $exception = GistException::unsupportedUrl($target);
-
-            if (! Interactivity::isInteractive()) {
-                return Failure::render($output, $exception->getMessage());
-            }
-
-            $exception->render();
-
-            return self::FAILURE;
+            return $this->gistFailure(GistException::unsupportedUrl($target), $output);
         }
 
         $file = realpath($target);
@@ -104,6 +90,17 @@ class ExecCommand extends Command
         }
 
         return $this->runScript($input, $output, file: $file);
+    }
+
+    private function gistFailure(GistException $exception, OutputInterface $output): int
+    {
+        if (! Interactivity::isInteractive()) {
+            return Failure::render($output, $exception->getMessage());
+        }
+
+        $exception->render();
+
+        return self::FAILURE;
     }
 
     private function runScript(

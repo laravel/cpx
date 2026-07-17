@@ -8,6 +8,7 @@ use Cpx\Cache\ExecSandboxMetadata;
 use Cpx\Cache\Metadata;
 use Cpx\Commands\Concerns\OutputsJson;
 use Cpx\Support\Filesystem;
+use Cpx\Support\SilentLogger;
 use InvalidArgumentException;
 use Laravel\Prompts\Elements\Element;
 use Laravel\Prompts\Support\Logger;
@@ -62,7 +63,7 @@ class CleanCommand extends Command
 
         if ($json) {
             $result = Metadata::transaction(
-                fn (Metadata $metadata): CleanResult => $this->clean($metadata, $mode, $timeLimit, new Logger('cpx')),
+                fn (Metadata $metadata): CleanResult => $this->clean($metadata, $mode, $timeLimit, new SilentLogger),
             );
 
             return $result->hasFailures()

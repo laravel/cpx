@@ -7,7 +7,7 @@ test('an agent environment is non-interactive', function () {
     Interactivity::clearFake();
     $this->setEnvironmentVariable('AI_AGENT', 'test-agent');
 
-    Interactivity::detect(new ArgvInput(['cpx', 'installed']));
+    Interactivity::detect(new ArgvInput(['cpx', 'list']));
 
     expect(Interactivity::isInteractive())->toBeFalse();
 });
@@ -22,7 +22,7 @@ test('an agent environment is detected without explicit detection', function () 
 test('the no-interaction flag wins over an interactive environment', function () {
     Interactivity::fake(true);
 
-    Interactivity::detect(new ArgvInput(['cpx', 'installed', '--no-interaction']));
+    Interactivity::detect(new ArgvInput(['cpx', 'list', '--no-interaction']));
 
     expect(Interactivity::isInteractive())->toBeFalse();
 });
@@ -30,7 +30,7 @@ test('the no-interaction flag wins over an interactive environment', function ()
 test('the short no-interaction flag wins over an interactive environment', function () {
     Interactivity::fake(true);
 
-    Interactivity::detect(new ArgvInput(['cpx', 'installed', '-n']));
+    Interactivity::detect(new ArgvInput(['cpx', 'list', '-n']));
 
     expect(Interactivity::isInteractive())->toBeFalse();
 });
@@ -38,7 +38,7 @@ test('the short no-interaction flag wins over an interactive environment', funct
 test('the json flag wins over an interactive environment', function () {
     Interactivity::fake(true);
 
-    Interactivity::detect(new ArgvInput(['cpx', 'installed', '--json']));
+    Interactivity::detect(new ArgvInput(['cpx', 'list', '--json']));
 
     expect(Interactivity::isInteractive())->toBeFalse();
 });
