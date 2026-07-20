@@ -1,6 +1,7 @@
 <?php
 
 use Cpx\Application;
+use Cpx\Composer\ComposerRunner;
 use Cpx\Input\PackageInvocation;
 use Cpx\Packages\Package;
 use Cpx\Packages\PackageCommandRunner;
@@ -159,6 +160,27 @@ test('update requests a composer update for each installed package directory', f
         ->and($calls)->toHaveCount(1)
         ->and($calls[0][0])->toBe('update')
         ->and($calls[0])->toContain('--working-dir='.cpx_path('laravel/pint/latest'));
+});
+
+test('update continues past a failing package and summarizes the failure', function () {
+    $this->useIsolatedComposerHome();
+
+    prepareCachedPackage('vendor/aaa', ['aaa']);
+    prepareCachedPackage('vendor/bbb', ['bbb']);
+
+    $calls = [];
+    ComposerRunner::fake(function (array $command) use (&$calls): int {
+        $calls[] = $command;
+
+        return str_contains(implode(' ', $command), 'vendor/aaa') ? 1 : 0;
+    });
+
+    [$status, $output] = runCpxCommand(['update']);
+
+    expect($status)->toBe(1)
+        ->and($calls)->toHaveCount(2)
+        ->and($output)->toContain('Could not update')
+        ->and($output)->toContain('vendor/aaa/latest: Composer command failed: update');
 });
 
 test('bare php file targets are rejected with an exec hint', function () {

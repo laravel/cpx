@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
+use Cpx\Commands\Concerns\OutputsJson;
 use Cpx\Packages\UserAliases;
+use Cpx\Support\Result;
 use InvalidArgumentException;
 use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -13,7 +15,6 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
 
@@ -23,16 +24,20 @@ use function Laravel\Prompts\select;
 )]
 class UnaliasCommand extends Command
 {
+    use OutputsJson;
+
     protected function configure(): void
     {
         $this->addArgument('name', InputArgument::OPTIONAL, 'The alias name to remove');
+        $this->addJsonOption();
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $json = $this->wantsJson($input);
         $aliases = UserAliases::open();
 
-        if ($aliases->all() === []) {
+        if (! $json && $aliases->all() === [] && $input->getArgument('name') === null) {
             info('You have no aliases to remove.');
 
             return self::SUCCESS;
@@ -41,12 +46,14 @@ class UnaliasCommand extends Command
         try {
             $name = $this->resolveName($input, $aliases);
         } catch (InvalidArgumentException|NonInteractiveValidationException $e) {
-            error($e->getMessage());
-
-            return self::FAILURE;
+            return Result::failure($output, $e->getMessage());
         }
 
         $aliases->remove($name)->save();
+
+        if ($json) {
+            return Result::success($output, ['removed' => $name]);
+        }
 
         info("Alias \"{$name}\" removed.");
 
@@ -61,6 +68,10 @@ class UnaliasCommand extends Command
             }
 
             return $name;
+        }
+
+        if ($aliases->all() === []) {
+            throw new InvalidArgumentException('An alias name must be provided.');
         }
 
         return (string) select(

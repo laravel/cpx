@@ -16,13 +16,18 @@ use Cpx\Commands\UnaliasCommand;
 use Cpx\Commands\UpdateCommand;
 use Cpx\Composer\ComposerRunner;
 use Cpx\Packages\PackageCommandRunner;
+use Cpx\Support\Interactivity;
 use Cpx\Support\PromptFallbacks;
+use Cpx\Support\Result;
 use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Application as SymfonyApplication;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\ConsoleOutput;
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 
 class Application extends SymfonyApplication
 {
@@ -55,7 +60,27 @@ class Application extends SymfonyApplication
             }
         }
 
-        return parent::run($input, $output);
+        Interactivity::detect($input);
+
+        if (Interactivity::isInteractive()) {
+            return parent::run($input, $output);
+        }
+
+        $input->setInteractive(false);
+        Prompt::interactive(false);
+        $this->setCatchExceptions(false);
+
+        try {
+            return parent::run($input, $output);
+        } catch (Throwable $exception) {
+            Result::failure($output, $exception->getMessage());
+
+            if ($output instanceof ConsoleOutputInterface) {
+                $this->renderThrowable($exception, $output->getErrorOutput());
+            }
+
+            return Command::FAILURE;
+        }
     }
 
     protected function getCommandName(InputInterface $input): ?string

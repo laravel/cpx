@@ -48,7 +48,11 @@ test('the app does not call proc_open directly', function () {
 });
 
 test('only the process runner uses the symfony process component', function () {
-    $offenders = sourceFilesContaining('Symfony\\Component\\Process', except: ['src/Process/ProcessRunner.php']);
+    // ProcessRunnerTest checks Process::isTtySupported() to skip when no TTY is available.
+    $offenders = sourceFilesContaining('Symfony\\Component\\Process', except: [
+        'src/Process/ProcessRunner.php',
+        'tests/Unit/ProcessRunnerTest.php',
+    ]);
 
     expect($offenders)->toBe([]);
 });

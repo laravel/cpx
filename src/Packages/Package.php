@@ -12,13 +12,15 @@ use Cpx\Input\PackageInvocation;
 use Cpx\Process\ProcessRunner;
 use Cpx\Support\Arr;
 use Cpx\Support\Filesystem;
+use Cpx\Support\Interactivity;
+use Cpx\Support\Result;
 use InvalidArgumentException;
 use Laravel\Prompts\Support\Logger;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
-use function Laravel\Prompts\error;
 use function Laravel\Prompts\task;
 
 class Package
@@ -128,38 +130,36 @@ class Package
         Filesystem::deleteDirectory($this->installPath());
     }
 
-    public function runCommand(PackageInvocation $invocation, bool $autoUpdate = true): int
+    public function runCommand(PackageInvocation $invocation, OutputInterface $output, bool $autoUpdate = true): int
     {
         try {
             $installDir = $this->installOrUpdatePackage($autoUpdate);
         } catch (PackageNotFoundException $exception) {
-            $exception->render();
+            if (Interactivity::isInteractive()) {
+                $exception->render();
 
-            return Command::FAILURE;
+                return Command::FAILURE;
+            }
+
+            return Result::failure($output, $exception->getMessage());
         }
         $packageDir = $this->packagePath($installDir);
         $binScripts = $this->binaries($installDir);
 
         if (empty($binScripts)) {
-            error("No bin command found in {$this}.");
-
-            return Command::FAILURE;
+            return Result::failure($output, "No bin command found in {$this}.");
         }
 
         $resolved = $this->resolveBinCommand($binScripts, $invocation);
 
         if ($resolved === null) {
-            error("More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.');
-
-            return Command::FAILURE;
+            return Result::failure($output, "More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.');
         }
 
         $binPath = "{$packageDir}/{$resolved->command}";
 
         if (! file_exists($binPath)) {
-            error('Command '.basename($resolved->command)." not found in {$this}.");
-
-            return Command::FAILURE;
+            return Result::failure($output, 'Command '.basename($resolved->command)." not found in {$this}.");
         }
 
         task(

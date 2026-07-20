@@ -58,12 +58,12 @@ test('it reports there is nothing to remove when no aliases exist and the argume
         ->and($tester->getDisplay())->toContain('You have no aliases to remove.');
 });
 
-test('it reports there is nothing to remove when no aliases exist even if a name is given', function () {
+test('it fails when the named alias does not exist and no aliases are saved', function () {
     $this->useIsolatedComposerHome();
 
     $tester = unaliasCommandTester();
     $status = $tester->run(['command' => 'unalias', 'name' => 'mypint']);
 
-    expect($status)->toBe(0)
-        ->and($tester->getDisplay())->toContain('You have no aliases to remove.');
+    expect($status)->toBe(1)
+        ->and($tester->getDisplay())->toContain('No alias named "mypint" was found.');
 });

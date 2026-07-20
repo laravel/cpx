@@ -7,12 +7,12 @@ namespace Cpx\Packages;
 use Cpx\Input\PackageInvocation;
 use Cpx\Process\ProcessRunner;
 use Cpx\Support\Filesystem;
+use Cpx\Support\Result;
 use InvalidArgumentException;
 use JsonException;
 use RuntimeException;
-use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Output\OutputInterface;
 
-use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 
 class LocalPackage extends Package
@@ -117,12 +117,10 @@ class LocalPackage extends Package
         return $this->root;
     }
 
-    public function runCommand(PackageInvocation $invocation, bool $autoUpdate = true): int
+    public function runCommand(PackageInvocation $invocation, OutputInterface $output, bool $autoUpdate = true): int
     {
         if ($this->localBinaries === []) {
-            error("No bin command found in {$this->root}.");
-
-            return Command::FAILURE;
+            return Result::failure($output, "No bin command found in {$this->root}.");
         }
 
         $resolved = BinResolver::resolve($this->localBinaries, $invocation, $this->name, $this->bin);
@@ -132,17 +130,13 @@ class LocalPackage extends Package
         }
 
         if ($resolved === null) {
-            error("More than 1 bin command found in {$this->root}: ".implode(', ', array_keys($this->localBinaries)).'.');
-
-            return Command::FAILURE;
+            return Result::failure($output, "More than 1 bin command found in {$this->root}: ".implode(', ', array_keys($this->localBinaries)).'.');
         }
 
         $binPath = Filesystem::joinPath($this->root, $resolved->command);
 
         if (! is_file($binPath)) {
-            error('Command '.basename($resolved->command)." not found in {$this->root}.");
-
-            return Command::FAILURE;
+            return Result::failure($output, 'Command '.basename($resolved->command)." not found in {$this->root}.");
         }
 
         info('Running '.basename($resolved->command)." from {$this->root}");

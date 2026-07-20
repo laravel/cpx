@@ -6,14 +6,16 @@ namespace Cpx\Commands;
 
 use Cpx\Input\PackageInvocation;
 use Cpx\Packages\PackageCommandRunner;
+use Cpx\Support\Interactivity;
+use Cpx\Support\Result;
 use InvalidArgumentException;
+use Laravel\Prompts\Output\BufferedConsoleOutput;
+use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-
-use function Laravel\Prompts\error;
 
 #[AsCommand(
     name: self::NAME,
@@ -38,6 +40,11 @@ class RunPackageCommand extends SymfonyCommand
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        if (! Interactivity::isInteractive()) {
+            // cpx's own progress rendering would pollute raw child output and JSON errors.
+            Prompt::setOutput(new BufferedConsoleOutput);
+        }
+
         $tokens = $input instanceof ArgvInput ? $input->getRawTokens() : [];
 
         if (($tokens[0] ?? null) === self::NAME) {
@@ -57,9 +64,7 @@ class RunPackageCommand extends SymfonyCommand
         try {
             return $this->packageCommandRunner->run(PackageInvocation::fromRawTokens($tokens), $output, $skipLocal);
         } catch (InvalidArgumentException $e) {
-            error($e->getMessage());
-
-            return SymfonyCommand::FAILURE;
+            return Result::failure($output, $e->getMessage());
         }
     }
 }

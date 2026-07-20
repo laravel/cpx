@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Cpx\Commands;
 
+use Cpx\Commands\Concerns\OutputsJson;
 use Cpx\Exceptions\PackageNotFoundException;
 use Cpx\Packages\LocalPackage;
 use Cpx\Packages\Package;
 use Cpx\Packages\UserAliases;
+use Cpx\Support\Result;
 use InvalidArgumentException;
 use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
+use Laravel\Prompts\Output\BufferedConsoleOutput;
+use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -19,7 +23,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\callout;
 use function Laravel\Prompts\confirm;
-use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\task;
@@ -32,23 +35,33 @@ use function Laravel\Prompts\warning;
 )]
 class AliasCommand extends Command
 {
+    use OutputsJson;
+
     protected function configure(): void
     {
         $this->addArgument('package', InputArgument::OPTIONAL, 'The package to alias, e.g. <vendor>/<package>[:version]');
         $this->addArgument('name', InputArgument::OPTIONAL, 'The alias name to run the package as, e.g. "cpx <name>"');
         $this->addOption('bin', null, InputOption::VALUE_REQUIRED, 'The binary to run when the package exposes more than one');
         $this->addOption('force', 'f', InputOption::VALUE_NONE, 'Overwrite an existing alias without confirmation');
+        $this->addJsonOption();
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $json = $this->wantsJson($input);
+
+        if ($json) {
+            // Package installation renders task progress even when non-interactive.
+            Prompt::setOutput(new BufferedConsoleOutput);
+        }
+
         try {
             $package = $this->resolvePackage($input);
             $name = $this->resolveName($input, $package);
 
             $aliases = UserAliases::open();
 
-            if (! $this->confirmOverwrite($input, $aliases, $name)) {
+            if (! $this->confirmOverwrite($input, $aliases, $name, $json)) {
                 info("Alias \"{$name}\" was left unchanged.");
 
                 return self::SUCCESS;
@@ -56,13 +69,24 @@ class AliasCommand extends Command
 
             $package = $this->resolveBinary($input, $package);
         } catch (PackageNotFoundException $e) {
+            if ($json) {
+                return Result::failure($output, $e->getMessage());
+            }
+
             $e->render();
 
             return self::FAILURE;
         } catch (InvalidArgumentException|NonInteractiveValidationException $e) {
-            error($e->getMessage());
+            return Result::failure($output, $e->getMessage());
+        }
 
-            return self::FAILURE;
+        if ($json) {
+            $aliases->put($name, $package)->save();
+
+            return Result::success($output, [
+                'alias' => $name,
+                'package' => $package->displayString(),
+            ]);
         }
 
         task(
@@ -127,12 +151,16 @@ class AliasCommand extends Command
         );
     }
 
-    private function confirmOverwrite(InputInterface $input, UserAliases $aliases, string $name): bool
+    private function confirmOverwrite(InputInterface $input, UserAliases $aliases, string $name, bool $json): bool
     {
         $current = $aliases->find($name);
 
         if ($current === null || $input->getOption('force')) {
             return true;
+        }
+
+        if ($json) {
+            throw new InvalidArgumentException("The alias \"{$name}\" already exists. Use the --force option to overwrite it.");
         }
 
         warning("The alias \"{$name}\" is currently mapped to {$current->displayString()}.");

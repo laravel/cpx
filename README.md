@@ -134,6 +134,22 @@ When using these commands, you get the following benefits:
 
 `cpx help` shows usage information, and `cpx help <command>` shows help for a specific command.
 
+### Non-interactive mode and JSON output
+
+cpx detects when it is not running in an interactive terminal — inside an AI agent (via [laravel/agent-detector](https://github.com/laravel/agent-detector)), with stdin redirected, or when `--no-interaction`/`-n` is passed. In non-interactive mode:
+
+- Child processes never get a TTY.
+- Prompts fall back to their defaults instead of waiting for input — pass positional arguments and `--bin` to control everything explicitly. Overwriting an existing alias with `cpx alias` requires the `--force` option and fails otherwise.
+- cpx's own commands (`installed`, `aliases`, `alias`, `unalias`, `clean`, and `update`) respond with a single line of JSON instead of formatted text:
+
+```json
+{"success": true, "errors": [], "summary": {"packages": [{"name": "laravel/pint", "last_run": "2024-01-02 03:04:05"}]}}
+```
+
+Package runs stream only the tool's own output — cpx's progress rendering is suppressed — and cpx-level failures (an unrecognised command, a package that cannot be installed, missing or ambiguous binaries) are reported as JSON.
+
+You can also pass `--json` to any of the commands above to get the same JSON output from an interactive terminal.
+
 ## FAQ:
 
 ### Why not just install every tool with global composer?

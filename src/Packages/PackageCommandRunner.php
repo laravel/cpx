@@ -6,11 +6,11 @@ namespace Cpx\Packages;
 
 use Cpx\Input\PackageInvocation;
 use Cpx\Process\ProcessRunner;
+use Cpx\Support\Interactivity;
+use Cpx\Support\Result;
 use InvalidArgumentException;
-use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Output\OutputInterface;
 
-use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\task;
 
@@ -24,17 +24,17 @@ class PackageCommandRunner
     public function run(PackageInvocation $invocation, OutputInterface $output, bool $skipLocal = false): int
     {
         if (LocalPackage::supports($invocation->target)) {
-            return LocalPackage::parse($invocation->target)->runCommand($invocation);
+            return LocalPackage::parse($invocation->target)->runCommand($invocation, $output);
         }
 
         try {
             $package = $this->findPackage($invocation->target);
         } catch (InvalidArgumentException) {
-            return $this->unrecognised($invocation->target);
+            return $this->unrecognised($invocation->target, $output);
         }
 
         if ($package instanceof LocalPackage) {
-            return $package->runCommand($invocation);
+            return $package->runCommand($invocation, $output);
         }
 
         if (! $skipLocal) {
@@ -48,10 +48,10 @@ class PackageCommandRunner
         }
 
         if ($package !== null) {
-            return $package->runCommand($invocation);
+            return $package->runCommand($invocation, $output);
         }
 
-        return $this->unrecognised($invocation->target);
+        return $this->unrecognised($invocation->target, $output);
     }
 
     private function findPackage(string $target): ?Package
@@ -76,14 +76,14 @@ class PackageCommandRunner
         return (new ProcessRunner)->run(BinExecutable::commandFor($resolved->command, $resolved->invocation->forwardedTokens()));
     }
 
-    private function unrecognised(string $target): int
+    private function unrecognised(string $target, OutputInterface $output): int
     {
-        error("Unrecognised command {$target}");
+        $status = Result::failure($output, "Unrecognised command {$target}");
 
-        if (str_ends_with(strtolower($target), '.php') || is_file($target)) {
+        if (Interactivity::isInteractive() && (str_ends_with(strtolower($target), '.php') || is_file($target))) {
             info("To run a PHP file, use: cpx exec {$target}");
         }
 
-        return SymfonyCommand::FAILURE;
+        return $status;
     }
 }

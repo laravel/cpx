@@ -7,6 +7,7 @@ use Cpx\Gists\GistClient;
 use Cpx\Packages\BinExecutable;
 use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\Environment;
+use Cpx\Support\Interactivity;
 use Laravel\Prompts\Output\BufferedConsoleOutput;
 use Laravel\Prompts\Prompt;
 use Laravel\Prompts\Terminal;
@@ -38,6 +39,9 @@ abstract class TestCase extends BaseTestCase
         // Keep child processes off the real STDIN: under pest --parallel it is the paratest worker's command pipe.
         ProcessRunner::fakeInput('');
 
+        // The suite itself often runs inside an agent with piped stdin; keep detection deterministic.
+        Interactivity::fake(true);
+
         (new ReflectionProperty(Prompt::class, 'terminal'))->setValue(null, new Terminal);
         (new ReflectionProperty(Prompt::class, 'shouldFallback'))->setValue(null, false);
         (new ReflectionProperty(Prompt::class, 'fallbacks'))->setValue(null, []);
@@ -51,6 +55,7 @@ abstract class TestCase extends BaseTestCase
         BinExecutable::clearFakeWindows();
         ProcessRunner::clearFake();
         ProcessRunner::clearFakeInput();
+        Interactivity::clearFake();
 
         if ($this->workingDirectory !== null) {
             chdir($this->workingDirectory);

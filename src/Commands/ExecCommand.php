@@ -13,6 +13,8 @@ use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\ExecEnvironment;
 use Cpx\Support\ChildScript;
 use Cpx\Support\Filesystem;
+use Cpx\Support\Interactivity;
+use Cpx\Support\Result;
 use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -22,7 +24,6 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-use function Laravel\Prompts\error;
 use function Laravel\Prompts\select;
 
 #[AsCommand(
@@ -46,9 +47,7 @@ class ExecCommand extends Command
             $run = $input->getOption('run');
 
             if (! is_string($run) || $run === '') {
-                error('Please supply code to execute with the -r option.');
-
-                return self::FAILURE;
+                return Result::failure($output, 'Please supply code to execute with the -r option.');
             }
 
             return $this->runScript($input, $output, code: $this->normalizeCode($run));
@@ -57,9 +56,7 @@ class ExecCommand extends Command
         $target = $input->getArgument('file');
 
         if (! is_string($target) || $target === '') {
-            error('Please supply the path to a file to execute.');
-
-            return self::FAILURE;
+            return Result::failure($output, 'Please supply the path to a file to execute.');
         }
 
         $gist = GistUrl::tryFrom($target);
@@ -68,9 +65,7 @@ class ExecCommand extends Command
             try {
                 $file = $this->downloadGist($gist, $input);
             } catch (GistException $exception) {
-                $exception->render();
-
-                return self::FAILURE;
+                return $this->gistFailure($exception, $output);
             }
 
             try {
@@ -81,26 +76,31 @@ class ExecCommand extends Command
         }
 
         if (GistUrl::isUrl($target)) {
-            GistException::unsupportedUrl($target)->render();
-
-            return self::FAILURE;
+            return $this->gistFailure(GistException::unsupportedUrl($target), $output);
         }
 
         $file = realpath($target);
 
         if ($file === false) {
-            error("File does not exist at '{$target}'");
-
-            return self::FAILURE;
+            return Result::failure($output, "File does not exist at '{$target}'");
         }
 
         if (! is_file($file)) {
-            error("Cannot execute '{$target}' because it is not a file.");
-
-            return self::FAILURE;
+            return Result::failure($output, "Cannot execute '{$target}' because it is not a file.");
         }
 
         return $this->runScript($input, $output, file: $file);
+    }
+
+    private function gistFailure(GistException $exception, OutputInterface $output): int
+    {
+        if (! Interactivity::isInteractive()) {
+            return Result::failure($output, $exception->getMessage());
+        }
+
+        $exception->render();
+
+        return self::FAILURE;
     }
 
     private function runScript(
