@@ -123,7 +123,7 @@ class Package
     {
         $binScripts = ComposerRunner::detectBinFromComposer($this->packagePath($installDir));
 
-        return Arr::mapWithKeys(fn (int $_, string $value): array => [basename($value) => $value], $binScripts);
+        return Arr::mapWithKeys(fn (string $value): array => [basename($value) => $value], $binScripts);
     }
 
     public function delete(): void
