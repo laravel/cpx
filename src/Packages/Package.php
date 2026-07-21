@@ -15,12 +15,14 @@ use Cpx\Support\Filesystem;
 use Cpx\Support\Interactivity;
 use Cpx\Support\Result;
 use InvalidArgumentException;
+use Laravel\Prompts\Exceptions\NonInteractiveValidationException;
 use Laravel\Prompts\Support\Logger;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
+use function Laravel\Prompts\select;
 use function Laravel\Prompts\task;
 
 class Package
@@ -150,7 +152,8 @@ class Package
             return Result::failure($output, "No bin command found in {$this}.");
         }
 
-        $resolved = $this->resolveBinCommand($binScripts, $invocation);
+        $resolved = $this->resolveBinCommand($binScripts, $invocation)
+            ?? $this->chooseBinCommand($binScripts, $invocation);
 
         if ($resolved === null) {
             return Result::failure($output, "More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.');
@@ -207,6 +210,29 @@ class Package
         }
 
         return (time() - $lastUpdatedAt) > Metadata::UPDATE_CHECK_INTERVAL;
+    }
+
+    /**
+     * @param  array<string, string>  $binScripts
+     */
+    protected function chooseBinCommand(array $binScripts, PackageInvocation $invocation): ?ResolvedBin
+    {
+        if (! Interactivity::isInteractive()) {
+            return null;
+        }
+
+        try {
+            $chosen = select(
+                label: "Which command would you like to run from {$this}?",
+                options: array_keys($binScripts),
+            );
+        } catch (NonInteractiveValidationException) {
+            return null;
+        }
+
+        $command = $binScripts[$chosen] ?? null;
+
+        return $command === null ? null : new ResolvedBin($command, $invocation);
     }
 
     /**

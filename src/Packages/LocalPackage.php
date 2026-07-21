@@ -129,6 +129,8 @@ class LocalPackage extends Package
             throw new RuntimeException("The requested bin command '{$this->bin}' was not found in {$this}.");
         }
 
+        $resolved ??= $this->chooseBinCommand($this->localBinaries, $invocation);
+
         if ($resolved === null) {
             return Result::failure($output, "More than 1 bin command found in {$this->root}: ".implode(', ', array_keys($this->localBinaries)).'.');
         }

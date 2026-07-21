@@ -2,6 +2,8 @@
 
 use Cpx\Packages\Package;
 use Cpx\Packages\UserAliases;
+use Laravel\Prompts\Key;
+use Laravel\Prompts\Prompt;
 
 test('a package with one binary runs without requiring a binary name', function () {
     $this->useIsolatedComposerHome();
@@ -47,7 +49,25 @@ test('a package with multiple binaries keeps a positional argument when a binary
         ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['tests/Sub']);
 });
 
-test('ambiguous multiple-binary packages list the available binaries', function () {
+test('ambiguous multiple-binary packages prompt for the binary to run', function () {
+    $this->useIsolatedComposerHome();
+    $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
+
+    prepareCachedPackage('vendor/package', ['foo', 'bar'], [
+        'foo' => noopBinary(99),
+        'bar' => argvLoggingBinary($logFile),
+    ]);
+
+    Prompt::fake([Key::DOWN, Key::ENTER]);
+
+    [$status, $output] = runCpxCommand(['vendor/package', '--flag']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Which command would you like to run from vendor/package?')
+        ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['--flag']);
+})->skipOnWindows();
+
+test('ambiguous multiple-binary packages list the available binaries when the terminal cannot prompt', function () {
     $this->useIsolatedComposerHome();
 
     prepareCachedPackage('vendor/package', ['foo', 'bar'], [
