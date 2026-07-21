@@ -1,6 +1,8 @@
 <?php
 
 use Cpx\Packages\BinExecutable;
+use Laravel\Prompts\Key;
+use Laravel\Prompts\Prompt;
 
 test('an aliased local package directory runs from its saved source without invoking composer', function () {
     $this->useIsolatedComposerHome();
@@ -175,7 +177,23 @@ test('the first forwarded token selects a binary from a local multi-bin package'
         ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['--flag']);
 });
 
-test('an ambiguous local multi-bin package lists its binaries', function () {
+test('an ambiguous local multi-bin package prompts for the binary to run', function () {
+    $root = $this->prepareLocalPackage(['bin/foo', 'bin/bar'], 'vendor/package');
+    $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
+
+    $this->writeLocalPackageBinary($root, 'bin/foo', noopBinary(99));
+    $this->writeLocalPackageBinary($root, 'bin/bar', argvLoggingBinary($logFile));
+
+    Prompt::fake([Key::DOWN, Key::ENTER]);
+
+    [$status, $output] = runCpxCommand([$root, '--flag']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Which command would you like to run from')
+        ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['--flag']);
+})->skipOnWindows();
+
+test('an ambiguous local multi-bin package lists its binaries when the terminal cannot prompt', function () {
     $root = $this->prepareLocalPackage(['bin/foo', 'bin/bar'], 'vendor/package');
 
     $this->writeLocalPackageBinary($root, 'bin/foo', noopBinary());
