@@ -23,23 +23,19 @@ class BinResolver
             return new ResolvedBin($bins[array_key_first($bins)], $invocation);
         }
 
-        $candidates = array_filter([
-            $invocation->target,
-            $invocation->firstForwardedToken(),
-            $packageName,
-        ]);
-
-        foreach (array_unique($candidates) as $candidate) {
+        foreach (array_unique([$invocation->target, $packageName]) as $candidate) {
             $command = self::match($bins, $candidate);
 
             if ($command !== null) {
-                return $invocation->firstForwardedToken() === $candidate
-                    ? new ResolvedBin($command, $invocation->withoutFirstForwardedToken())
-                    : new ResolvedBin($command, $invocation);
+                return new ResolvedBin($command, $invocation);
             }
         }
 
-        return null;
+        $forwarded = $invocation->firstForwardedToken();
+        $command = $forwarded === null ? null : self::match($bins, $forwarded);
+
+        // Only a forwarded-token match consumes the token; target and package-name matches keep it.
+        return $command === null ? null : new ResolvedBin($command, $invocation->withoutFirstForwardedToken());
     }
 
     /**

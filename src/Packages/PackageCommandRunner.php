@@ -12,7 +12,6 @@ use InvalidArgumentException;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\task;
 
 /**
  * Runs a non-built-in cpx target by resolving it to a local PHP file, an
@@ -29,8 +28,8 @@ class PackageCommandRunner
 
         try {
             $package = $this->findPackage($invocation->target);
-        } catch (InvalidArgumentException) {
-            return $this->unrecognised($invocation->target, $output);
+        } catch (InvalidArgumentException $exception) {
+            return Result::failure($output, $exception->getMessage());
         }
 
         if ($package instanceof LocalPackage) {
@@ -67,11 +66,7 @@ class PackageCommandRunner
 
     private function runLocal(ResolvedBin $resolved): int
     {
-        task(
-            label: 'Running '.basename($resolved->command)." from {$resolved->command}",
-            callback: fn (): bool => true,
-            keepSummary: true,
-        );
+        info('Running '.basename($resolved->command)." from {$resolved->command}");
 
         return (new ProcessRunner)->run(BinExecutable::commandFor($resolved->command, $resolved->invocation->forwardedTokens()));
     }

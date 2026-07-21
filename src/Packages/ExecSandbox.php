@@ -7,12 +7,14 @@ namespace Cpx\Packages;
 use Cpx\Cache\ExecSandboxMetadata;
 use Cpx\Cache\Metadata;
 use Cpx\Composer\ComposerRunner;
+use Cpx\Exceptions\ComposerCommandException;
 use Cpx\Exceptions\ComposerInstallException;
 use Cpx\Runtime\PhpExecutionHelper;
-use Cpx\Support\Filesystem;
 use RuntimeException;
 use stdClass;
 use Throwable;
+
+use function Laravel\Prompts\warning;
 
 class ExecSandbox
 {
@@ -76,44 +78,27 @@ class ExecSandbox
 
     private function install(): int
     {
-        $cacheRoot = cpx_path();
-        Filesystem::ensureDirectory($cacheRoot);
-
-        $stagingDir = $this->path().'.installing.'.getmypid();
-        $this->stageInstall($stagingDir, $cacheRoot);
-
-        try {
-            Filesystem::replaceDirectory($stagingDir, $this->path());
-        } catch (RuntimeException $exception) {
-            Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
-
-            throw new ComposerInstallException("Unable to finalize the exec sandbox for {$this->key}; another process may be holding files under {$this->path()}.", previous: $exception);
-        }
+        StagedInstall::run(
+            targetDir: $this->path(),
+            scaffold: [
+                'require' => new stdClass,
+                'config' => [
+                    'vendor-dir' => './vendor',
+                ],
+            ],
+            install: function (string $stagingDir): void {
+                foreach ($this->packages as $package) {
+                    try {
+                        ComposerRunner::run(['require', $package], $stagingDir);
+                    } catch (Throwable $exception) {
+                        throw new ComposerInstallException("Failed to install package: {$package}.", previous: $exception);
+                    }
+                }
+            },
+            finalizeFailure: fn (RuntimeException $exception): Throwable => new ComposerInstallException("Unable to finalize the exec sandbox for {$this->key}; another process may be holding files under {$this->path()}.", previous: $exception),
+        );
 
         return time();
-    }
-
-    private function stageInstall(string $stagingDir, string $cacheRoot): void
-    {
-        Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
-        Filesystem::ensureDirectory($stagingDir);
-
-        file_put_contents("{$stagingDir}/composer.json", json_encode([
-            'require' => new stdClass,
-            'config' => [
-                'vendor-dir' => './vendor',
-            ],
-        ], JSON_PRETTY_PRINT));
-
-        foreach ($this->packages as $package) {
-            try {
-                ComposerRunner::run(['require', $package], $stagingDir);
-            } catch (Throwable $exception) {
-                Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
-
-                throw new ComposerInstallException("Failed to install package: {$package}.", previous: $exception);
-            }
-        }
     }
 
     private function update(): ?int
@@ -122,7 +107,10 @@ class ExecSandbox
             ComposerRunner::run(['update'], $this->path());
 
             return time();
-        } catch (Throwable) {
+        } catch (ComposerCommandException $exception) {
+            // Tolerate failed refreshes (offline, registry outage); the existing install keeps working.
+            warning("Could not update the exec sandbox: {$exception->getMessage()}");
+
             return null;
         }
     }

@@ -67,6 +67,50 @@ test('ambiguous multiple-binary packages prompt for the binary to run', function
         ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['--flag']);
 })->skipOnWindows();
 
+test('a positional token spelling a package-named binary is forwarded, not consumed', function () {
+    $this->useIsolatedComposerHome();
+    $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
+
+    prepareCachedPackage('vendor/pkg', ['pkg', 'other'], [
+        'pkg' => "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n",
+        'other' => "#!/usr/bin/env php\n<?php exit(99);\n",
+    ]);
+
+    [$status] = runCpxCommand(['vendor/pkg', 'pkg', 'tests/Sub']);
+
+    expect($status)->toBe(0)
+        ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['pkg', 'tests/Sub']);
+});
+
+test('ambiguity errors share wording for cached and local packages', function () {
+    $this->useIsolatedComposerHome();
+
+    prepareCachedPackage('vendor/package', ['foo', 'bar'], [
+        'foo' => "#!/usr/bin/env php\n<?php exit(0);\n",
+        'bar' => "#!/usr/bin/env php\n<?php exit(0);\n",
+    ]);
+    $root = $this->prepareLocalPackage(['bin/foo', 'bin/bar'], 'vendor/local');
+
+    [, $cachedOutput] = runCpxCommand(['vendor/package']);
+    [, $localOutput] = runCpxCommand([$root]);
+
+    expect($cachedOutput)->toContain('More than 1 bin command found for vendor/package: foo, bar.')
+        ->and($localOutput)->toContain("More than 1 bin command found for {$root}: foo, bar.");
+});
+
+test('missing binary errors share wording for cached and local packages', function () {
+    $this->useIsolatedComposerHome();
+
+    prepareCachedPackage('vendor/ghost', ['ghost']);
+    $root = $this->prepareLocalPackage(['bin/missing'], 'vendor/local');
+
+    [, $cachedOutput] = runCpxCommand(['vendor/ghost']);
+    [, $localOutput] = runCpxCommand([$root]);
+
+    expect($cachedOutput)->toContain('Command ghost not found in vendor/ghost.')
+        ->and($localOutput)->toContain("Command missing not found in {$root}.");
+});
+
 test('ambiguous multiple-binary packages list the available binaries when the terminal cannot prompt', function () {
     $this->useIsolatedComposerHome();
 

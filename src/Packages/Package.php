@@ -9,7 +9,6 @@ use Cpx\Composer\ComposerRunner;
 use Cpx\Exceptions\PackageNotFoundException;
 use Cpx\Input\PackageInvocation;
 use Cpx\Process\ProcessRunner;
-use Cpx\Support\Arr;
 use Cpx\Support\Filesystem;
 use Cpx\Support\Interactivity;
 use Cpx\Support\Result;
@@ -21,6 +20,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
+use function Laravel\Prompts\info;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\task;
 
@@ -49,7 +49,7 @@ class Package
 
     public static function parse(string $str): self
     {
-        if (empty($str)) {
+        if ($str === '') {
             throw new InvalidArgumentException('A package name must be provided.');
         }
 
@@ -121,9 +121,7 @@ class Package
      */
     public function binaries(string $installDir): array
     {
-        $binScripts = ComposerRunner::detectBinFromComposer($this->packagePath($installDir));
-
-        return Arr::mapWithKeys(fn (string $value): array => [basename($value) => $value], $binScripts);
+        return self::mapBinaries(ComposerRunner::detectBinFromComposer($this->packagePath($installDir)));
     }
 
     public function delete(): void
@@ -144,10 +142,9 @@ class Package
 
             return Result::failure($output, $exception->getMessage());
         }
-        $packageDir = $this->packagePath($installDir);
         $binScripts = $this->binaries($installDir);
 
-        if (empty($binScripts)) {
+        if ($binScripts === []) {
             return Result::failure($output, "No bin command found in {$this}.");
         }
 
@@ -158,19 +155,15 @@ class Package
             return Result::failure($output, "More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.');
         }
 
-        $binPath = "{$packageDir}/{$resolved->command}";
+        $binPath = "{$this->packagePath($installDir)}/{$resolved->command}";
 
-        if (! file_exists($binPath)) {
+        if (! is_file($binPath)) {
             return Result::failure($output, 'Command '.basename($resolved->command)." not found in {$this}.");
         }
 
-        task(
-            label: 'Running '.basename($resolved->command)." from {$this}",
-            callback: fn (Logger $_logger): mixed => Metadata::transaction(
-                fn (Metadata $metadata) => $metadata->recordRun($this),
-            ),
-            keepSummary: true,
-        );
+        $this->recordRun();
+
+        info('Running '.basename($resolved->command)." from {$this}");
 
         return (new ProcessRunner)->run(BinExecutable::commandFor($binPath, $resolved->invocation->forwardedTokens()));
     }
@@ -209,6 +202,29 @@ class Package
         }
 
         return (time() - $lastUpdatedAt) > Metadata::UPDATE_CHECK_INTERVAL;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected static function mapBinaries(mixed $declared): array
+    {
+        $binaries = [];
+
+        foreach ((array) $declared as $binary) {
+            if (! is_string($binary) || $binary === '') {
+                continue;
+            }
+
+            $binaries[basename(Filesystem::normalizePath($binary))] = $binary;
+        }
+
+        return $binaries;
+    }
+
+    protected function recordRun(): void
+    {
+        Metadata::transaction(fn (Metadata $metadata) => $metadata->recordRun($this));
     }
 
     /**
@@ -253,49 +269,24 @@ class Package
         task(
             label: "Installing {$this}",
             callback: function (Logger $logger) use ($installDir): void {
-                $cacheRoot = cpx_path();
-                Filesystem::ensureDirectory($cacheRoot);
-
-                $stagingDir = "{$installDir}.installing.".getmypid();
-                ProcessRunner::withLogger($logger, fn () => $this->stageInstall($stagingDir, $cacheRoot));
-
-                Filesystem::deleteDirectory($installDir);
-
-                try {
-                    Filesystem::replaceDirectory($stagingDir, $installDir);
-                } catch (RuntimeException $exception) {
-                    Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
-
-                    throw new RuntimeException("Unable to finalize the installation of {$this}; another process may be holding files under {$installDir}.", previous: $exception);
-                }
+                StagedInstall::run(
+                    targetDir: $installDir,
+                    scaffold: [
+                        'name' => "cpx-{$this->vendor}/cpx-{$this->name}",
+                        'version' => self::SCAFFOLD_VERSION,
+                        'config' => [
+                            // Requested packages may ship Composer plugins (binaries, installers).
+                            'allow-plugins' => true,
+                        ],
+                    ],
+                    install: fn (string $stagingDir) => ProcessRunner::withLogger($logger, fn () => ComposerRunner::require($this->fullPackageString(), $stagingDir)),
+                    finalizeFailure: fn (RuntimeException $exception): Throwable => new RuntimeException("Unable to finalize the installation of {$this}; another process may be holding files under {$installDir}.", previous: $exception),
+                );
 
                 Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
             },
             keepSummary: true,
         );
-    }
-
-    private function stageInstall(string $stagingDir, string $cacheRoot): void
-    {
-        Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
-        Filesystem::ensureDirectory($stagingDir);
-
-        file_put_contents("{$stagingDir}/composer.json", json_encode([
-            'name' => "cpx-{$this->vendor}/cpx-{$this->name}",
-            'version' => self::SCAFFOLD_VERSION,
-            'config' => [
-                // Requested packages may ship Composer plugins (binaries, installers).
-                'allow-plugins' => true,
-            ],
-        ]));
-
-        try {
-            ComposerRunner::require($this->fullPackageString(), $stagingDir);
-        } catch (Throwable $exception) {
-            Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
-
-            throw $exception;
-        }
     }
 
     private function updatePackage(string $installDir): void
