@@ -1,4 +1,4 @@
-![Run Composer packages, efortlessly.](./banner.png)
+![The entire ecosystem, always at your fingertips.](./banner.png)
 
 # cpx - Composer Package Executor
 
