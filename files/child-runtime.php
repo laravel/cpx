@@ -8,8 +8,14 @@ use Cpx\Runtime\CpxRequire;
  * keeping the phar's bundled dependencies out of the child.
  */
 spl_autoload_register(static function (string $class): void {
-    if (str_starts_with($class, 'Cpx\\Runtime\\')) {
-        require __DIR__.'/../src/Runtime/'.substr($class, strlen('Cpx\\Runtime\\')).'.php';
+    if (! str_starts_with($class, 'Cpx\\Runtime\\')) {
+        return;
+    }
+
+    $path = __DIR__.'/../src/Runtime/'.str_replace('\\', '/', substr($class, strlen('Cpx\\Runtime\\'))).'.php';
+
+    if (is_file($path)) {
+        require $path;
     }
 });
 
