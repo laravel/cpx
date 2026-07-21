@@ -182,4 +182,4 @@ No. cpx ships as a self-contained PHAR with its own runtime dependencies bundled
 ## Credits
 
 - [Liam Hammett](https://github.com/imliam)
-- [All Contributors](https://github.com/imliam/cpx/contributors)
+- [All Contributors](https://github.com/laravel/cpx/contributors)
