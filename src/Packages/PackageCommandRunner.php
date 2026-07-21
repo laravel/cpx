@@ -28,8 +28,8 @@ class PackageCommandRunner
 
         try {
             $package = $this->findPackage($invocation->target);
-        } catch (InvalidArgumentException) {
-            return $this->unrecognised($invocation->target, $output);
+        } catch (InvalidArgumentException $exception) {
+            return Result::failure($output, $exception->getMessage());
         }
 
         if ($package instanceof LocalPackage) {

@@ -306,8 +306,18 @@ test('package-looking values with shell metacharacters fail before composer exec
     [$status, $output] = runCpxCommand(['vendor/package;touch injected']);
 
     expect($status)->toBe(1)
-        ->and($output)->toContain('Unrecognised command vendor/package;touch injected')
+        ->and($output)->toContain('A package name should be in the format')
         ->and($calls)->toBe([]);
+});
+
+test('an unparseable slash target surfaces the package format hint', function () {
+    $this->useIsolatedComposerHome();
+
+    [$status, $output] = runCpxCommand(['bad//ref']);
+
+    expect($status)->toBe(1)
+        ->and($output)->toContain('A package name should be in the format "<vendor>/<package>[:version]".')
+        ->and($output)->not->toContain('Unrecognised command');
 });
 
 test('invalid fallback commands return a failure status with help output', function () {
