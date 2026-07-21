@@ -7,6 +7,7 @@ use Cpx\Gists\GistClient;
 use Cpx\Packages\BinExecutable;
 use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\Environment;
+use Cpx\Support\FilesystemFake;
 use Cpx\Support\Interactivity;
 use Laravel\Prompts\Output\BufferedConsoleOutput;
 use Laravel\Prompts\Prompt;
@@ -56,6 +57,7 @@ abstract class TestCase extends BaseTestCase
         ProcessRunner::clearFake();
         ProcessRunner::clearFakeInput();
         Interactivity::clearFake();
+        FilesystemFake::$failingRenames = 0;
 
         if ($this->workingDirectory !== null) {
             chdir($this->workingDirectory);
