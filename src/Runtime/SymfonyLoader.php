@@ -62,10 +62,10 @@ class SymfonyLoader implements ProjectBooter
             return;
         }
 
-        $dotenv = new $dotenvClass;
+        $boot = [new $dotenvClass, 'bootEnv'];
 
-        if (is_object($dotenv) && method_exists($dotenv, 'bootEnv')) {
-            $dotenv->bootEnv("{$root}/.env");
+        if (is_callable($boot)) {
+            $boot("{$root}/.env");
         }
     }
 
