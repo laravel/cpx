@@ -9,13 +9,17 @@ use Symfony\Component\Console\Input\InputInterface;
 
 class Interactivity
 {
+    public const JSON_OPTION = 'json';
+
+    public const NON_INTERACTIVE_OPTIONS = ['--no-interaction', '-n', '--'.self::JSON_OPTION];
+
     private static ?bool $detected = null;
 
     private static ?bool $fakeEnvironment = null;
 
     public static function detect(InputInterface $input): void
     {
-        self::$detected = ! $input->hasParameterOption(['--no-interaction', '-n', '--json'], true)
+        self::$detected = ! $input->hasParameterOption(self::NON_INTERACTIVE_OPTIONS, true)
             && self::environmentIsInteractive();
     }
 
