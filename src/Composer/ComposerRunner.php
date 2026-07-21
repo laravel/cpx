@@ -27,7 +27,7 @@ class ComposerRunner
      *
      * @throws ComposerCommandException
      */
-    public static function run(array $arguments, ?string $directory = null): int
+    public static function run(array $arguments, ?string $directory = null): void
     {
         $command = [...$arguments, '--no-interaction'];
 
@@ -42,8 +42,6 @@ class ComposerRunner
         if ($exitCode !== Command::SUCCESS) {
             throw new ComposerCommandException($arguments);
         }
-
-        return $exitCode;
     }
 
     /**
