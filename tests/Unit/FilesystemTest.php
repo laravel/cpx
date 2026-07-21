@@ -2,6 +2,32 @@
 
 use Composer\Util\Filesystem as ComposerFilesystem;
 use Cpx\Support\Filesystem;
+use Cpx\Support\FilesystemFake;
+
+test('writeAtomic retries a transient rename failure', function () {
+    $directory = $this->temporaryDirectory('cpx-fs');
+    $path = "{$directory}/data.json";
+
+    FilesystemFake::$failingRenames = 1;
+
+    Filesystem::writeAtomic($path, 'contents');
+
+    expect(file_get_contents($path))->toBe('contents')
+        ->and(glob("{$directory}/*.tmp"))->toBe([]);
+});
+
+test('writeAtomic gives up after three failed renames and cleans its temp file', function () {
+    $directory = $this->temporaryDirectory('cpx-fs');
+    $path = "{$directory}/data.json";
+
+    FilesystemFake::$failingRenames = 3;
+
+    expect(fn () => Filesystem::writeAtomic($path, 'contents'))
+        ->toThrow(RuntimeException::class, 'Unable to move');
+
+    expect(file_exists($path))->toBeFalse()
+        ->and(glob("{$directory}/*.tmp"))->toBe([]);
+});
 
 test('homeDirectory resolves HOME, then USERPROFILE, then HOMEDRIVE and HOMEPATH', function () {
     $this->setEnvironmentVariable('HOME', '/home/first/');

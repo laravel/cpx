@@ -31,7 +31,10 @@
     "autoload-dev": {
         "psr-4": {
             "Tests\\": "tests/"
-        }
+        },
+        "files": [
+            "tests/Support/FilesystemFakes.php"
+        ]
     },
     "require": {
         "php": "^8.3"
