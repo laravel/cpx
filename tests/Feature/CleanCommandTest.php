@@ -3,9 +3,6 @@
 use Cpx\Cache\Metadata;
 use Laravel\Prompts\Key;
 use Laravel\Prompts\Prompt;
-use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-
-uses(MockeryPHPUnitIntegration::class);
 
 test('the all option removes every tracked package and exec cache directory', function () {
     $this->useIsolatedComposerHome();
