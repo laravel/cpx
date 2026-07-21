@@ -139,14 +139,14 @@ class ExecCommand extends Command
         return $file;
     }
 
-    /** @return (Closure(GistFile...): GistFile)|null */
+    /** @return (Closure(list<GistFile>): GistFile)|null */
     private function chooseGistFile(InputInterface $input): ?Closure
     {
         if (! $input->isInteractive()) {
             return null;
         }
 
-        return function (GistFile ...$files): GistFile {
+        return function (array $files): GistFile {
             $files = array_values($files);
 
             try {
