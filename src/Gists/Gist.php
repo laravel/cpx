@@ -60,7 +60,7 @@ readonly class Gist
     }
 
     /**
-     * @param  (Closure(GistFile...): GistFile)|null  $choose
+     * @param  (Closure(list<GistFile>): GistFile)|null  $choose
      *
      * @throws GistException
      */
@@ -85,7 +85,7 @@ readonly class Gist
         }
 
         if ($choose !== null) {
-            return $choose(...$phpFiles);
+            return $choose($phpFiles);
         }
 
         throw GistException::ambiguousPhpFiles($phpFiles);
