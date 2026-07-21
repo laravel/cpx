@@ -92,7 +92,13 @@ if [ ! -f "$BOX_PHAR" ]; then
     mv "${BOX_PHAR}.tmp" "$BOX_PHAR"
 fi
 
-if ! echo "${BOX_SHA256}  ${BOX_PHAR}" | sha256sum -c --status -; then
+if command -v sha256sum >/dev/null 2>&1; then
+    SHA256_CMD="sha256sum"
+else
+    SHA256_CMD="shasum -a 256"
+fi
+
+if ! echo "${BOX_SHA256}  ${BOX_PHAR}" | $SHA256_CMD -c --status -; then
     rm -f "$BOX_PHAR"
     echo "Box ${BOX_VERSION} failed the sha256 check; expected ${BOX_SHA256}. The download was discarded." >&2
     exit 1
