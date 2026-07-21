@@ -10,8 +10,8 @@
         "run"
     ],
     "support": {
-        "issues": "https://github.com/imliam/cpx/issues",
-        "source": "https://github.com/imliam/cpx",
+        "issues": "https://github.com/laravel/cpx/issues",
+        "source": "https://github.com/laravel/cpx",
         "docs": "https://cpx.dev"
     },
     "authors": [
