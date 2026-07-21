@@ -37,6 +37,26 @@ class Filesystem
             || preg_match('/\A[a-zA-Z]:[\\\\\/]/', $path) === 1;
     }
 
+    public static function homeDirectory(): ?string
+    {
+        foreach (['HOME', 'USERPROFILE'] as $variable) {
+            $home = $_SERVER[$variable] ?? getenv($variable);
+
+            if (is_string($home) && $home !== '') {
+                return rtrim($home, '/\\');
+            }
+        }
+
+        $drive = $_SERVER['HOMEDRIVE'] ?? getenv('HOMEDRIVE');
+        $homePath = $_SERVER['HOMEPATH'] ?? getenv('HOMEPATH');
+
+        if (is_string($drive) && $drive !== '' && is_string($homePath) && $homePath !== '') {
+            return rtrim("{$drive}{$homePath}", '/\\');
+        }
+
+        return null;
+    }
+
     public static function ensureDirectory(string $directory): void
     {
         if (is_dir($directory)) {
