@@ -3,10 +3,12 @@
 use Cpx\Application;
 use Cpx\Composer\ComposerRunner;
 use Cpx\Input\PackageInvocation;
+use Cpx\Packages\LocalPackage;
 use Cpx\Packages\Package;
 use Cpx\Packages\PackageCommandRunner;
 use Cpx\Packages\UserAliases;
 use Cpx\Process\ProcessResult;
+use Cpx\Support\Filesystem;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -99,6 +101,43 @@ test('aliases lists user-defined aliases', function () {
         ->and($output)->toContain('Your aliases:')
         ->and($output)->toContain('cpx mypint')
         ->and($output)->toContain('laravel/pint');
+});
+
+test('aliases lists healthy aliases and warns about broken ones', function () {
+    $this->useIsolatedComposerHome();
+
+    $root = $this->prepareLocalPackage(name: 'vendor/stale');
+    UserAliases::open()
+        ->put('mypint', Package::parse('laravel/pint'))
+        ->put('stale', LocalPackage::parse($root))
+        ->save();
+    Filesystem::deleteDirectory($root);
+
+    [$status, $output] = runCpxCommand(['aliases']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Your aliases:')
+        ->and($output)->toContain('laravel/pint')
+        ->and($output)->toContain('Skipped aliases that could not be loaded: stale');
+});
+
+test('unalias removes a broken alias', function () {
+    $this->useIsolatedComposerHome();
+
+    $root = $this->prepareLocalPackage(name: 'vendor/stale');
+    UserAliases::open()
+        ->put('mypint', Package::parse('laravel/pint'))
+        ->put('stale', LocalPackage::parse($root))
+        ->save();
+    Filesystem::deleteDirectory($root);
+
+    [$status, $output] = runCpxCommand(['unalias', 'stale']);
+    $aliases = UserAliases::open();
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Alias "stale" removed.')
+        ->and($aliases->has('stale'))->toBeFalse()
+        ->and($aliases->has('mypint'))->toBeTrue();
 });
 
 test('a user-defined alias resolves to its package', function () {

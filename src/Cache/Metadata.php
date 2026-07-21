@@ -9,6 +9,7 @@ use Cpx\Packages\Package;
 use Cpx\Support\Arr;
 use Cpx\Support\Filesystem;
 use Cpx\Support\Lock;
+use InvalidArgumentException;
 
 class Metadata
 {
@@ -48,14 +49,20 @@ class Metadata
 
         return new self(
             packages: Arr::mapWithKeys(
-                function (string $key, mixed $value): array {
+                function (mixed $value, string $key): array {
                     if (! is_array($value)) {
+                        return [];
+                    }
+
+                    try {
+                        $package = Package::parse($key);
+                    } catch (InvalidArgumentException) {
                         return [];
                     }
 
                     return [
                         $key => new PackageMetadata(
-                            package: Package::parse($key),
+                            package: $package,
                             lastUpdatedAt: self::normalizeTimestamp($value['last_updated'] ?? null),
                             lastRunAt: self::normalizeTimestamp($value['last_run'] ?? null),
                         ),
@@ -64,7 +71,7 @@ class Metadata
                 is_array($json['packages'] ?? null) ? $json['packages'] : [],
             ),
             execCache: Arr::mapWithKeys(
-                function (string $key, mixed $value): array {
+                function (mixed $value, string $key): array {
                     if (! is_array($value)) {
                         return [];
                     }
@@ -135,7 +142,7 @@ class Metadata
         return [
             'version' => self::VERSION,
             'packages' => Arr::mapWithKeys(
-                fn (string $key, PackageMetadata $packageMetadata): array => [
+                fn (PackageMetadata $packageMetadata): array => [
                     $packageMetadata->package->fullPackageString() => [
                         'last_updated' => $packageMetadata->lastUpdatedAt,
                         'last_run' => $packageMetadata->lastRunAt,
@@ -144,7 +151,7 @@ class Metadata
                 $this->packages,
             ),
             'execCache' => Arr::mapWithKeys(
-                fn (string $key, ExecSandboxMetadata $sandbox): array => [
+                fn (ExecSandboxMetadata $sandbox): array => [
                     $sandbox->key => [
                         'packages' => $sandbox->packages,
                         'last_updated' => $sandbox->lastUpdatedAt,
