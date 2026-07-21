@@ -2,6 +2,62 @@
 
 use Composer\Util\Filesystem as ComposerFilesystem;
 use Cpx\Support\Filesystem;
+use Cpx\Support\FilesystemFake;
+
+test('writeAtomic retries a transient rename failure', function () {
+    $directory = $this->temporaryDirectory('cpx-fs');
+    $path = "{$directory}/data.json";
+
+    FilesystemFake::$failingRenames = 1;
+
+    Filesystem::writeAtomic($path, 'contents');
+
+    expect(file_get_contents($path))->toBe('contents')
+        ->and(glob("{$directory}/*.tmp"))->toBe([]);
+});
+
+test('writeAtomic gives up after three failed renames and cleans its temp file', function () {
+    $directory = $this->temporaryDirectory('cpx-fs');
+    $path = "{$directory}/data.json";
+
+    FilesystemFake::$failingRenames = 3;
+
+    expect(fn () => Filesystem::writeAtomic($path, 'contents'))
+        ->toThrow(RuntimeException::class, 'Unable to move');
+
+    expect(file_exists($path))->toBeFalse()
+        ->and(glob("{$directory}/*.tmp"))->toBe([]);
+});
+
+test('homeDirectory resolves HOME, then USERPROFILE, then HOMEDRIVE and HOMEPATH', function () {
+    $this->setEnvironmentVariable('HOME', '/home/first/');
+    $this->setEnvironmentVariable('USERPROFILE', 'C:\\Users\\second');
+    $this->setEnvironmentVariable('HOMEDRIVE', 'C:');
+    $this->setEnvironmentVariable('HOMEPATH', '\\Users\\third');
+
+    expect(Filesystem::homeDirectory())->toBe('/home/first');
+
+    $this->setEnvironmentVariable('HOME', '');
+
+    expect(Filesystem::homeDirectory())->toBe('C:\\Users\\second');
+
+    $this->setEnvironmentVariable('USERPROFILE', '');
+
+    expect(Filesystem::homeDirectory())->toBe('C:\\Users\\third');
+});
+
+test('homeDirectory returns null when no home variables are set', function () {
+    foreach (['HOME', 'USERPROFILE', 'HOMEDRIVE', 'HOMEPATH'] as $variable) {
+        $this->setEnvironmentVariable($variable, '');
+    }
+
+    expect(Filesystem::homeDirectory())->toBeNull();
+});
+
+test('relativePath strips the base and any leading slash', function () {
+    expect(Filesystem::relativePath('/home/user/.cpx/laravel/pint/latest', '/home/user/.cpx'))->toBe('laravel/pint/latest')
+        ->and(Filesystem::relativePath('C:\\Users\\u\\.cpx\\laravel\\pint\\latest', 'C:/Users/u/.cpx'))->toBe('laravel/pint/latest');
+});
 
 test('writeAtomic writes the full contents and leaves no temp residue', function () {
     $directory = $this->temporaryDirectory('cpx-fs');

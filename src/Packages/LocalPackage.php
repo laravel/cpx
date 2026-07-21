@@ -147,31 +147,12 @@ class LocalPackage extends Package
             return $path;
         }
 
-        $home = self::homeDirectory();
+        $home = Filesystem::homeDirectory()
+            ?? throw new InvalidArgumentException('Unable to expand the local package path because the home directory could not be determined.');
 
         return $path === '~'
             ? $home
             : Filesystem::joinPath($home, substr($path, 2));
-    }
-
-    private static function homeDirectory(): string
-    {
-        foreach (['HOME', 'USERPROFILE'] as $variable) {
-            $home = $_SERVER[$variable] ?? getenv($variable);
-
-            if (is_string($home) && $home !== '') {
-                return rtrim($home, '/\\');
-            }
-        }
-
-        $drive = $_SERVER['HOMEDRIVE'] ?? getenv('HOMEDRIVE');
-        $homePath = $_SERVER['HOMEPATH'] ?? getenv('HOMEPATH');
-
-        if (is_string($drive) && $drive !== '' && is_string($homePath) && $homePath !== '') {
-            return rtrim("{$drive}{$homePath}", '/\\');
-        }
-
-        throw new InvalidArgumentException('Unable to expand the local package path because the home directory could not be determined.');
     }
 
     /**

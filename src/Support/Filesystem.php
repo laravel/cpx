@@ -37,6 +37,31 @@ class Filesystem
             || preg_match('/\A[a-zA-Z]:[\\\\\/]/', $path) === 1;
     }
 
+    public static function relativePath(string $path, string $base): string
+    {
+        return ltrim(str_replace(self::normalizePath($base), '', self::normalizePath($path)), '/');
+    }
+
+    public static function homeDirectory(): ?string
+    {
+        foreach (['HOME', 'USERPROFILE'] as $variable) {
+            $home = $_SERVER[$variable] ?? getenv($variable);
+
+            if (is_string($home) && $home !== '') {
+                return rtrim($home, '/\\');
+            }
+        }
+
+        $drive = $_SERVER['HOMEDRIVE'] ?? getenv('HOMEDRIVE');
+        $homePath = $_SERVER['HOMEPATH'] ?? getenv('HOMEPATH');
+
+        if (is_string($drive) && $drive !== '' && is_string($homePath) && $homePath !== '') {
+            return rtrim("{$drive}{$homePath}", '/\\');
+        }
+
+        return null;
+    }
+
     public static function ensureDirectory(string $directory): void
     {
         if (is_dir($directory)) {
@@ -60,11 +85,20 @@ class Filesystem
             throw new RuntimeException("Unable to write to {$temporaryPath}.");
         }
 
-        if (! rename($temporaryPath, $path)) {
-            self::deleteFile($temporaryPath);
+        // Retry transient (Windows file-lock) failures, mirroring replaceDirectory().
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            if ($attempt > 1) {
+                usleep(100_000);
+            }
 
-            throw new RuntimeException("Unable to move {$temporaryPath} to {$path}.");
+            if (@rename($temporaryPath, $path)) {
+                return;
+            }
         }
+
+        self::deleteFile($temporaryPath);
+
+        throw new RuntimeException("Unable to move {$temporaryPath} to {$path}.");
     }
 
     public static function deleteDirectoryWithin(string $path, string $root): void

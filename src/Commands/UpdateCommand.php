@@ -98,7 +98,7 @@ class UpdateCommand extends Command
 
     protected function updateDirectory(string $directory): void
     {
-        $relative = ltrim(str_replace(Filesystem::normalizePath(cpx_path()), '', Filesystem::normalizePath($directory)), '/');
+        $relative = Filesystem::relativePath($directory, cpx_path());
         $package = implode('/', array_slice(explode('/', $relative), 0, 2));
 
         if ($this->json) {
