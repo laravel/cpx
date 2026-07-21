@@ -134,10 +134,10 @@ test('exec prompts for the file of a multi-php gist', function () {
 
     Prompt::fake([Key::DOWN, Key::ENTER]);
 
-    GistClient::fake(fn (GistUrl $url, ?Closure $choose): GistFile => $choose(
+    GistClient::fake(fn (GistUrl $url, ?Closure $choose): GistFile => $choose([
         new GistFile(filename: 'first.php', language: 'PHP', content: '<?php file_put_contents('.var_export($marker, true).', "first");'),
         new GistFile(filename: 'second.php', language: 'PHP', content: '<?php file_put_contents('.var_export($marker, true).', "second");'),
-    ));
+    ]));
 
     [$status, $output] = runCpxCommand(['exec', GIST_URL]);
 
@@ -150,10 +150,10 @@ test('exec falls back to the ambiguous files callout when the terminal cannot pr
     $directory = $this->temporaryDirectory('cpx-exec-gist');
     $this->useWorkingDirectory($directory);
 
-    GistClient::fake(fn (GistUrl $url, ?Closure $choose): GistFile => $choose(
+    GistClient::fake(fn (GistUrl $url, ?Closure $choose): GistFile => $choose([
         new GistFile(filename: 'first.php', language: 'PHP', content: '<?php'),
         new GistFile(filename: 'second.php', language: 'PHP', content: '<?php'),
-    ));
+    ]));
 
     [$status, $output] = runCpxCommand(['exec', GIST_URL]);
 

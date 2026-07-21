@@ -75,7 +75,7 @@ test('passes the chooser through to file selection', function () {
         ], JSON_THROW_ON_ERROR),
     ]);
 
-    $file = $client->fetchFile(gistUrl(), fn (GistFile ...$files): GistFile => $files[1]);
+    $file = $client->fetchFile(gistUrl(), fn (array $files): GistFile => $files[1]);
 
     expect($file->filename)->toBe('second.php');
 });
