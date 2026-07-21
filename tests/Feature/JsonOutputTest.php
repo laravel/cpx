@@ -386,7 +386,7 @@ test('successful package runs stream raw child output when non-interactive', fun
     Interactivity::fake(false);
 
     prepareCachedPackage('vendor/tool', ['tool'], [
-        'tool' => "#!/usr/bin/env php\n<?php exit(7);\n",
+        'tool' => noopBinary(7),
     ]);
 
     [$status, $output] = runCpxCommand(['vendor/tool']);
