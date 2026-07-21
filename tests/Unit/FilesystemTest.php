@@ -3,6 +3,31 @@
 use Composer\Util\Filesystem as ComposerFilesystem;
 use Cpx\Support\Filesystem;
 
+test('homeDirectory resolves HOME, then USERPROFILE, then HOMEDRIVE and HOMEPATH', function () {
+    $this->setEnvironmentVariable('HOME', '/home/first/');
+    $this->setEnvironmentVariable('USERPROFILE', 'C:\\Users\\second');
+    $this->setEnvironmentVariable('HOMEDRIVE', 'C:');
+    $this->setEnvironmentVariable('HOMEPATH', '\\Users\\third');
+
+    expect(Filesystem::homeDirectory())->toBe('/home/first');
+
+    $this->setEnvironmentVariable('HOME', '');
+
+    expect(Filesystem::homeDirectory())->toBe('C:\\Users\\second');
+
+    $this->setEnvironmentVariable('USERPROFILE', '');
+
+    expect(Filesystem::homeDirectory())->toBe('C:\\Users\\third');
+});
+
+test('homeDirectory returns null when no home variables are set', function () {
+    foreach (['HOME', 'USERPROFILE', 'HOMEDRIVE', 'HOMEPATH'] as $variable) {
+        $this->setEnvironmentVariable($variable, '');
+    }
+
+    expect(Filesystem::homeDirectory())->toBeNull();
+});
+
 test('writeAtomic writes the full contents and leaves no temp residue', function () {
     $directory = $this->temporaryDirectory('cpx-fs');
     $path = "{$directory}/data.json";

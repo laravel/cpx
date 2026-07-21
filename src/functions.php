@@ -29,21 +29,12 @@ if (! function_exists('cpx_path')) {
             return Filesystem::joinPath($cpxHome, $path);
         }
 
-        foreach (['HOME', 'USERPROFILE'] as $variable) {
-            $home = $_SERVER[$variable] ?? getenv($variable);
+        $home = Filesystem::homeDirectory();
 
-            if (is_string($home) && $home !== '') {
-                return Filesystem::joinPath($home, '.cpx', $path);
-            }
+        if ($home === null) {
+            throw new RuntimeException('Unable to determine the home directory; set the CPX_HOME, HOME, or USERPROFILE environment variable.');
         }
 
-        $drive = $_SERVER['HOMEDRIVE'] ?? getenv('HOMEDRIVE');
-        $homePath = $_SERVER['HOMEPATH'] ?? getenv('HOMEPATH');
-
-        if (is_string($drive) && $drive !== '' && is_string($homePath) && $homePath !== '') {
-            return Filesystem::joinPath("{$drive}{$homePath}", '.cpx', $path);
-        }
-
-        throw new RuntimeException('Unable to determine the home directory; set the CPX_HOME, HOME, or USERPROFILE environment variable.');
+        return Filesystem::joinPath($home, '.cpx', $path);
     }
 }
