@@ -297,6 +297,38 @@ test('package-target version options are forwarded instead of rendering cpx vers
         ->and($output->fetch())->not->toContain('cpx version:');
 });
 
+test('the global help flag renders Symfony help', function () {
+    [$status, $output] = runCpxCommand(['--help']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Usage:')
+        ->and($output)->not->toContain('Unrecognised command');
+});
+
+test('the short help flag renders Symfony help', function () {
+    [$status, $output] = runCpxCommand(['-h']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Usage:')
+        ->and($output)->not->toContain('Unrecognised command');
+});
+
+test('the short version flag prints the cpx version', function () {
+    [$status, $output] = runCpxCommand(['-V']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('cpx dev')
+        ->and($output)->not->toContain('Unrecognised command');
+});
+
+test('the version flag prints the cpx version', function () {
+    [$status, $output] = runCpxCommand(['--version']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('cpx dev')
+        ->and($output)->not->toContain('Unrecognised command');
+});
+
 test('package-looking values with shell metacharacters fail before composer execution', function () {
     $this->useIsolatedComposerHome();
 
