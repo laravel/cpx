@@ -113,7 +113,7 @@ class Application extends SymfonyApplication
         $command = $input->getRawTokens()[0] ?? null;
 
         return is_string($command)
-            && ! in_array($command, ['--version', '-v'], true)
+            && ! str_starts_with($command, '-')
             && ! $this->has($command);
     }
 }

@@ -12,7 +12,7 @@ class Arr
      * @template TReturnKey of array-key
      * @template TReturnValue
      *
-     * @param  callable(TKey, TValue): array<TReturnKey, TReturnValue>  $callback
+     * @param  callable(TValue, TKey): array<TReturnKey, TReturnValue>  $callback
      * @param  array<TKey, TValue>  $array
      * @return array<TReturnKey, TReturnValue>
      */
@@ -21,7 +21,9 @@ class Arr
         $result = [];
 
         foreach ($array as $key => $value) {
-            $result += $callback($key, $value);
+            foreach ($callback($value, $key) as $mappedKey => $mappedValue) {
+                $result[$mappedKey] = $mappedValue;
+            }
         }
 
         return $result;

@@ -152,7 +152,7 @@ test('select asks the chooser when multiple php files qualify', function () {
 
     $offered = null;
 
-    $file = $gist->select(null, function (GistFile ...$files) use (&$offered): GistFile {
+    $file = $gist->select(null, function (array $files) use (&$offered): GistFile {
         $offered = array_map(fn (GistFile $file): string => $file->filename, $files);
 
         return $files[1];

@@ -86,6 +86,44 @@ test('it loads a legacy metadata file without a version section', function () {
         ->and($metadata->execCache['sandbox']->lastRunAt)->toBe(1);
 });
 
+test('it drops packages with unparseable keys and keeps valid entries', function () {
+    $this->useIsolatedComposerHome();
+
+    mkdir(dirname(cpx_path('.cpx_metadata.json')), 0755, true);
+    file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
+        'packages' => [
+            'laravel/pint' => ['last_updated' => 1, 'last_run' => 1],
+            'Not A Package!!' => ['last_updated' => 1, 'last_run' => 1],
+        ],
+        'execCache' => [],
+    ], JSON_THROW_ON_ERROR));
+
+    $metadata = Metadata::open();
+
+    expect($metadata->hasPackage('laravel/pint'))->toBeTrue()
+        ->and($metadata->hasPackage('Not A Package!!'))->toBeFalse();
+});
+
+test('a write after opening persists the healed package state', function () {
+    $this->useIsolatedComposerHome();
+
+    mkdir(dirname(cpx_path('.cpx_metadata.json')), 0755, true);
+    file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
+        'packages' => [
+            'laravel/pint' => ['last_updated' => 1, 'last_run' => 1],
+            'Not A Package!!' => ['last_updated' => 1, 'last_run' => 1],
+        ],
+        'execCache' => [],
+    ], JSON_THROW_ON_ERROR));
+
+    Metadata::transaction(fn (Metadata $metadata) => $metadata->recordRun(Package::parse('laravel/pint')));
+
+    $decoded = json_decode((string) file_get_contents(cpx_path('.cpx_metadata.json')), true);
+
+    expect($decoded['packages'])->toHaveKey('laravel/pint')
+        ->and($decoded['packages'])->not->toHaveKey('Not A Package!!');
+});
+
 test('interleaved transactions keep every update and leave valid json', function () {
     $this->useIsolatedComposerHome();
 

@@ -58,8 +58,8 @@ class UpdateCommand extends Command
         try {
             match (true) {
                 str_contains($target, '/') => $this->updatePackage(Package::parse($target)),
-                $target !== '' => $this->updateVendor($target),
-                default => $this->updateAllPackages(),
+                $target !== '' => $this->updateMatching("{$target}/*/*", "There are no packages in vendor '{$target}' to update."),
+                default => $this->updateMatching('*/*/*', 'There are no packages to update.'),
             };
         } catch (InvalidArgumentException $exception) {
             return Result::failure($output, $exception->getMessage());
@@ -87,55 +87,13 @@ class UpdateCommand extends Command
         return self::FAILURE;
     }
 
-    protected function updateAllPackages(): void
-    {
-        $packageDirectories = glob(cpx_path('*/*/*'), GLOB_ONLYDIR) ?: [];
-
-        if (empty($packageDirectories)) {
-            if (! $this->json) {
-                info('There are no packages to update.');
-            }
-        } else {
-            foreach ($packageDirectories as $directory) {
-                $this->updateDirectory($directory);
-            }
-        }
-    }
-
-    protected function updateVendor(string $vendor): void
-    {
-        $packageDirectories = glob(cpx_path("{$vendor}/*/*"), GLOB_ONLYDIR) ?: [];
-
-        if (empty($packageDirectories)) {
-            if (! $this->json) {
-                info("There are no packages in vendor '{$vendor}' to update.");
-            }
-        } else {
-            foreach ($packageDirectories as $directory) {
-                $this->updateDirectory($directory);
-            }
-        }
-    }
-
     protected function updatePackage(Package $package): void
     {
-        if ($package->version) {
-            $this->updateDirectory(cpx_path($package->folder()));
+        $pattern = $package->version === null
+            ? "{$package->vendor}/{$package->name}/*"
+            : $package->folder();
 
-            return;
-        }
-
-        $packageDirectories = glob(cpx_path("{$package->vendor}/{$package->name}/*"), GLOB_ONLYDIR) ?: [];
-
-        if (empty($packageDirectories)) {
-            if (! $this->json) {
-                info("There are no installed versions of '{$package->vendor}/{$package->name}' to update.");
-            }
-        } else {
-            foreach ($packageDirectories as $directory) {
-                $this->updateDirectory($directory);
-            }
-        }
+        $this->updateMatching($pattern, "There are no installed versions of '{$package->fullPackageString()}' to update.");
     }
 
     protected function updateDirectory(string $directory): void
@@ -167,6 +125,23 @@ class UpdateCommand extends Command
             },
             keepSummary: true,
         );
+    }
+
+    private function updateMatching(string $pattern, string $emptyMessage): void
+    {
+        $directories = glob(cpx_path($pattern), GLOB_ONLYDIR) ?: [];
+
+        if ($directories === []) {
+            if (! $this->json) {
+                info($emptyMessage);
+            }
+
+            return;
+        }
+
+        foreach ($directories as $directory) {
+            $this->updateDirectory($directory);
+        }
     }
 
     /** @return array{from: string, to: string, error: string|null} */

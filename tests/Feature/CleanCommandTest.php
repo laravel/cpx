@@ -95,6 +95,101 @@ test('the sandbox option removes exec caches but preserves package caches', func
         ->and(Metadata::open()->execCache)->toBe([]);
 });
 
+test('the sandbox option with a days window removes only sandboxes older than the window', function () {
+    $this->useIsolatedComposerHome();
+
+    $packageDirectory = cpx_path('laravel/pint/latest');
+    mkdir($packageDirectory.'/vendor', 0755, true);
+    file_put_contents($packageDirectory.'/vendor/autoload.php', '<?php');
+
+    $oldSandbox = cpx_path('.exec_cache/old-sandbox');
+    $freshSandbox = cpx_path('.exec_cache/fresh-sandbox');
+    mkdir($oldSandbox, 0755, true);
+    mkdir($freshSandbox, 0755, true);
+
+    file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
+        'packages' => [
+            'laravel/pint' => ['last_updated' => '2024-01-01 00:00:00', 'last_run' => '2024-01-01 00:00:00'],
+        ],
+        'execCache' => [
+            'old-sandbox' => ['packages' => ['laravel/pint'], 'last_updated' => time() - 100 * 86400, 'last_run' => time() - 100 * 86400],
+            'fresh-sandbox' => ['packages' => ['laravel/pint'], 'last_updated' => time(), 'last_run' => time()],
+        ],
+    ], JSON_THROW_ON_ERROR));
+
+    [$status] = runCpxCommand(['clean', '--sandbox', '--days=90']);
+
+    expect($status)->toBe(0)
+        ->and(is_dir($oldSandbox))->toBeFalse()
+        ->and(is_dir($freshSandbox))->toBeTrue()
+        ->and(is_dir($packageDirectory))->toBeTrue()
+        ->and(Metadata::open()->hasPackage('laravel/pint'))->toBeTrue()
+        ->and(array_keys(Metadata::open()->execCache))->toBe(['fresh-sandbox']);
+});
+
+test('the all option with a days window applies it to packages and sandboxes', function () {
+    $this->useIsolatedComposerHome();
+
+    $oldPackage = cpx_path('laravel/pint/latest');
+    $freshPackage = cpx_path('phpunit/phpunit/latest');
+    mkdir($oldPackage.'/vendor', 0755, true);
+    file_put_contents($oldPackage.'/vendor/autoload.php', '<?php');
+    mkdir($freshPackage.'/vendor', 0755, true);
+    file_put_contents($freshPackage.'/vendor/autoload.php', '<?php');
+
+    $oldSandbox = cpx_path('.exec_cache/old-sandbox');
+    $freshSandbox = cpx_path('.exec_cache/fresh-sandbox');
+    mkdir($oldSandbox, 0755, true);
+    mkdir($freshSandbox, 0755, true);
+
+    file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
+        'packages' => [
+            'laravel/pint' => ['last_updated' => date('Y-m-d H:i:s', time() - 10 * 86400), 'last_run' => date('Y-m-d H:i:s', time() - 10 * 86400)],
+            'phpunit/phpunit' => ['last_updated' => date('Y-m-d H:i:s'), 'last_run' => date('Y-m-d H:i:s')],
+        ],
+        'execCache' => [
+            'old-sandbox' => ['packages' => ['laravel/pint'], 'last_updated' => time() - 10 * 86400, 'last_run' => time() - 10 * 86400],
+            'fresh-sandbox' => ['packages' => ['laravel/pint'], 'last_updated' => time(), 'last_run' => time()],
+        ],
+    ], JSON_THROW_ON_ERROR));
+
+    [$status] = runCpxCommand(['clean', '--all', '--days=7']);
+
+    expect($status)->toBe(0)
+        ->and(is_dir($oldPackage))->toBeFalse()
+        ->and(is_dir($freshPackage))->toBeTrue()
+        ->and(is_dir($oldSandbox))->toBeFalse()
+        ->and(is_dir($freshSandbox))->toBeTrue()
+        ->and(Metadata::open()->hasPackage('laravel/pint'))->toBeFalse()
+        ->and(Metadata::open()->hasPackage('phpunit/phpunit'))->toBeTrue();
+});
+
+test('the all option without a days window still removes fresh caches', function () {
+    $this->useIsolatedComposerHome();
+
+    $packageDirectory = cpx_path('laravel/pint/latest');
+    mkdir($packageDirectory.'/vendor', 0755, true);
+    file_put_contents($packageDirectory.'/vendor/autoload.php', '<?php');
+
+    $sandboxDirectory = cpx_path('.exec_cache/sandbox');
+    mkdir($sandboxDirectory, 0755, true);
+
+    file_put_contents(cpx_path('.cpx_metadata.json'), json_encode([
+        'packages' => [
+            'laravel/pint' => ['last_updated' => date('Y-m-d H:i:s'), 'last_run' => date('Y-m-d H:i:s')],
+        ],
+        'execCache' => [
+            'sandbox' => ['packages' => ['laravel/pint'], 'last_updated' => time(), 'last_run' => time()],
+        ],
+    ], JSON_THROW_ON_ERROR));
+
+    [$status] = runCpxCommand(['clean', '--all']);
+
+    expect($status)->toBe(0)
+        ->and(is_dir($packageDirectory))->toBeFalse()
+        ->and(is_dir($sandboxDirectory))->toBeFalse();
+});
+
 test('the sandbox option is a no-op when there are no sandboxes', function () {
     $this->useIsolatedComposerHome();
 

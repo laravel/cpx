@@ -17,7 +17,7 @@ class GistClient
     }
 
     /**
-     * @param  (Closure(GistFile...): GistFile)|null  $chooseFile
+     * @param  (Closure(list<GistFile>): GistFile)|null  $chooseFile
      *
      * @throws GistException
      */
@@ -58,7 +58,7 @@ class GistClient
     }
 
     /**
-     * @param  callable(GistUrl, (Closure(GistFile...): GistFile)|null): GistFile  $fetcher
+     * @param  callable(GistUrl, (Closure(list<GistFile>): GistFile)|null): GistFile  $fetcher
      */
     public static function fake(callable $fetcher): void
     {
