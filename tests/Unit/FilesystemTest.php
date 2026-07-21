@@ -54,6 +54,11 @@ test('homeDirectory returns null when no home variables are set', function () {
     expect(Filesystem::homeDirectory())->toBeNull();
 });
 
+test('relativePath strips the base and any leading slash', function () {
+    expect(Filesystem::relativePath('/home/user/.cpx/laravel/pint/latest', '/home/user/.cpx'))->toBe('laravel/pint/latest')
+        ->and(Filesystem::relativePath('C:\\Users\\u\\.cpx\\laravel\\pint\\latest', 'C:/Users/u/.cpx'))->toBe('laravel/pint/latest');
+});
+
 test('writeAtomic writes the full contents and leaves no temp residue', function () {
     $directory = $this->temporaryDirectory('cpx-fs');
     $path = "{$directory}/data.json";
