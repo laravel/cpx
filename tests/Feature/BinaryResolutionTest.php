@@ -8,7 +8,7 @@ test('a package with one binary runs without requiring a binary name', function 
     $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
 
     prepareCachedPackage('vendor/package', ['package'], [
-        'package' => "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n",
+        'package' => argvLoggingBinary($logFile),
     ]);
 
     [$status] = runCpxCommand(['vendor/package', '--flag']);
@@ -22,8 +22,8 @@ test('a package with multiple binaries uses the first forwarded argument as the 
     $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
 
     prepareCachedPackage('vendor/package', ['foo', 'bar'], [
-        'foo' => "#!/usr/bin/env php\n<?php exit(99);\n",
-        'bar' => "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n",
+        'foo' => noopBinary(99),
+        'bar' => argvLoggingBinary($logFile),
     ]);
 
     [$status] = runCpxCommand(['vendor/package', 'bar', '--flag']);
@@ -37,8 +37,8 @@ test('a package with multiple binaries keeps a positional argument when a binary
     $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
 
     prepareCachedPackage('vendor/package', ['package', 'other'], [
-        'package' => "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n",
-        'other' => "#!/usr/bin/env php\n<?php exit(99);\n",
+        'package' => argvLoggingBinary($logFile),
+        'other' => noopBinary(99),
     ]);
 
     [$status] = runCpxCommand(['vendor/package', 'tests/Sub']);
@@ -52,8 +52,8 @@ test('a positional token spelling a package-named binary is forwarded, not consu
     $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
 
     prepareCachedPackage('vendor/pkg', ['pkg', 'other'], [
-        'pkg' => "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n",
-        'other' => "#!/usr/bin/env php\n<?php exit(99);\n",
+        'pkg' => argvLoggingBinary($logFile),
+        'other' => noopBinary(99),
     ]);
 
     [$status] = runCpxCommand(['vendor/pkg', 'pkg', 'tests/Sub']);
@@ -66,8 +66,8 @@ test('ambiguity errors share wording for cached and local packages', function ()
     $this->useIsolatedComposerHome();
 
     prepareCachedPackage('vendor/package', ['foo', 'bar'], [
-        'foo' => "#!/usr/bin/env php\n<?php exit(0);\n",
-        'bar' => "#!/usr/bin/env php\n<?php exit(0);\n",
+        'foo' => noopBinary(),
+        'bar' => noopBinary(),
     ]);
     $root = $this->prepareLocalPackage(['bin/foo', 'bin/bar'], 'vendor/local');
 
@@ -95,8 +95,8 @@ test('ambiguous multiple-binary packages list the available binaries', function 
     $this->useIsolatedComposerHome();
 
     prepareCachedPackage('vendor/package', ['foo', 'bar'], [
-        'foo' => "#!/usr/bin/env php\n<?php exit(0);\n",
-        'bar' => "#!/usr/bin/env php\n<?php exit(0);\n",
+        'foo' => noopBinary(),
+        'bar' => noopBinary(),
     ]);
 
     [$status, $output] = runCpxCommand(['vendor/package']);
@@ -110,8 +110,8 @@ test('an aliased multiple-binary package runs its pinned binary and forwards all
     $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
 
     prepareCachedPackage('vendor/package', ['foo', 'bar'], [
-        'foo' => "#!/usr/bin/env php\n<?php exit(99);\n",
-        'bar' => "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n",
+        'foo' => noopBinary(99),
+        'bar' => argvLoggingBinary($logFile),
     ]);
 
     UserAliases::open()
@@ -130,7 +130,7 @@ test('an aliased package with a stale pinned binary fails with a clear error', f
     $this->useIsolatedComposerHome();
 
     prepareCachedPackage('vendor/package', ['foo'], [
-        'foo' => "#!/usr/bin/env php\n<?php exit(0);\n",
+        'foo' => noopBinary(),
     ]);
 
     UserAliases::open()

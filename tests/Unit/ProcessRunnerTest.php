@@ -8,7 +8,7 @@ test('it returns the child exit code when using inherited stdio', function () {
     $directory = $this->temporaryDirectory('cpx-process');
     $binary = "{$directory}/exit-code";
 
-    writeExecutable($binary, "#!/usr/bin/env php\n<?php exit(37);\n");
+    writeExecutable($binary, noopBinary(37));
 
     expect((new ProcessRunner)->run([PHP_BINARY, $binary]))->toBe(37);
 });
@@ -44,7 +44,7 @@ test('it delivers shell metacharacters as literal argv tokens', function () {
     $binary = "{$directory}/argv";
     $logFile = "{$directory}/argv.json";
 
-    writeExecutable($binary, "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n");
+    writeExecutable($binary, argvLoggingBinary($logFile));
 
     $status = (new ProcessRunner)->run([PHP_BINARY, $binary, 'two words', 'semi;colon', 'pipe|value', '$(touch injected)']);
 
@@ -86,7 +86,7 @@ test('it completes when the child never reads the supplied input', function () {
     $directory = $this->temporaryDirectory('cpx-process');
     $binary = "{$directory}/no-read";
 
-    writeExecutable($binary, "#!/usr/bin/env php\n<?php exit(5);\n");
+    writeExecutable($binary, noopBinary(5));
 
     ProcessRunner::fakeInput("pending data\n");
 
@@ -140,7 +140,7 @@ test('it keeps the parent stdio streams usable across sequential runs', function
     $directory = $this->temporaryDirectory('cpx-process');
     $binary = "{$directory}/exit-code";
 
-    writeExecutable($binary, "#!/usr/bin/env php\n<?php exit(11);\n");
+    writeExecutable($binary, noopBinary(11));
 
     expect((new ProcessRunner)->run([PHP_BINARY, $binary]))->toBe(11)
         ->and((new ProcessRunner)->run([PHP_BINARY, $binary]))->toBe(11);
