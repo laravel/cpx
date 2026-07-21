@@ -3,5 +3,5 @@
 .gitattributes export-ignore
 .github/ export-ignore
 .gitignore export-ignore
-banner.png export-ignore
+banner-v2.png export-ignore
 README.md export-ignore
