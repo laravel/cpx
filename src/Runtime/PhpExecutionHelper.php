@@ -30,8 +30,9 @@ class PhpExecutionHelper
                 echo 'Aliasing classes'.PHP_EOL;
             }
 
-            static::getClassAliasAutoloader($context->verbose)->addAliases($context->autoloadRoot);
-            spl_autoload_register(static::getClassAliasAutoloader($context->verbose)->aliasClass(...));
+            $autoloader = static::$classAliasAutoloader ??= new ClassAliasAutoloader($context->verbose);
+            $autoloader->addAliases($context->autoloadRoot);
+            spl_autoload_register($autoloader->aliasClass(...));
         }
 
         return $variables;
@@ -53,10 +54,5 @@ class PhpExecutionHelper
         }
 
         return $root;
-    }
-
-    public static function getClassAliasAutoloader(bool $shouldBeVerbose = false): ClassAliasAutoloader
-    {
-        return static::$classAliasAutoloader ??= new ClassAliasAutoloader($shouldBeVerbose);
     }
 }
