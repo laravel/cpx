@@ -3,6 +3,10 @@
 use Cpx\Support\Interactivity;
 use Symfony\Component\Console\Input\ArgvInput;
 
+test('the json flag list shares one source with non-interactive detection', function () {
+    expect(Interactivity::NON_INTERACTIVE_OPTIONS)->toContain('--'.Interactivity::JSON_OPTION);
+});
+
 test('an agent environment is non-interactive', function () {
     Interactivity::clearFake();
     $this->setEnvironmentVariable('AI_AGENT', 'test-agent');
