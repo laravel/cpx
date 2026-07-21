@@ -29,7 +29,7 @@ test('it runs the require command', function () {
         ]);
 });
 
-test('it assembles arguments with no-interaction and working-dir and returns the runner exit code', function () {
+test('it assembles arguments with no-interaction and the working-dir option', function () {
     $captured = null;
     ComposerRunner::fake(function (array $command) use (&$captured): int {
         $captured = $command;
@@ -37,16 +37,15 @@ test('it assembles arguments with no-interaction and working-dir and returns the
         return 0;
     });
 
-    $exitCode = ComposerRunner::run(['require', 'vendor/package:^1@dev', '--no-progress'], '/tmp/example dir');
+    ComposerRunner::run(['require', 'vendor/package:^1@dev', '--no-progress'], '/tmp/example dir');
 
-    expect($exitCode)->toBe(0)
-        ->and($captured)->toBe([
-            'require',
-            'vendor/package:^1@dev',
-            '--no-progress',
-            '--no-interaction',
-            '--working-dir=/tmp/example dir',
-        ]);
+    expect($captured)->toBe([
+        'require',
+        'vendor/package:^1@dev',
+        '--no-progress',
+        '--no-interaction',
+        '--working-dir=/tmp/example dir',
+    ]);
 });
 
 test('it omits the working-dir option when no directory is given', function () {
@@ -208,11 +207,11 @@ test('it returns a non-zero exit code when the booted composer command fails', f
     expect(ComposerRunner::runInProcess(['this-command-does-not-exist', '--quiet'], new BufferedOutput))->toBe(1);
 });
 
-test('it runs an offline composer command in an isolated child process and returns success', function () {
+test('it runs an offline composer command in an isolated child process', function () {
     $this->useIsolatedComposerHome();
 
-    expect(ComposerRunner::run(['about', '--quiet']))->toBe(0);
-});
+    ComposerRunner::run(['about', '--quiet']);
+})->throwsNoExceptions();
 
 test('it throws the uniform message when an unknown composer command fails in the child', function () {
     $this->useIsolatedComposerHome();
@@ -225,10 +224,9 @@ test('it installs a package from a local path repository without network', funct
 
     $staging = $this->stagingWithPathPackages(['cpx-fixture/pkg']);
 
-    $exitCode = ComposerRunner::run(['require', 'cpx-fixture/pkg:*', '--quiet'], $staging);
+    ComposerRunner::run(['require', 'cpx-fixture/pkg:*', '--quiet'], $staging);
 
-    expect($exitCode)->toBe(0)
-        ->and(file_exists("{$staging}/vendor/autoload.php"))->toBeTrue()
+    expect(file_exists("{$staging}/vendor/autoload.php"))->toBeTrue()
         ->and(file_exists("{$staging}/vendor/cpx-fixture/pkg/composer.json"))->toBeTrue();
 });
 
@@ -261,10 +259,9 @@ test('it activates package plugins in the child without loading them into the cp
 
     ['staging' => $staging, 'package' => $package, 'pluginClass' => $pluginClass] = $this->stagingWithPluginPackage();
 
-    $exitCode = ComposerRunner::run(['require', "{$package}:*", '--quiet'], $staging);
+    ComposerRunner::run(['require', "{$package}:*", '--quiet'], $staging);
 
-    expect($exitCode)->toBe(0)
-        ->and(file_exists("{$staging}/vendor/{$package}/composer.json"))->toBeTrue()
+    expect(file_exists("{$staging}/vendor/{$package}/composer.json"))->toBeTrue()
         ->and(class_exists($pluginClass, autoload: false))->toBeFalse();
 });
 

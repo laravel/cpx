@@ -57,15 +57,13 @@ class ComposerRunner
      *
      * @throws ComposerCommandException
      */
-    public static function run(array $arguments, ?string $directory = null): int
+    public static function run(array $arguments, ?string $directory = null): void
     {
         $exitCode = self::execute($arguments, $directory, captureOutput: false)->exitCode;
 
         if ($exitCode !== Command::SUCCESS) {
             throw new ComposerCommandException($arguments);
         }
-
-        return $exitCode;
     }
 
     /**

@@ -12,11 +12,11 @@ trait OutputsJson
 {
     private function addJsonOption(): void
     {
-        $this->addOption('json', null, InputOption::VALUE_NONE, 'Output the result as JSON');
+        $this->addOption(Interactivity::JSON_OPTION, null, InputOption::VALUE_NONE, 'Output the result as JSON');
     }
 
     private function wantsJson(InputInterface $input): bool
     {
-        return $input->getOption('json') === true || ! Interactivity::isInteractive();
+        return $input->getOption(Interactivity::JSON_OPTION) === true || ! Interactivity::isInteractive();
     }
 }
