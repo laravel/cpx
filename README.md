@@ -1,4 +1,4 @@
-![Run Composer packages, efortlessly.](./banner.png)
+![Run Composer packages, efortlessly.](./banner-v2.png)
 
 # cpx - Composer Package Executor
 
@@ -143,7 +143,15 @@ cpx detects when it is not running in an interactive terminal — inside an AI a
 - cpx's own commands (`installed`, `aliases`, `alias`, `unalias`, `clean`, and `update`) respond with a single line of JSON instead of formatted text:
 
 ```json
-{"success": true, "errors": [], "summary": {"packages": [{"name": "laravel/pint", "last_run": "2024-01-02 03:04:05"}]}}
+{
+    "success": true,
+    "errors": [],
+    "summary": {
+        "packages": [
+            { "name": "laravel/pint", "last_run": "2024-01-02 03:04:05" }
+        ]
+    }
+}
 ```
 
 Package runs stream only the tool's own output — cpx's progress rendering is suppressed — and cpx-level failures (an unrecognised command, a package that cannot be installed, missing or ambiguous binaries) are reported as JSON.
