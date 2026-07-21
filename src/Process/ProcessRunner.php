@@ -25,12 +25,12 @@ class ProcessRunner
 
     public static function withLogger(Logger $logger, callable $callback): mixed
     {
-        static::$logger = $logger;
+        self::$logger = $logger;
 
         try {
             return $callback();
         } finally {
-            static::$logger = null;
+            self::$logger = null;
         }
     }
 
@@ -51,7 +51,7 @@ class ProcessRunner
         try {
             $process = new Process($command, cwd: $cwd, env: $env === [] ? null : $env, timeout: null);
 
-            if (static::$logger !== null) {
+            if (self::$logger !== null) {
                 return $process->run($this->logOutput(...));
             }
 
@@ -108,14 +108,14 @@ class ProcessRunner
 
     private function logOutput(string $type, string $buffer): void
     {
-        if (static::$logger === null) {
+        if (self::$logger === null) {
             return;
         }
 
         $message = rtrim($buffer);
 
         if ($message !== '') {
-            static::$logger->line($message);
+            self::$logger->line($message);
         }
     }
 
