@@ -5,12 +5,10 @@ use Cpx\Composer\ComposerRunner;
 use Cpx\Input\PackageInvocation;
 use Cpx\Packages\LocalPackage;
 use Cpx\Packages\Package;
-use Cpx\Packages\PackageCommandRunner;
 use Cpx\Packages\UserAliases;
 use Cpx\Support\Filesystem;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Tester\ApplicationTester;
 
 test('it can run through Symfony tester utilities without exiting', function () {
@@ -143,7 +141,7 @@ test('a user-defined alias resolves to its package', function () {
     $this->useIsolatedComposerHome();
 
     $packageDirectory = prepareCachedPackage('vendor/custom-pint', ['pint']);
-    writeExecutable($packageDirectory.'/pint', "#!/usr/bin/env php\n<?php exit(0);\n");
+    writeExecutable($packageDirectory.'/pint', noopBinary());
     UserAliases::open()->put('pint', Package::parse('vendor/custom-pint'))->save();
 
     [$status, $output] = runCpxCommand(['pint']);
@@ -156,7 +154,7 @@ test('unalias removes a user-defined alias', function () {
     $this->useIsolatedComposerHome();
 
     $packageDirectory = prepareCachedPackage('vendor/custom-pint', ['pint']);
-    writeExecutable($packageDirectory.'/pint', "#!/usr/bin/env php\n<?php exit(0);\n");
+    writeExecutable($packageDirectory.'/pint', noopBinary());
     UserAliases::open()->put('pint', Package::parse('vendor/custom-pint'))->save();
 
     [$unaliasStatus, $unaliasOutput] = runCpxCommand(['unalias', 'pint']);
@@ -301,17 +299,7 @@ test('bare existing files without a php extension also get the exec hint', funct
 });
 
 test('unknown package targets route to the package fallback command', function () {
-    $runner = new class extends PackageCommandRunner
-    {
-        public ?PackageInvocation $invocation = null;
-
-        public function run(PackageInvocation $invocation, OutputInterface $output, bool $skipLocal = false): int
-        {
-            $this->invocation = $invocation;
-
-            return 0;
-        }
-    };
+    $runner = recordingPackageRunner();
     $application = new Application($runner);
 
     $status = $application->run(new ArgvInput(['cpx', 'vendor/package', '--flag', 'value']), new BufferedOutput);
@@ -323,17 +311,7 @@ test('unknown package targets route to the package fallback command', function (
 });
 
 test('package fallback accepts arbitrary package options without Symfony validation errors', function () {
-    $runner = new class extends PackageCommandRunner
-    {
-        public ?PackageInvocation $invocation = null;
-
-        public function run(PackageInvocation $invocation, OutputInterface $output, bool $skipLocal = false): int
-        {
-            $this->invocation = $invocation;
-
-            return 0;
-        }
-    };
+    $runner = recordingPackageRunner();
     $application = new Application($runner);
 
     $status = $application->run(new ArgvInput([
@@ -362,17 +340,7 @@ test('package fallback accepts arbitrary package options without Symfony validat
 });
 
 test('package-target version options are forwarded instead of rendering cpx version', function () {
-    $runner = new class extends PackageCommandRunner
-    {
-        public ?PackageInvocation $invocation = null;
-
-        public function run(PackageInvocation $invocation, OutputInterface $output, bool $skipLocal = false): int
-        {
-            $this->invocation = $invocation;
-
-            return 0;
-        }
-    };
+    $runner = recordingPackageRunner();
     $application = new Application($runner);
     $output = new BufferedOutput;
 
@@ -418,6 +386,7 @@ test('the version flag prints the cpx version', function () {
 
 test('package-looking values with shell metacharacters fail before composer execution', function () {
     $this->useIsolatedComposerHome();
+    $this->useWorkingDirectory($this->temporaryDirectory('cpx-project'));
 
     $calls = [];
     fakeComposer($calls);
@@ -431,6 +400,7 @@ test('package-looking values with shell metacharacters fail before composer exec
 
 test('an unparseable slash target surfaces the package format hint', function () {
     $this->useIsolatedComposerHome();
+    $this->useWorkingDirectory($this->temporaryDirectory('cpx-project'));
 
     [$status, $output] = runCpxCommand(['bad//ref']);
 
@@ -441,6 +411,7 @@ test('an unparseable slash target surfaces the package format hint', function ()
 
 test('invalid fallback commands return a failure status with help output', function () {
     $this->useIsolatedComposerHome();
+    $this->useWorkingDirectory($this->temporaryDirectory('cpx-project'));
 
     [$status, $output] = runCpxCommand(['not-a-package']);
 
@@ -450,6 +421,7 @@ test('invalid fallback commands return a failure status with help output', funct
 
 test('a package that composer cannot install renders a package-not-found error', function () {
     $this->useIsolatedComposerHome();
+    $this->useWorkingDirectory($this->temporaryDirectory('cpx-project'));
 
     $calls = [];
     fakeComposer($calls, exitCode: 1);
@@ -467,6 +439,7 @@ test('a package that composer cannot install renders a package-not-found error',
 
 test('a package-not-found error mentions the requested version constraint', function () {
     $this->useIsolatedComposerHome();
+    $this->useWorkingDirectory($this->temporaryDirectory('cpx-project'));
 
     $calls = [];
     fakeComposer($calls, exitCode: 1);
