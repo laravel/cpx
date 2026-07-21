@@ -4,7 +4,30 @@ declare(strict_types=1);
 
 use Cpx\Composer\ComposerRunner;
 use Cpx\Exceptions\ComposerCommandException;
+use Cpx\Exceptions\PackageNotFoundException;
+use Cpx\Process\ProcessResult;
+use Cpx\Process\ProcessRunner;
+use Cpx\Support\SilentLogger;
 use Symfony\Component\Console\Output\BufferedOutput;
+
+test('it runs the require command', function () {
+    $captured = null;
+    ComposerRunner::fake(function (array $command) use (&$captured): int {
+        $captured = $command;
+
+        return 0;
+    });
+
+    $exitCode = ComposerRunner::require('vendor/package:^1.0', '/tmp/example');
+
+    expect($exitCode)->toBe(0)
+        ->and($captured)->toBe([
+            'require',
+            'vendor/package:^1.0',
+            '--no-interaction',
+            '--working-dir=/tmp/example',
+        ]);
+});
 
 test('it assembles arguments with no-interaction and working-dir and returns the runner exit code', function () {
     $captured = null;
@@ -44,6 +67,116 @@ test('it throws a uniform message when the runner reports a failure', function (
 
     ComposerRunner::run(['update']);
 })->throws(ComposerCommandException::class, 'Composer command failed: update');
+
+test('it identifies composer package discovery failures', function (string $requirement, string $diagnostic) {
+    ComposerRunner::fake(fn (array $command): ProcessResult => new ProcessResult(1, $diagnostic));
+
+    ComposerRunner::require($requirement, '/tmp/example');
+})->with([
+    'unversioned package' => ['vendor/missing', 'Could not find a matching version of package vendor/missing. Check the package spelling.'],
+    'suggested package names' => ['vendor/missing', "Could not find package vendor/missing.\n\nDid you mean vendor/existing?"],
+    'explicit version' => ['vendor/missing:^9.0', 'Root composer.json requires vendor/missing ^9.0, it could not be found in any version, there may be a typo in the package name.'],
+    'ansi-decorated multiline output' => ['vendor/missing', "\e[31mRoot composer.json requires\e[39m\n vendor/missing, it could not be found in any version,\n there may be a typo in the package name."],
+])->throws(PackageNotFoundException::class);
+
+test('a package-not-found failure retains the requested constraint and composer exception', function () {
+    ComposerRunner::fake(fn (array $command): ProcessResult => new ProcessResult(1, 'Could not find a matching version of package vendor/missing.'));
+
+    try {
+        ComposerRunner::require('vendor/missing:^9.0', '/tmp/example');
+    } catch (PackageNotFoundException $exception) {
+        expect($exception->package->fullPackageString())->toBe('vendor/missing:^9.0')
+            ->and($exception->getPrevious())->toBeInstanceOf(ComposerCommandException::class);
+
+        return;
+    }
+
+    $this->fail('Expected PackageNotFoundException to be thrown.');
+});
+
+test('it reports a missing dependency instead of the requested package', function () {
+    ComposerRunner::fake(fn (array $command): ProcessResult => new ProcessResult(
+        1,
+        'vendor/package 1.0.0 requires dependency/missing * -> could not be found in any version, there may be a typo in the package name.',
+    ));
+
+    try {
+        ComposerRunner::require('vendor/package:^1.0', '/tmp/example');
+    } catch (PackageNotFoundException $exception) {
+        expect($exception->package->fullPackageString())->toBe('dependency/missing');
+
+        return;
+    }
+
+    $this->fail('Expected PackageNotFoundException to be thrown.');
+});
+
+test('it preserves other composer require failures', function (string $diagnostic) {
+    ComposerRunner::fake(fn (array $command): ProcessResult => new ProcessResult(1, $diagnostic));
+
+    ComposerRunner::require('vendor/package:^9.0', '/tmp/example');
+})->with([
+    'constraint mismatch' => ['Root composer.json requires vendor/package ^9.0, found vendor/package[1.0.0] but it does not match the constraint.'],
+    'platform mismatch' => ['Package vendor/package has requirements incompatible with your PHP version, PHP extensions and Composer version.'],
+    'transport failure' => ['curl error 60: SSL certificate problem'],
+    'authentication failure' => ['Invalid credentials for https://repo.example.test/packages.json'],
+    'unknown failure' => ['Composer encountered an unexpected error.'],
+])->throws(ComposerCommandException::class, 'Composer command failed: require vendor/package:^9.0');
+
+test('generic composer commands do not classify missing-package output', function () {
+    ComposerRunner::fake(fn (array $command): ProcessResult => new ProcessResult(1, 'Could not find a matching version of package vendor/missing.'));
+
+    ComposerRunner::run(['update'], '/tmp/example');
+})->throws(ComposerCommandException::class, 'Composer command failed: update');
+
+test('it identifies a real composer missing-package diagnostic', function () {
+    $this->useIsolatedComposerHome();
+    $staging = $this->stagingWithPathPackages(['cpx-fixture/available']);
+
+    ProcessRunner::withLogger(
+        new SilentLogger,
+        fn () => ComposerRunner::require('cpx-fixture/missing:*', $staging),
+    );
+})->throws(PackageNotFoundException::class);
+
+test('it identifies a real missing transitive dependency', function () {
+    $this->useIsolatedComposerHome();
+
+    $fixture = $this->temporaryDirectory('cpx-fixture');
+    file_put_contents("{$fixture}/composer.json", json_encode([
+        'name' => 'cpx-fixture/parent',
+        'version' => '1.0.0',
+        'require' => ['cpx-fixture/missing' => '*'],
+    ], JSON_THROW_ON_ERROR));
+
+    $staging = $this->temporaryDirectory('cpx-staging');
+    file_put_contents("{$staging}/composer.json", json_encode([
+        'repositories' => [
+            ['type' => 'path', 'url' => $fixture, 'options' => ['symlink' => false]],
+            ['packagist.org' => false],
+        ],
+    ], JSON_THROW_ON_ERROR));
+
+    try {
+        ProcessRunner::withLogger(
+            new SilentLogger,
+            fn () => ComposerRunner::require('cpx-fixture/parent:*', $staging),
+        );
+    } catch (PackageNotFoundException $exception) {
+        expect($exception->package->fullPackageString())->toBe('cpx-fixture/missing');
+
+        return;
+    }
+
+    $this->fail('Expected PackageNotFoundException to be thrown.');
+});
+
+test('it does not classify a real composer constraint failure as a missing package', function () {
+    $this->useIsolatedComposerHome();
+    $staging = $this->stagingWithPathPackages(['cpx-fixture/available']);
+
+    ComposerRunner::require('cpx-fixture/available:^2.0', $staging);
+})->throws(ComposerCommandException::class, 'Composer command failed: require cpx-fixture/available:^2.0');
 
 test('it reads the locked version of the requested package by name', function () {
     $directory = $this->temporaryDirectory('cpx-lock');

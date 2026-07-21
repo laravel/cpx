@@ -2,6 +2,7 @@
 
 use Cpx\Application;
 use Cpx\Composer\ComposerRunner;
+use Cpx\Process\ProcessResult;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Tests\TestCase;
@@ -72,7 +73,7 @@ function noopBinary(int $exitCode = 0): string
  */
 function fakeComposer(array &$calls, int $exitCode = 0): void
 {
-    ComposerRunner::fake(function (array $command) use (&$calls, $exitCode): int {
+    ComposerRunner::fake(function (array $command) use (&$calls, $exitCode): int|ProcessResult {
         $calls[] = $command;
 
         if ($exitCode === 0) {
@@ -83,6 +84,12 @@ function fakeComposer(array &$calls, int $exitCode = 0): void
                     file_put_contents("{$directory}/vendor/autoload.php", '<?php');
                 }
             }
+        }
+
+        if ($exitCode !== 0 && ($command[0] ?? null) === 'require') {
+            $package = explode(':', $command[1] ?? 'vendor/missing', 2)[0];
+
+            return new ProcessResult($exitCode, "Could not find a matching version of package {$package}.");
         }
 
         return $exitCode;

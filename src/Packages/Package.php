@@ -6,7 +6,6 @@ namespace Cpx\Packages;
 
 use Cpx\Cache\Metadata;
 use Cpx\Composer\ComposerRunner;
-use Cpx\Exceptions\ComposerCommandException;
 use Cpx\Exceptions\PackageNotFoundException;
 use Cpx\Input\PackageInvocation;
 use Cpx\Process\ProcessRunner;
@@ -265,13 +264,11 @@ class Package
         ]));
 
         try {
-            ComposerRunner::run(['require', $this->fullPackageString()], $stagingDir);
+            ComposerRunner::require($this->fullPackageString(), $stagingDir);
         } catch (Throwable $exception) {
             Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
 
-            throw $exception instanceof ComposerCommandException
-                ? new PackageNotFoundException($this, previous: $exception)
-                : $exception;
+            throw $exception;
         }
     }
 

@@ -18,6 +18,11 @@ class PackageNotFoundException extends Exception
         parent::__construct("The package \"{$package->fullPackageString()}\" could not be found.", previous: $previous);
     }
 
+    public static function fromPackageString(string $package, ?Throwable $previous = null): self
+    {
+        return new self(Package::parse($package), $previous);
+    }
+
     public function render(): void
     {
         callout(

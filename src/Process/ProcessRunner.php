@@ -40,33 +40,16 @@ class ProcessRunner
      */
     public function run(array $command, array $env = [], ?string $cwd = null): int
     {
-        if (self::$fakeRunner !== null) {
-            return (self::$fakeRunner)($command, $env, $cwd);
-        }
+        return $this->execute($command, $env, $cwd, captureOutput: false)->exitCode;
+    }
 
-        if ($this->isMissingExecutable($command[0] ?? null)) {
-            return self::COULD_NOT_EXECUTE;
-        }
-
-        try {
-            $process = new Process($command, cwd: $cwd, env: $env === [] ? null : $env, timeout: null);
-
-            if (static::$logger !== null) {
-                return $process->run($this->logOutput(...));
-            }
-
-            if (self::$fakeInput === null && Interactivity::isInteractive() && Process::isTtySupported()) {
-                $process->setTty(true);
-
-                return $process->run();
-            }
-
-            $process->setInput(self::$fakeInput ?? STDIN);
-
-            return $process->run($this->writeOutput(...));
-        } catch (ExceptionInterface) {
-            return self::COULD_NOT_EXECUTE;
-        }
+    /**
+     * @param  list<string>  $command
+     * @param  array<string, string|false>  $env
+     */
+    public function runWithOutput(array $command, array $env = [], ?string $cwd = null): ProcessResult
+    {
+        return $this->execute($command, $env, $cwd, captureOutput: true);
     }
 
     /**
@@ -90,6 +73,58 @@ class ProcessRunner
     public static function clearFakeInput(): void
     {
         self::$fakeInput = null;
+    }
+
+    /**
+     * @param  list<string>  $command
+     * @param  array<string, string|false>  $env
+     */
+    private function execute(array $command, array $env, ?string $cwd, bool $captureOutput): ProcessResult
+    {
+        if (self::$fakeRunner !== null) {
+            return new ProcessResult((self::$fakeRunner)($command, $env, $cwd), '');
+        }
+
+        if ($this->isMissingExecutable($command[0] ?? null)) {
+            return new ProcessResult(self::COULD_NOT_EXECUTE, '');
+        }
+
+        try {
+            $process = new Process($command, cwd: $cwd, env: $env === [] ? null : $env, timeout: null);
+
+            if (static::$logger !== null) {
+                $output = '';
+                $exitCode = $process->run(function (string $type, string $buffer) use (&$output, $captureOutput): void {
+                    if ($captureOutput) {
+                        $output .= $buffer;
+                    }
+
+                    $this->logOutput($type, $buffer);
+                });
+
+                return new ProcessResult($exitCode, $output);
+            }
+
+            if (! $captureOutput && self::$fakeInput === null && Interactivity::isInteractive() && Process::isTtySupported()) {
+                $process->setTty(true);
+
+                return new ProcessResult($process->run(), '');
+            }
+
+            $process->setInput(self::$fakeInput ?? STDIN);
+            $output = '';
+            $exitCode = $process->run(function (string $type, string $buffer) use (&$output, $captureOutput): void {
+                if ($captureOutput) {
+                    $output .= $buffer;
+                }
+
+                $this->writeOutput($type, $buffer);
+            });
+
+            return new ProcessResult($exitCode, $output);
+        } catch (ExceptionInterface) {
+            return new ProcessResult(self::COULD_NOT_EXECUTE, '');
+        }
     }
 
     private function isMissingExecutable(?string $command): bool
