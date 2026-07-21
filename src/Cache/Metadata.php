@@ -9,6 +9,7 @@ use Cpx\Packages\Package;
 use Cpx\Support\Arr;
 use Cpx\Support\Filesystem;
 use Cpx\Support\Lock;
+use InvalidArgumentException;
 
 class Metadata
 {
@@ -53,9 +54,15 @@ class Metadata
                         return [];
                     }
 
+                    try {
+                        $package = Package::parse($key);
+                    } catch (InvalidArgumentException) {
+                        return [];
+                    }
+
                     return [
                         $key => new PackageMetadata(
-                            package: Package::parse($key),
+                            package: $package,
                             lastUpdatedAt: self::normalizeTimestamp($value['last_updated'] ?? null),
                             lastRunAt: self::normalizeTimestamp($value['last_run'] ?? null),
                         ),

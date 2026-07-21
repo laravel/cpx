@@ -21,6 +21,20 @@ function runCpxCommand(array $arguments): array
     return [$status, $output->fetch()];
 }
 
+/**
+ * @param  array<string, mixed>  $aliases
+ */
+function writeAliasesFile(array $aliases): void
+{
+    $file = cpx_path('aliases.json');
+
+    if (! is_dir(dirname($file))) {
+        mkdir(dirname($file), 0755, true);
+    }
+
+    file_put_contents($file, json_encode($aliases, JSON_THROW_ON_ERROR));
+}
+
 function writeExecutable(string $path, string $contents): void
 {
     file_put_contents($path, $contents);
