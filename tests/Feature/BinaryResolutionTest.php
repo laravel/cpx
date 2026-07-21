@@ -47,6 +47,21 @@ test('a package with multiple binaries keeps a positional argument when a binary
         ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['tests/Sub']);
 });
 
+test('a positional token spelling a package-named binary is forwarded, not consumed', function () {
+    $this->useIsolatedComposerHome();
+    $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
+
+    prepareCachedPackage('vendor/pkg', ['pkg', 'other'], [
+        'pkg' => "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n",
+        'other' => "#!/usr/bin/env php\n<?php exit(99);\n",
+    ]);
+
+    [$status] = runCpxCommand(['vendor/pkg', 'pkg', 'tests/Sub']);
+
+    expect($status)->toBe(0)
+        ->and(json_decode((string) file_get_contents($logFile), true))->toBe(['pkg', 'tests/Sub']);
+});
+
 test('ambiguous multiple-binary packages list the available binaries', function () {
     $this->useIsolatedComposerHome();
 
