@@ -43,6 +43,7 @@ abstract class TestCase extends BaseTestCase
         // The suite itself often runs inside an agent with piped stdin; keep detection deterministic.
         Interactivity::fake(true);
 
+        // Prompts has no reset API for this static state (fallbackWhen() only latches true), so clear it by reflection.
         (new ReflectionProperty(Prompt::class, 'terminal'))->setValue(null, new Terminal);
         (new ReflectionProperty(Prompt::class, 'shouldFallback'))->setValue(null, false);
         (new ReflectionProperty(Prompt::class, 'fallbacks'))->setValue(null, []);
