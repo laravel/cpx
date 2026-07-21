@@ -56,10 +56,11 @@ class CleanCommand extends Command
         }
 
         [$mode, $timeLimit] = $this->resolve($input, $days);
+        $explicitDays = $days !== null;
 
         if ($json) {
             $result = Metadata::transaction(
-                fn (Metadata $metadata): CleanResult => $this->clean($metadata, $mode, $timeLimit, new SilentLogger),
+                fn (Metadata $metadata): CleanResult => $this->clean($metadata, $mode, $timeLimit, $explicitDays, new SilentLogger),
             );
 
             return $result->hasFailures()
@@ -70,7 +71,7 @@ class CleanCommand extends Command
         $result = task(
             label: 'Cleaning cpx caches',
             callback: fn (Logger $logger): CleanResult => Metadata::transaction(
-                fn (Metadata $metadata): CleanResult => $this->clean($metadata, $mode, $timeLimit, $logger),
+                fn (Metadata $metadata): CleanResult => $this->clean($metadata, $mode, $timeLimit, $explicitDays, $logger),
             ),
         );
 
@@ -85,8 +86,8 @@ class CleanCommand extends Command
     private function resolve(InputInterface $input, ?int $days): array
     {
         return match (true) {
-            $input->getOption('all') === true => [CleanMode::All, $this->timeLimitForDays(self::DEFAULT_DAYS)],
-            $input->getOption('sandbox') === true => [CleanMode::Sandbox, $this->timeLimitForDays(self::DEFAULT_DAYS)],
+            $input->getOption('all') === true => [CleanMode::All, $this->timeLimitForDays($days ?? self::DEFAULT_DAYS)],
+            $input->getOption('sandbox') === true => [CleanMode::Sandbox, $this->timeLimitForDays($days ?? self::DEFAULT_DAYS)],
             $days !== null => [CleanMode::Period, $this->timeLimitForDays($days)],
             default => $this->promptForMode(),
         };
@@ -142,16 +143,16 @@ class CleanCommand extends Command
         );
     }
 
-    private function clean(Metadata $metadata, CleanMode $mode, int $timeLimit, Logger $logger): CleanResult
+    private function clean(Metadata $metadata, CleanMode $mode, int $timeLimit, bool $explicitDays, Logger $logger): CleanResult
     {
         $result = new CleanResult;
 
         if ($mode->cleansPackages()) {
-            $this->removeStalePackages($metadata, $mode->removesAllPackages(), $timeLimit, $result, $logger);
+            $this->removeStalePackages($metadata, ! $explicitDays && $mode->removesAllPackages(), $timeLimit, $result, $logger);
             $this->removeOrphanPackages($metadata, $result, $logger);
         }
 
-        $this->removeStaleSandboxes($metadata, $mode->removesAllSandboxes(), $timeLimit, $result, $logger);
+        $this->removeStaleSandboxes($metadata, ! $explicitDays && $mode->removesAllSandboxes(), $timeLimit, $result, $logger);
         $this->removeOrphanSandboxes($metadata, $result, $logger);
 
         return $result;
