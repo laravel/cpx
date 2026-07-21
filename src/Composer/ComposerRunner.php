@@ -8,6 +8,8 @@ use Closure;
 use Composer\Console\Application as ComposerApplication;
 use Composer\InstalledVersions;
 use Cpx\Exceptions\ComposerCommandException;
+use Cpx\Exceptions\PackageNotFoundException;
+use Cpx\Process\ProcessResult;
 use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\Environment;
 use RuntimeException;
@@ -19,8 +21,36 @@ class ComposerRunner
 {
     public const REINVOKE_TOKEN = '__cpx_run_composer';
 
-    /** @var (Closure(list<string>): int)|null */
+    /** @var (Closure(list<string>): (int|ProcessResult))|null */
     private static ?Closure $fake = null;
+
+    /**
+     * @throws ComposerCommandException
+     * @throws PackageNotFoundException
+     */
+    public static function require(string $package, string $directory): int
+    {
+        $arguments = ['require', $package];
+        $result = self::execute($arguments, $directory, captureOutput: true);
+
+        if ($result->exitCode === Command::SUCCESS) {
+            return $result->exitCode;
+        }
+
+        $exception = new ComposerCommandException($arguments);
+        $missingPackage = self::missingPackage($result->output);
+
+        if ($missingPackage === null) {
+            throw $exception;
+        }
+
+        $requestedPackage = explode(':', $package, 2)[0];
+
+        throw PackageNotFoundException::fromPackageString(
+            strcasecmp($requestedPackage, $missingPackage) === 0 ? $package : $missingPackage,
+            previous: $exception,
+        );
+    }
 
     /**
      * @param  list<string>  $arguments
@@ -29,15 +59,7 @@ class ComposerRunner
      */
     public static function run(array $arguments, ?string $directory = null): int
     {
-        $command = [...$arguments, '--no-interaction'];
-
-        if ($directory !== null) {
-            $command[] = "--working-dir={$directory}";
-        }
-
-        $exitCode = self::$fake !== null
-            ? (self::$fake)($command)
-            : (new ProcessRunner)->run([...self::composerBinary(), ...$command]);
+        $exitCode = self::execute($arguments, $directory, captureOutput: false)->exitCode;
 
         if ($exitCode !== Command::SUCCESS) {
             throw new ComposerCommandException($arguments);
@@ -58,7 +80,7 @@ class ComposerRunner
     }
 
     /**
-     * @param  Closure(list<string>): int  $runner
+     * @param  Closure(list<string>): (int|ProcessResult)  $runner
      */
     public static function fake(Closure $runner): void
     {
@@ -122,6 +144,50 @@ class ComposerRunner
         }
 
         return $unknown;
+    }
+
+    /**
+     * @param  list<string>  $arguments
+     */
+    private static function execute(array $arguments, ?string $directory, bool $captureOutput): ProcessResult
+    {
+        $command = [...$arguments, '--no-interaction'];
+
+        if ($directory !== null) {
+            $command[] = "--working-dir={$directory}";
+        }
+
+        if (self::$fake !== null) {
+            $result = (self::$fake)($command);
+
+            return is_int($result) ? new ProcessResult($result, '') : $result;
+        }
+
+        $runner = new ProcessRunner;
+        $processCommand = [...self::composerBinary(), ...$command];
+
+        return $captureOutput
+            ? $runner->runWithOutput($processCommand)
+            : new ProcessResult($runner->run($processCommand), '');
+    }
+
+    private static function missingPackage(string $output): ?string
+    {
+        $output = preg_replace('/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -\/]*[@-~])/', '', $output) ?? $output;
+        $output = preg_replace('/\s+/', ' ', $output) ?? $output;
+        $package = '(?<package>[a-z0-9](?:[_.-]?[a-z0-9]+)*\/[a-z0-9](?:(?:[_.]?|-{0,2})[a-z0-9]+)*)';
+
+        foreach ([
+            '/Could not find package '.$package.'\./i',
+            '/Could not find a matching version of package '.$package.'\./i',
+            '/requires '.$package.'(?: (?:(?! -> |, it ).)+)?(?:, it| ->) could not be found in any version, there may be a typo in the package name\./i',
+        ] as $pattern) {
+            if (preg_match($pattern, $output, $matches) === 1) {
+                return $matches['package'];
+            }
+        }
+
+        return null;
     }
 
     /** @return list<string> */

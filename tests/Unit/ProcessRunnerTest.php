@@ -2,6 +2,7 @@
 
 use Cpx\Process\ProcessRunner;
 use Cpx\Support\Interactivity;
+use Laravel\Prompts\Support\Logger;
 use Symfony\Component\Process\Process;
 
 test('it returns the child exit code when using inherited stdio', function () {
@@ -11,6 +12,38 @@ test('it returns the child exit code when using inherited stdio', function () {
     writeExecutable($binary, "#!/usr/bin/env php\n<?php exit(37);\n");
 
     expect((new ProcessRunner)->run([PHP_BINARY, $binary]))->toBe(37);
+});
+
+test('it captures child output and forwards it to the configured logger', function () {
+    $directory = $this->temporaryDirectory('cpx-process');
+    $binary = "{$directory}/output";
+
+    writeExecutable($binary, "#!/usr/bin/env php\n<?php fwrite(STDERR, 'composer diagnostic'); exit(23);\n");
+
+    $logger = new class extends Logger
+    {
+        /** @var list<string> */
+        public array $lines = [];
+
+        public function __construct()
+        {
+            parent::__construct('test');
+        }
+
+        public function line(string $message): void
+        {
+            $this->lines[] = $message;
+        }
+    };
+
+    $result = ProcessRunner::withLogger(
+        $logger,
+        fn () => (new ProcessRunner)->runWithOutput([PHP_BINARY, $binary]),
+    );
+
+    expect($result->exitCode)->toBe(23)
+        ->and($result->output)->toBe('composer diagnostic')
+        ->and($logger->lines)->toBe(['composer diagnostic']);
 });
 
 test('it forwards explicit environment variables to the child process', function () {

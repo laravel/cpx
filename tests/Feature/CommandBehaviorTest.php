@@ -6,6 +6,7 @@ use Cpx\Input\PackageInvocation;
 use Cpx\Packages\Package;
 use Cpx\Packages\PackageCommandRunner;
 use Cpx\Packages\UserAliases;
+use Cpx\Process\ProcessResult;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -348,4 +349,19 @@ test('a package-not-found error mentions the requested version constraint', func
         ->and($output)->toContain('version matching')
         ->and($output)->toContain('`^9.0`')
         ->and($output)->toContain('https://packagist.org/packages/foo/bar');
+});
+
+test('a composer failure for an existing package is not rendered as package-not-found', function () {
+    $this->useIsolatedComposerHome();
+
+    ComposerRunner::fake(fn (array $command): ProcessResult => new ProcessResult(
+        1,
+        'Root composer.json requires foo/bar ^9.0, found foo/bar[1.0.0] but it does not match the constraint.',
+    ));
+
+    [$status, $output] = runCpxCommand(['foo/bar:^9.0']);
+
+    expect($status)->toBe(1)
+        ->and($output)->toContain('Composer command failed: require foo/bar:^9.0')
+        ->and($output)->not->toContain('Package not found');
 });
