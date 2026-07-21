@@ -32,6 +32,21 @@ test('it exposes the canonical root and composer package short name', function (
         ->and($package->name)->toBe('tool');
 });
 
+test('it filters non-string manifest bin entries', function () {
+    $root = $this->prepareLocalPackage(['bin/tool', 123, null]);
+
+    expect(LocalPackage::parse($root)->binaries(''))->toBe(['tool' => 'bin/tool']);
+});
+
+test('cache lifecycle members throw for local packages', function () {
+    $package = LocalPackage::parse($this->prepareLocalPackage());
+
+    expect(fn () => $package->installPath())->toThrow(BadMethodCallException::class)
+        ->and(fn () => $package->delete())->toThrow(BadMethodCallException::class)
+        ->and(fn () => $package->isInstalled())->toThrow(BadMethodCallException::class)
+        ->and(fn () => $package->shouldCheckForUpdates())->toThrow(BadMethodCallException::class);
+});
+
 test('it rejects a non-directory path when resolved directly', function () {
     $root = $this->temporaryDirectory('cpx-local-package');
     $path = "{$root}/package.txt";

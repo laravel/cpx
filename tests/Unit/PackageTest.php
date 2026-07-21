@@ -34,6 +34,14 @@ test('it accepts composer package names with supported punctuation', function (s
     'vendor123/package.456',
 ]);
 
+test('binaries filters non-string manifest bin entries', function () {
+    $installDir = $this->temporaryDirectory('cpx-install');
+    mkdir("{$installDir}/vendor/vendor/pkg", 0755, true);
+    file_put_contents("{$installDir}/vendor/vendor/pkg/composer.json", json_encode(['bin' => ['bin/tool', 123, null]], JSON_THROW_ON_ERROR));
+
+    expect(Package::parse('vendor/pkg')->binaries($installDir))->toBe(['tool' => 'bin/tool']);
+});
+
 test('it rejects invalid package targets', function (string $target) {
     Package::parse($target);
 })->with([
