@@ -39,9 +39,11 @@ arch('the package source declares strict types')
 test('the app does not call proc_open directly', function () {
     // CpxRequire runs inside the dependency-free child, where ProcessRunner is unavailable by design.
     // ExecCommandTest closes a raw stdout pipe mid-stream to prove ProcessRunner reports failed writes.
+    // ChildScriptTest captures a raw child's stdout to prove the child-runtime autoloader declines unknown classes.
     $offenders = sourceFilesContaining('proc_open', except: [
         'src/Runtime/CpxRequire.php',
         'tests/Feature/ExecCommandTest.php',
+        'tests/Unit/ChildScriptTest.php',
     ]);
 
     expect($offenders)->toBe([]);
