@@ -31,9 +31,8 @@ class ClassAliasAutoloader
 
                 $name = basename(str_replace('\\', '/', $class));
 
-                if (! isset($this->classes[$name]) && class_exists($name)) {
-                    $this->classes[$name] = $class;
-                }
+                // Register lazily; aliasClass() validates loadability when the alias is requested.
+                $this->classes[$name] ??= $class;
             }
         }
 
