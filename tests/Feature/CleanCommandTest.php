@@ -381,7 +381,7 @@ test('orphaned package directories are detected and cleaned', function () {
 
     expect($status)->toBe(0)
         ->and(is_dir($orphan))->toBeFalse()
-        ->and($output)->toContain('orphan/package/latest');
+        ->and($output)->toContain('orphaned package orphan/package/latest');
 });
 
 test('incomplete install directories are treated as orphaned and removed', function () {

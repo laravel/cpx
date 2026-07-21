@@ -37,6 +37,11 @@ class Filesystem
             || preg_match('/\A[a-zA-Z]:[\\\\\/]/', $path) === 1;
     }
 
+    public static function relativePath(string $path, string $base): string
+    {
+        return ltrim(str_replace(self::normalizePath($base), '', self::normalizePath($path)), '/');
+    }
+
     public static function homeDirectory(): ?string
     {
         foreach (['HOME', 'USERPROFILE'] as $variable) {
