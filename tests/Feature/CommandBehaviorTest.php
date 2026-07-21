@@ -201,6 +201,55 @@ test('update requests a composer update for each installed package directory', f
         ->and($calls[0])->toContain('--working-dir='.cpx_path('laravel/pint/latest'));
 });
 
+test('update reports when a versioned package was never installed', function () {
+    $this->useIsolatedComposerHome();
+
+    $calls = [];
+    fakeComposer($calls);
+
+    [$status, $output] = runCpxCommand(['update', 'vendor/pkg:^2']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain("There are no installed versions of 'vendor/pkg:^2' to update.")
+        ->and($calls)->toBe([]);
+});
+
+test('update with a package target updates only that package', function () {
+    $this->useIsolatedComposerHome();
+
+    prepareCachedPackage('laravel/pint', ['pint']);
+    prepareCachedPackage('vendor/other', ['other']);
+
+    $calls = [];
+    fakeComposer($calls);
+
+    [$status, $output] = runCpxCommand(['update', 'laravel/pint']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Updating laravel/pint/latest')
+        ->and($output)->not->toContain('vendor/other')
+        ->and($calls)->toHaveCount(1)
+        ->and($calls[0])->toContain('--working-dir='.cpx_path('laravel/pint/latest'));
+});
+
+test('update with a vendor target updates only that vendor', function () {
+    $this->useIsolatedComposerHome();
+
+    prepareCachedPackage('laravel/pint', ['pint']);
+    prepareCachedPackage('vendor/other', ['other']);
+
+    $calls = [];
+    fakeComposer($calls);
+
+    [$status, $output] = runCpxCommand(['update', 'laravel']);
+
+    expect($status)->toBe(0)
+        ->and($output)->toContain('Updating laravel/pint/latest')
+        ->and($output)->not->toContain('vendor/other')
+        ->and($calls)->toHaveCount(1)
+        ->and($calls[0])->toContain('--working-dir='.cpx_path('laravel/pint/latest'));
+});
+
 test('update continues past a failing package and summarizes the failure', function () {
     $this->useIsolatedComposerHome();
 
