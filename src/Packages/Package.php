@@ -269,49 +269,24 @@ class Package
         task(
             label: "Installing {$this}",
             callback: function (Logger $logger) use ($installDir): void {
-                $cacheRoot = cpx_path();
-                Filesystem::ensureDirectory($cacheRoot);
-
-                $stagingDir = "{$installDir}.installing.".getmypid();
-                ProcessRunner::withLogger($logger, fn () => $this->stageInstall($stagingDir, $cacheRoot));
-
-                Filesystem::deleteDirectory($installDir);
-
-                try {
-                    Filesystem::replaceDirectory($stagingDir, $installDir);
-                } catch (RuntimeException $exception) {
-                    Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
-
-                    throw new RuntimeException("Unable to finalize the installation of {$this}; another process may be holding files under {$installDir}.", previous: $exception);
-                }
+                StagedInstall::run(
+                    targetDir: $installDir,
+                    scaffold: [
+                        'name' => "cpx-{$this->vendor}/cpx-{$this->name}",
+                        'version' => self::SCAFFOLD_VERSION,
+                        'config' => [
+                            // Requested packages may ship Composer plugins (binaries, installers).
+                            'allow-plugins' => true,
+                        ],
+                    ],
+                    install: fn (string $stagingDir) => ProcessRunner::withLogger($logger, fn () => ComposerRunner::require($this->fullPackageString(), $stagingDir)),
+                    finalizeFailure: fn (RuntimeException $exception): Throwable => new RuntimeException("Unable to finalize the installation of {$this}; another process may be holding files under {$installDir}.", previous: $exception),
+                );
 
                 Metadata::transaction(fn (Metadata $metadata) => $metadata->recordUpdate($this));
             },
             keepSummary: true,
         );
-    }
-
-    private function stageInstall(string $stagingDir, string $cacheRoot): void
-    {
-        Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
-        Filesystem::ensureDirectory($stagingDir);
-
-        file_put_contents("{$stagingDir}/composer.json", json_encode([
-            'name' => "cpx-{$this->vendor}/cpx-{$this->name}",
-            'version' => self::SCAFFOLD_VERSION,
-            'config' => [
-                // Requested packages may ship Composer plugins (binaries, installers).
-                'allow-plugins' => true,
-            ],
-        ]));
-
-        try {
-            ComposerRunner::require($this->fullPackageString(), $stagingDir);
-        } catch (Throwable $exception) {
-            Filesystem::deleteDirectoryWithin($stagingDir, $cacheRoot);
-
-            throw $exception;
-        }
     }
 
     private function updatePackage(string $installDir): void
