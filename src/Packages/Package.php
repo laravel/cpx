@@ -10,7 +10,6 @@ use Cpx\Exceptions\ComposerCommandException;
 use Cpx\Exceptions\PackageNotFoundException;
 use Cpx\Input\PackageInvocation;
 use Cpx\Process\ProcessRunner;
-use Cpx\Support\Arr;
 use Cpx\Support\Filesystem;
 use Cpx\Support\Interactivity;
 use Cpx\Support\Result;
@@ -21,6 +20,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
+use function Laravel\Prompts\info;
 use function Laravel\Prompts\task;
 
 class Package
@@ -48,7 +48,7 @@ class Package
 
     public static function parse(string $str): self
     {
-        if (empty($str)) {
+        if ($str === '') {
             throw new InvalidArgumentException('A package name must be provided.');
         }
 
@@ -120,9 +120,7 @@ class Package
      */
     public function binaries(string $installDir): array
     {
-        $binScripts = ComposerRunner::detectBinFromComposer($this->packagePath($installDir));
-
-        return Arr::mapWithKeys(fn (int $_, string $value): array => [basename($value) => $value], $binScripts);
+        return self::mapBinaries(ComposerRunner::detectBinFromComposer($this->packagePath($installDir)));
     }
 
     public function delete(): void
@@ -143,10 +141,9 @@ class Package
 
             return Result::failure($output, $exception->getMessage());
         }
-        $packageDir = $this->packagePath($installDir);
         $binScripts = $this->binaries($installDir);
 
-        if (empty($binScripts)) {
+        if ($binScripts === []) {
             return Result::failure($output, "No bin command found in {$this}.");
         }
 
@@ -156,19 +153,15 @@ class Package
             return Result::failure($output, "More than 1 bin command found for {$this}: ".implode(', ', array_keys($binScripts)).'.');
         }
 
-        $binPath = "{$packageDir}/{$resolved->command}";
+        $binPath = "{$this->packagePath($installDir)}/{$resolved->command}";
 
-        if (! file_exists($binPath)) {
+        if (! is_file($binPath)) {
             return Result::failure($output, 'Command '.basename($resolved->command)." not found in {$this}.");
         }
 
-        task(
-            label: 'Running '.basename($resolved->command)." from {$this}",
-            callback: fn (Logger $_logger): mixed => Metadata::transaction(
-                fn (Metadata $metadata) => $metadata->recordRun($this),
-            ),
-            keepSummary: true,
-        );
+        $this->recordRun();
+
+        info('Running '.basename($resolved->command)." from {$this}");
 
         return (new ProcessRunner)->run(BinExecutable::commandFor($binPath, $resolved->invocation->forwardedTokens()));
     }
@@ -207,6 +200,29 @@ class Package
         }
 
         return (time() - $lastUpdatedAt) > Metadata::UPDATE_CHECK_INTERVAL;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected static function mapBinaries(mixed $declared): array
+    {
+        $binaries = [];
+
+        foreach ((array) $declared as $binary) {
+            if (! is_string($binary) || $binary === '') {
+                continue;
+            }
+
+            $binaries[basename(Filesystem::normalizePath($binary))] = $binary;
+        }
+
+        return $binaries;
+    }
+
+    protected function recordRun(): void
+    {
+        Metadata::transaction(fn (Metadata $metadata) => $metadata->recordRun($this));
     }
 
     /**

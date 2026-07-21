@@ -4,16 +4,10 @@ declare(strict_types=1);
 
 namespace Cpx\Packages;
 
-use Cpx\Input\PackageInvocation;
-use Cpx\Process\ProcessRunner;
+use BadMethodCallException;
 use Cpx\Support\Filesystem;
-use Cpx\Support\Result;
 use InvalidArgumentException;
 use JsonException;
-use RuntimeException;
-use Symfony\Component\Console\Output\OutputInterface;
-
-use function Laravel\Prompts\info;
 
 class LocalPackage extends Package
 {
@@ -95,7 +89,7 @@ class LocalPackage extends Package
         return new self(
             root: $root,
             name: self::packageName($composer, $root),
-            localBinaries: self::manifestBinaries($composer),
+            localBinaries: self::mapBinaries($composer['bin'] ?? []),
         );
     }
 
@@ -117,31 +111,34 @@ class LocalPackage extends Package
         return $this->root;
     }
 
-    public function runCommand(PackageInvocation $invocation, OutputInterface $output, bool $autoUpdate = true): int
+    public function packagePath(string $installDir): string
     {
-        if ($this->localBinaries === []) {
-            return Result::failure($output, "No bin command found in {$this->root}.");
-        }
+        return $this->root;
+    }
 
-        $resolved = BinResolver::resolve($this->localBinaries, $invocation, $this->name, $this->bin);
+    public function installPath(): string
+    {
+        throw self::noCacheLifecycle(__FUNCTION__);
+    }
 
-        if ($resolved === null && $this->bin !== null) {
-            throw new RuntimeException("The requested bin command '{$this->bin}' was not found in {$this}.");
-        }
+    public function delete(): void
+    {
+        throw self::noCacheLifecycle(__FUNCTION__);
+    }
 
-        if ($resolved === null) {
-            return Result::failure($output, "More than 1 bin command found in {$this->root}: ".implode(', ', array_keys($this->localBinaries)).'.');
-        }
+    public function isInstalled(): bool
+    {
+        throw self::noCacheLifecycle(__FUNCTION__);
+    }
 
-        $binPath = Filesystem::joinPath($this->root, $resolved->command);
+    public function shouldCheckForUpdates(): bool
+    {
+        throw self::noCacheLifecycle(__FUNCTION__);
+    }
 
-        if (! is_file($binPath)) {
-            return Result::failure($output, 'Command '.basename($resolved->command)." not found in {$this->root}.");
-        }
-
-        info('Running '.basename($resolved->command)." from {$this->root}");
-
-        return (new ProcessRunner)->run(BinExecutable::commandFor($binPath, $resolved->invocation->forwardedTokens()));
+    protected function recordRun(): void
+    {
+        // Local packages are not tracked in the cache metadata.
     }
 
     private static function expandHomeDirectory(string $path): string
@@ -191,23 +188,8 @@ class LocalPackage extends Package
         return basename(Filesystem::normalizePath($name));
     }
 
-    /**
-     * @param  array<array-key, mixed>  $composer
-     * @return array<string, string>
-     */
-    private static function manifestBinaries(array $composer): array
+    private static function noCacheLifecycle(string $method): BadMethodCallException
     {
-        $declared = $composer['bin'] ?? [];
-        $binaries = [];
-
-        foreach ((array) $declared as $binary) {
-            if (! is_string($binary) || $binary === '') {
-                continue;
-            }
-
-            $binaries[basename(Filesystem::normalizePath($binary))] = $binary;
-        }
-
-        return $binaries;
+        return new BadMethodCallException("{$method}() is not supported for local packages; they are not managed in the cpx package cache.");
     }
 }

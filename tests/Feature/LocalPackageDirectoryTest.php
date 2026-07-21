@@ -184,7 +184,7 @@ test('an ambiguous local multi-bin package lists its binaries', function () {
     [$status, $output] = runCpxCommand([$root]);
 
     expect($status)->toBe(1)
-        ->and($output)->toContain("More than 1 bin command found in {$root}: foo, bar.");
+        ->and($output)->toContain("More than 1 bin command found for {$root}: foo, bar.");
 });
 
 test('a local package must declare a binary', function () {
