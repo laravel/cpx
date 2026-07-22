@@ -164,8 +164,9 @@ class ComposerRunner
         $runner = new ProcessRunner;
         $processCommand = [...self::composerBinary(), ...$command];
 
+        // A wide COLUMNS keeps wrapped package names from defeating missingPackage()
         return $captureOutput
-            ? $runner->runWithOutput($processCommand)
+            ? $runner->runWithOutput($processCommand, ['COLUMNS' => '4096'])
             : new ProcessResult($runner->run($processCommand), '');
     }
 
