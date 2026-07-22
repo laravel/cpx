@@ -1,0 +1,69 @@
+name: Bug Report
+description: Report something that is not working as expected.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please complete the fields below so we can reproduce the issue quickly.
+
+  - type: input
+    id: package-version
+    attributes:
+      label: Package Version
+      description: Provide the package version that you are using.
+      placeholder: 1.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: laravel-version
+    attributes:
+      label: Laravel Version
+      description: Provide the Laravel version that you are using.
+      placeholder: 13.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP Version
+      description: Provide the PHP version that you are using.
+      placeholder: 8.3.0
+    validations:
+      required: true
+
+  - type: input
+    id: operating-system
+    attributes:
+      label: Operating System
+      description: If relevant, provide the operating system and version where this occurs.
+      placeholder: macOS 15.0, Ubuntu 24.04, Windows 11
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Provide a clear description of the issue you are facing.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps To Reproduce
+      description: Provide detailed steps to reproduce the issue. A minimal reproduction repository is helpful when possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Add any other context that might help diagnose the issue.
+    validations:
+      required: false
