@@ -4,4 +4,7 @@
 .github/ export-ignore
 .gitignore export-ignore
 banner-v2.png export-ignore
+phpstan.neon.dist export-ignore
+pint.json export-ignore
 README.md export-ignore
+/tests export-ignore
