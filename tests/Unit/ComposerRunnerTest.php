@@ -138,6 +138,16 @@ test('it identifies a real composer missing-package diagnostic', function () {
     );
 })->throws(PackageNotFoundException::class);
 
+test('it identifies a real missing package whose long name wraps in the error output', function () {
+    $this->useIsolatedComposerHome();
+    $staging = $this->stagingWithPathPackages(['cpx-fixture/available']);
+
+    ProcessRunner::withLogger(
+        new SilentLogger,
+        fn () => ComposerRunner::require('cpx-fixture/a-really-long-missing-package-name-that-composer-wraps', $staging),
+    );
+})->throws(PackageNotFoundException::class);
+
 test('it identifies a real missing transitive dependency', function () {
     $this->useIsolatedComposerHome();
 
