@@ -2,9 +2,12 @@
 
 use Cpx\Application;
 use Cpx\Composer\ComposerRunner;
+use Cpx\Input\PackageInvocation;
+use Cpx\Packages\PackageCommandRunner;
 use Cpx\Process\ProcessResult;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Output\BufferedOutput;
+use Symfony\Component\Console\Output\OutputInterface;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)->in('Feature', 'Unit');
@@ -34,6 +37,24 @@ function writeAliasesFile(array $aliases): void
     }
 
     file_put_contents($file, json_encode($aliases, JSON_THROW_ON_ERROR));
+}
+
+/**
+ * A PackageCommandRunner that records the invocation on a public property instead of running it.
+ */
+function recordingPackageRunner(): PackageCommandRunner
+{
+    return new class extends PackageCommandRunner
+    {
+        public ?PackageInvocation $invocation = null;
+
+        public function run(PackageInvocation $invocation, OutputInterface $output, bool $skipLocal = false): int
+        {
+            $this->invocation = $invocation;
+
+            return 0;
+        }
+    };
 }
 
 function writeExecutable(string $path, string $contents): void

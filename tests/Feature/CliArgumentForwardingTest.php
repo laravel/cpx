@@ -5,7 +5,7 @@ test('package arguments are forwarded exactly as argv tokens', function () {
     $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
 
     prepareCachedPackage('vendor/package', ['package'], [
-        'package' => "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n",
+        'package' => argvLoggingBinary($logFile),
     ]);
 
     [$status] = runCpxCommand(['vendor/package', '--name=two words', '--', '--literal', '-x']);
@@ -24,7 +24,7 @@ test('short flags, long flags, repeated options, and option values are preserved
     $logFile = $this->temporaryDirectory('cpx-log').'/argv.json';
 
     prepareCachedPackage('vendor/package', ['package'], [
-        'package' => "#!/usr/bin/env php\n<?php file_put_contents('{$logFile}', json_encode(array_slice(\$argv, 1), JSON_THROW_ON_ERROR)); exit(0);\n",
+        'package' => argvLoggingBinary($logFile),
     ]);
 
     [$status] = runCpxCommand(['vendor/package', '-x', '--flag', '--filter=one', '--filter=two', 'value with spaces', 'semi;colon', 'pipe|value', '$(touch injected)']);
@@ -47,7 +47,7 @@ test('a target binary exit code becomes the cpx exit code', function () {
     $this->useIsolatedComposerHome();
 
     prepareCachedPackage('vendor/package', ['package'], [
-        'package' => "#!/usr/bin/env php\n<?php exit(23);\n",
+        'package' => noopBinary(23),
     ]);
 
     [$status] = runCpxCommand(['vendor/package']);
