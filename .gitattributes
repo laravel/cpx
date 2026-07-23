@@ -1,7 +1,15 @@
 * text=auto eol=lf
 
-.gitattributes export-ignore
-.github/ export-ignore
-.gitignore export-ignore
-banner-v2.png export-ignore
-README.md export-ignore
+/.gitattributes     export-ignore
+/.github            export-ignore
+/.gitignore         export-ignore
+/banner-v2.png      export-ignore
+/box.json           export-ignore
+/composer.lock      export-ignore
+/cpx                export-ignore
+/phpstan.neon.dist  export-ignore
+/phpunit.xml        export-ignore
+/pint.json          export-ignore
+/README.md          export-ignore
+/scripts            export-ignore
+/tests              export-ignore
