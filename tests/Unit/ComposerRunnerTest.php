@@ -122,6 +122,77 @@ test('it preserves other composer require failures', function (string $diagnosti
     'unknown failure' => ['Composer encountered an unexpected error.'],
 ])->throws(ComposerCommandException::class, 'Composer command failed: require vendor/package:^9.0');
 
+test('it surfaces the composer diagnostic when a require fails for another reason', function (string $diagnostic) {
+    ComposerRunner::fake(fn (array $command): ProcessResult => new ProcessResult(1, $diagnostic));
+
+    try {
+        ComposerRunner::require('vendor/package:^9.0', '/tmp/example');
+    } catch (ComposerCommandException $exception) {
+        expect($exception->getMessage())
+            ->toContain('Composer command failed: require vendor/package:^9.0')
+            ->toContain($diagnostic);
+
+        return;
+    }
+
+    $this->fail('Expected ComposerCommandException to be thrown.');
+})->with([
+    'transport failure' => ['curl error 60: SSL certificate problem'],
+    'memory exhaustion' => ['Fatal error: Allowed memory size of 134217728 bytes exhausted (tried to allocate 8192 bytes) in phar:///cpx/vendor/composer/composer/src/Composer/DependencyResolver/PoolOptimizer.php on line 230'],
+]);
+
+test('it strips ansi escape codes from the surfaced diagnostic', function () {
+    ComposerRunner::fake(fn (array $command): ProcessResult => new ProcessResult(1, "\e[31mcurl error 60\e[39m: SSL certificate problem"));
+
+    try {
+        ComposerRunner::require('vendor/package', '/tmp/example');
+    } catch (ComposerCommandException $exception) {
+        expect($exception->getMessage())
+            ->toContain('curl error 60: SSL certificate problem')
+            ->not->toContain("\e[");
+
+        return;
+    }
+
+    $this->fail('Expected ComposerCommandException to be thrown.');
+});
+
+test('it truncates a long diagnostic while keeping the start and the end', function () {
+    $start = 'Fatal error: Allowed memory size of 134217728 bytes exhausted';
+    $end = 'In Solver.php line 221: memory exhausted';
+    $trace = str_repeat("#0 phar:///cpx/vendor/composer/composer/src/Composer/DependencyResolver/Solver.php(221): solve()\n", 200);
+
+    ComposerRunner::fake(fn (array $command): ProcessResult => new ProcessResult(1, "{$start}\n{$trace}{$end}"));
+
+    try {
+        ComposerRunner::require('vendor/package', '/tmp/example');
+    } catch (ComposerCommandException $exception) {
+        expect($exception->getMessage())
+            ->toContain($start)
+            ->toContain($end)
+            ->toContain('truncated')
+            ->and(strlen($exception->getMessage()))->toBeLessThan(5000);
+
+        return;
+    }
+
+    $this->fail('Expected ComposerCommandException to be thrown.');
+});
+
+test('a require failure with no captured output keeps the one-line message', function () {
+    ComposerRunner::fake(fn (array $command): ProcessResult => new ProcessResult(1, " \n "));
+
+    try {
+        ComposerRunner::require('vendor/package', '/tmp/example');
+    } catch (ComposerCommandException $exception) {
+        expect($exception->getMessage())->toBe('Composer command failed: require vendor/package');
+
+        return;
+    }
+
+    $this->fail('Expected ComposerCommandException to be thrown.');
+});
+
 test('generic composer commands do not classify missing-package output', function () {
     ComposerRunner::fake(fn (array $command): ProcessResult => new ProcessResult(1, 'Could not find a matching version of package vendor/missing.'));
 
@@ -215,6 +286,41 @@ test('it returns a non-zero exit code when the booted composer command fails', f
     $this->useIsolatedComposerHome();
 
     expect(ComposerRunner::runInProcess(['this-command-does-not-exist', '--quiet'], new BufferedOutput))->toBe(1);
+});
+
+test('it raises a low memory limit before booting composer in-process', function (string $current, string $expected) {
+    $this->useIsolatedComposerHome();
+    $this->setEnvironmentVariable('COMPOSER_MEMORY_LIMIT', '');
+    $original = (string) ini_get('memory_limit');
+
+    try {
+        ini_set('memory_limit', $current);
+        ComposerRunner::runInProcess(['about', '--quiet'], new BufferedOutput);
+
+        expect(ini_get('memory_limit'))->toBe($expected);
+    } finally {
+        ini_set('memory_limit', $original);
+    }
+})->with([
+    'low megabytes' => ['900M', '1536M'],
+    'low bytes' => ['943718400', '1536M'],
+    'unlimited' => ['-1', '-1'],
+    'already high' => ['3G', '3G'],
+]);
+
+test('it applies an explicit composer memory limit override verbatim', function () {
+    $this->useIsolatedComposerHome();
+    $this->setEnvironmentVariable('COMPOSER_MEMORY_LIMIT', '2G');
+    $original = (string) ini_get('memory_limit');
+
+    try {
+        ini_set('memory_limit', '3G');
+        ComposerRunner::runInProcess(['about', '--quiet'], new BufferedOutput);
+
+        expect(ini_get('memory_limit'))->toBe('2G');
+    } finally {
+        ini_set('memory_limit', $original);
+    }
 });
 
 test('it runs an offline composer command in an isolated child process', function () {

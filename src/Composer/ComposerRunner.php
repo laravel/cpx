@@ -12,6 +12,7 @@ use Cpx\Exceptions\PackageNotFoundException;
 use Cpx\Process\ProcessResult;
 use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\Environment;
+use Cpx\Support\Str;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArgvInput;
@@ -20,6 +21,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 class ComposerRunner
 {
     public const REINVOKE_TOKEN = '__cpx_run_composer';
+
+    private const MINIMUM_MEMORY_LIMIT = '1536M';
 
     /** @var (Closure(list<string>): (int|ProcessResult))|null */
     private static ?Closure $fake = null;
@@ -37,7 +40,7 @@ class ComposerRunner
             return $result->exitCode;
         }
 
-        $exception = new ComposerCommandException($arguments);
+        $exception = new ComposerCommandException($arguments, $result->output);
         $missingPackage = self::missingPackage($result->output);
 
         if ($missingPackage === null) {
@@ -71,6 +74,8 @@ class ComposerRunner
      */
     public static function runInProcess(array $arguments, ?OutputInterface $output = null): int
     {
+        self::raiseMemoryLimit();
+
         $composer = new ComposerApplication;
         $composer->setAutoExit(false);
 
@@ -170,9 +175,41 @@ class ComposerRunner
             : new ProcessResult($runner->run($processCommand), '');
     }
 
+    /** Mirrors the bin/composer bootstrap, which booting Composer in-process bypasses. */
+    private static function raiseMemoryLimit(): void
+    {
+        if (! function_exists('ini_set')) {
+            return;
+        }
+
+        if ($override = getenv('COMPOSER_MEMORY_LIMIT')) {
+            @ini_set('memory_limit', $override);
+
+            return;
+        }
+
+        $current = trim((string) ini_get('memory_limit'));
+
+        if ($current !== '-1' && self::memoryInBytes($current) < self::memoryInBytes(self::MINIMUM_MEMORY_LIMIT)) {
+            @ini_set('memory_limit', self::MINIMUM_MEMORY_LIMIT);
+        }
+    }
+
+    private static function memoryInBytes(string $value): int
+    {
+        $bytes = (int) $value;
+
+        return match (strtolower(substr($value, -1))) {
+            'g' => $bytes * 1024 * 1024 * 1024,
+            'm' => $bytes * 1024 * 1024,
+            'k' => $bytes * 1024,
+            default => $bytes,
+        };
+    }
+
     private static function missingPackage(string $output): ?string
     {
-        $output = preg_replace('/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -\/]*[@-~])/', '', $output) ?? $output;
+        $output = Str::stripAnsi($output);
         $output = preg_replace('/\s+/', ' ', $output) ?? $output;
         $package = '(?<package>[a-z0-9](?:[_.-]?[a-z0-9]+)*\/[a-z0-9](?:(?:[_.]?|-{0,2})[a-z0-9]+)*)';
 
