@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase as BaseTestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionProperty;
-use Tests\Support\FilesystemFake;
+use Cpx\Support\FilesystemFake;
 
 abstract class TestCase extends BaseTestCase
 {

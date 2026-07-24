@@ -33,7 +33,7 @@
             "Tests\\": "tests/"
         },
         "files": [
-            "tests/Support/FilesystemFake.php"
+            "tests/Support/FilesystemFakes.php"
         ]
     },
     "require": {

@@ -2,7 +2,7 @@
 
 use Composer\Util\Filesystem as ComposerFilesystem;
 use Cpx\Support\Filesystem;
-use Tests\Support\FilesystemFake;
+use Cpx\Support\FilesystemFake;
 
 test('writeAtomic retries a transient rename failure', function () {
     $directory = $this->temporaryDirectory('cpx-fs');
