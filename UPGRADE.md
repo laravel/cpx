@@ -32,10 +32,8 @@ cpx 2.x requires PHP 8.3 or higher.
 To upgrade, require cpx globally again:
 
 ```shell
-composer global require cpx/cpx
+composer global require cpx/cpx:^2.0
 ```
-
-Running `composer global require` re-resolves the version constraint in your global `composer.json` to the latest release. Note that `composer global update cpx/cpx` alone will not upgrade you to 2.x while your global constraint still only allows `^1.0`.
 
 The `cpx upgrade` command has been removed. To update cpx itself in the future, use Composer directly:
 
