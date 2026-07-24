@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Cpx\Support;
+namespace Tests\Support;
 
 /**
  * Overrides the global rename() inside the Cpx\Support namespace so tests can
