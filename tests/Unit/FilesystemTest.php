@@ -22,7 +22,7 @@ test('writeAtomic gives up after three failed renames and cleans its temp file',
 
     FilesystemFake::$failingRenames = 3;
 
-    expect(fn() => Filesystem::writeAtomic($path, 'contents'))
+    expect(fn () => Filesystem::writeAtomic($path, 'contents'))
         ->toThrow(RuntimeException::class, 'Unable to move');
 
     expect(file_exists($path))->toBeFalse()
@@ -115,7 +115,7 @@ test('deleteDirectoryWithin refuses to delete a path resolving outside the root'
     mkdir($escape, 0755, true);
     file_put_contents("{$escape}/keep.txt", 'x');
 
-    expect(fn() => Filesystem::deleteDirectoryWithin("{$root}/../escape", $root))
+    expect(fn () => Filesystem::deleteDirectoryWithin("{$root}/../escape", $root))
         ->toThrow(RuntimeException::class);
 
     expect(is_dir($escape))->toBeTrue()
@@ -132,7 +132,7 @@ test('deleteDirectoryWithin refuses to follow a symlink escaping the root', func
     file_put_contents("{$outside}/keep.txt", 'x');
     symlink($outside, "{$root}/link");
 
-    expect(fn() => Filesystem::deleteDirectoryWithin("{$root}/link", $root))
+    expect(fn () => Filesystem::deleteDirectoryWithin("{$root}/link", $root))
         ->toThrow(RuntimeException::class);
 
     expect(is_dir($outside))->toBeTrue()
@@ -191,7 +191,7 @@ test('replaceDirectory throws when the source is missing', function () {
     mkdir($target, 0755, true);
     file_put_contents("{$target}/old.txt", 'old');
 
-    expect(fn() => Filesystem::replaceDirectory("{$base}/missing", $target))
+    expect(fn () => Filesystem::replaceDirectory("{$base}/missing", $target))
         ->toThrow(RuntimeException::class, "Unable to move {$base}/missing to {$target}.");
 });
 

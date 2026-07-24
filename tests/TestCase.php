@@ -7,7 +7,6 @@ use Cpx\Gists\GistClient;
 use Cpx\Packages\BinExecutable;
 use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\Environment;
-use Tests\Support\FilesystemFake;
 use Cpx\Support\Interactivity;
 use Laravel\Prompts\Output\BufferedConsoleOutput;
 use Laravel\Prompts\Prompt;
@@ -16,6 +15,7 @@ use PHPUnit\Framework\TestCase as BaseTestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionProperty;
+use Tests\Support\FilesystemFake;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -87,7 +87,7 @@ abstract class TestCase extends BaseTestCase
 
     protected function temporaryDirectory(string $prefix = 'cpx-test'): string
     {
-        $directory = sys_get_temp_dir() . '/' . $prefix . '-' . bin2hex(random_bytes(8));
+        $directory = sys_get_temp_dir().'/'.$prefix.'-'.bin2hex(random_bytes(8));
 
         mkdir($directory, 0755, true);
 
@@ -186,7 +186,7 @@ abstract class TestCase extends BaseTestCase
 
     protected function writeLocalBinary(string $root, string $name, string $contents, ?string $binDir = null): string
     {
-        $directory = "{$root}/" . ($binDir ?? 'vendor/bin');
+        $directory = "{$root}/".($binDir ?? 'vendor/bin');
 
         if (! is_dir($directory)) {
             mkdir($directory, 0755, true);
