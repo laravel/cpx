@@ -16,8 +16,8 @@
     },
     "authors": [
         {
-            "name": "Liam Hammett",
-            "email": "liam@liamhammett.com"
+            "name": "Taylor Otwell",
+            "email": "taylor@laravel.com"
         }
     ],
     "autoload": {
@@ -33,7 +33,7 @@
             "Tests\\": "tests/"
         },
         "files": [
-            "tests/Support/FilesystemFakes.php"
+            "tests/Support/FilesystemFake.php"
         ]
     },
     "require": {
