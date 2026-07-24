@@ -6,6 +6,8 @@ Run any command from any composer package, even if it's not installed in your pr
 
 cpx is to Composer what npx is to npm.
 
+> Note: Upgrading from cpx 1.x? The 1.x series is frozen and no longer supported — see the [upgrade guide](./UPGRADE.md) to move to 2.x.
+
 ## Installation
 
 Install cpx globally with Composer:
