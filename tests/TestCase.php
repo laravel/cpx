@@ -7,6 +7,7 @@ use Cpx\Gists\GistClient;
 use Cpx\Packages\BinExecutable;
 use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\Environment;
+use Cpx\Support\FilesystemFake;
 use Cpx\Support\Interactivity;
 use Laravel\Prompts\Output\BufferedConsoleOutput;
 use Laravel\Prompts\Prompt;
@@ -15,7 +16,6 @@ use PHPUnit\Framework\TestCase as BaseTestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionProperty;
-use Cpx\Support\FilesystemFake;
 
 abstract class TestCase extends BaseTestCase
 {
