@@ -16,8 +16,8 @@
     },
     "authors": [
         {
-            "name": "Liam Hammett",
-            "email": "liam@liamhammett.com"
+            "name": "Taylor Otwell",
+            "email": "taylor@laravel.com"
         }
     ],
     "autoload": {
