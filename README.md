@@ -24,6 +24,12 @@ Upgrade to the latest release at any time by running:
 composer global update cpx/cpx
 ```
 
+If you run the standalone PHAR instead, cpx can update itself in place by downloading the latest release from GitHub:
+
+```bash
+cpx self-update
+```
+
 ## Usage
 
 You can run a command using cpx by passing through the package name and the command you want to run:
