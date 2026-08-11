@@ -13,10 +13,12 @@ use Cpx\SelfUpdate\Release;
 use Cpx\SelfUpdate\ReleaseClient;
 use Cpx\Support\Filesystem;
 use Cpx\Support\Interactivity;
+use Cpx\Support\JsonEnvelope;
 use Cpx\Support\Result;
 use Cpx\Support\SilentLogger;
 use Cpx\Version;
-use Laravel\Prompts\Support\Logger;
+use Laravel\Prompts\Output\BufferedConsoleOutput;
+use Laravel\Prompts\Prompt;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -24,7 +26,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 use function Laravel\Prompts\callout;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\task;
 
 #[AsCommand(
     name: 'self-update',
@@ -63,7 +64,17 @@ class SelfUpdateCommand extends Command
                 return $this->reportAlreadyLatest($output, $current, $json);
             }
 
-            $this->applyUpdate($release, $target, $json);
+            if (! $json) {
+                info("Downloading cpx {$release->tag}...");
+            }
+
+            $this->warmReportingClasses($output, $current, $release, $target, $json);
+
+            ProcessRunner::withLogger(new SilentLogger, fn () => $this->replacer->replace(
+                $target,
+                $release,
+                fn (string $destination) => $this->releases->download($release, $destination),
+            ));
 
             return $this->reportUpdated($output, $current, $release, $target, $json);
         } catch (SelfUpdateException $exception) {
@@ -77,35 +88,24 @@ class SelfUpdateCommand extends Command
         }
     }
 
-    /** @throws SelfUpdateException */
-    private function applyUpdate(Release $release, string $target, bool $json): void
+    /** The running phar cannot autoload after its file is swapped, so preload everything the report touches. */
+    private function warmReportingClasses(OutputInterface $output, string $current, Release $release, string $target, bool $json): void
     {
-        $download = fn (string $destination) => $this->releases->download($release, $destination);
+        class_exists(SelfUpdateException::class);
 
         if ($json) {
-            ProcessRunner::withLogger(new SilentLogger, fn () => $this->replacer->replace($target, $release, $download));
+            class_exists(Result::class);
+            class_exists(JsonEnvelope::class);
 
             return;
         }
 
-        $failure = null;
+        Prompt::setOutput(new BufferedConsoleOutput);
 
-        task(
-            label: "Updating cpx to {$release->tag}",
-            callback: function (Logger $logger) use ($release, $target, $download, &$failure): void {
-                try {
-                    ProcessRunner::withLogger($logger, fn () => $this->replacer->replace($target, $release, $download));
-                    $logger->label("cpx was updated to {$release->tag}");
-                } catch (SelfUpdateException $exception) {
-                    $failure = $exception;
-                    $logger->label('cpx could not be updated');
-                }
-            },
-            keepSummary: true,
-        );
-
-        if ($failure !== null) {
-            throw $failure;
+        try {
+            $this->renderUpdatedCallout($current, $release, $target);
+        } finally {
+            Prompt::setOutput($output);
         }
     }
 
@@ -126,6 +126,13 @@ class SelfUpdateCommand extends Command
             return Result::success($output, ['updated' => true, 'from' => $current, 'to' => $release->tag, 'path' => $target]);
         }
 
+        $this->renderUpdatedCallout($current, $release, $target);
+
+        return self::SUCCESS;
+    }
+
+    private function renderUpdatedCallout(string $current, Release $release, string $target): void
+    {
         $content = ["Updated cpx from {$current} to {$release->tag}."];
 
         if (str_contains(Filesystem::normalizePath($target), '/vendor/cpx/cpx/')) {
@@ -134,7 +141,5 @@ class SelfUpdateCommand extends Command
         }
 
         callout(label: 'cpx updated', content: $content);
-
-        return self::SUCCESS;
     }
 }

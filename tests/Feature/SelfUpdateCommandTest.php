@@ -48,7 +48,7 @@ test('updates the phar to the latest release', function () {
 
     expect($status)->toBe(0)
         ->and(file_get_contents($target))->toBe($script)
-        ->and($output)->toContain('Updated cpx from dev to v9.9.9.');
+        ->and(substr_count($output, 'Updated cpx from dev to v9.9.9.'))->toBe(1);
 });
 
 test('outputs the update summary as json', function () {
