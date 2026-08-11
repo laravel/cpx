@@ -6,6 +6,7 @@ namespace Cpx\SelfUpdate;
 
 use Closure;
 use Cpx\Exceptions\SelfUpdateException;
+use RuntimeException;
 
 class ReleaseClient
 {
@@ -31,7 +32,7 @@ class ReleaseClient
 
         $payload = json_decode($this->httpGet(self::LATEST_RELEASE_ENDPOINT), true);
 
-        if (! is_array($payload) || ! is_string($payload['tag_name'] ?? null)) {
+        if (! is_array($payload) || ! is_string($payload['tag_name'] ?? null) || $payload['tag_name'] === '') {
             throw SelfUpdateException::invalidResponse();
         }
 
@@ -49,7 +50,13 @@ class ReleaseClient
             return;
         }
 
-        if (@file_put_contents($destination, $this->httpGet($release->downloadUrl)) === false) {
+        if (self::$fakeLatest !== null) {
+            throw new RuntimeException('ReleaseClient::fake() requires a download handler when download() is used.');
+        }
+
+        $content = $this->httpGet($release->downloadUrl);
+
+        if (@file_put_contents($destination, $content) !== strlen($content)) {
             throw SelfUpdateException::unwritableTemporaryFile($destination);
         }
     }
@@ -98,6 +105,8 @@ class ReleaseClient
                 'header' => implode("\r\n", $this->requestHeaders($url)),
                 'timeout' => $this->timeout,
                 'ignore_errors' => true,
+                // The wrapper resends all headers on redirects, so token-bearing API requests must not follow them.
+                'follow_location' => $this->isApiRequest($url) ? 0 : 1,
             ],
         ]);
 
@@ -129,11 +138,16 @@ class ReleaseClient
 
         $token = $_SERVER['GITHUB_TOKEN'] ?? getenv('GITHUB_TOKEN');
 
-        if (is_string($token) && $token !== '' && str_starts_with($url, 'https://api.github.com/')) {
+        if (is_string($token) && $token !== '' && $this->isApiRequest($url)) {
             $headers[] = "Authorization: Bearer {$token}";
         }
 
         return $headers;
+    }
+
+    private function isApiRequest(string $url): bool
+    {
+        return str_starts_with($url, 'https://api.github.com/');
     }
 
     /**

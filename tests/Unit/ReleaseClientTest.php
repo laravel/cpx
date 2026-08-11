@@ -97,7 +97,12 @@ test('latest throws on a malformed response', function (string $body) {
 })->with([
     'not json' => 'not-json',
     'missing tag' => '{"assets": []}',
+    'empty tag' => '{"tag_name": "", "assets": []}',
 ])->throws(SelfUpdateException::class, 'Unexpected response from the GitHub releases API.');
+
+test('latest treats a redirect as a failure instead of following it', function () {
+    respondingReleaseClient(302)->latest();
+})->throws(SelfUpdateException::class, "Unable to fetch the latest cpx release from '".ReleaseClient::LATEST_RELEASE_ENDPOINT."'.");
 
 test('latest throws when the release has no cpx phar asset', function () {
     $client = stubbedReleaseClient([
