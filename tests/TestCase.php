@@ -7,6 +7,7 @@ use Cpx\Gists\GistClient;
 use Cpx\Packages\BinExecutable;
 use Cpx\Process\ProcessRunner;
 use Cpx\Runtime\Environment;
+use Cpx\SelfUpdate\ReleaseClient;
 use Cpx\Support\FilesystemFake;
 use Cpx\Support\Interactivity;
 use Laravel\Prompts\Output\BufferedConsoleOutput;
@@ -53,6 +54,7 @@ abstract class TestCase extends BaseTestCase
     {
         ComposerRunner::clearFake();
         GistClient::clearFake();
+        ReleaseClient::clearFake();
         Environment::clearFakePharPath();
         BinExecutable::clearFakeWindows();
         ProcessRunner::clearFake();
