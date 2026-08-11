@@ -175,9 +175,10 @@ test('restores the backup when the swap fails', function () {
     writeExecutable($target, 'old-phar');
     $script = newPharScript();
 
+    // The faked rename only drives the POSIX branch, so pin the replacer to it.
     FilesystemFake::$failingRenames = 1;
 
-    expect(fn () => quietly(fn () => (new PharReplacer)->replace($target, releaseFor($script), writesScript($script))))
+    expect(fn () => quietly(fn () => (new PharReplacer(windows: false))->replace($target, releaseFor($script), writesScript($script))))
         ->toThrow(SelfUpdateException::class, "Unable to replace the cpx PHAR at '{$target}'.")
         ->and(file_get_contents($target))->toBe('old-phar')
         ->and(glob("{$directory}/*"))->toBe([$target]);
