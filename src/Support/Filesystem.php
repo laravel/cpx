@@ -184,7 +184,7 @@ class Filesystem
                 throw new RuntimeException("Unable to copy {$source} to {$target}.");
             }
 
-            self::deleteFile($source);
+            @unlink($source);
 
             return;
         }

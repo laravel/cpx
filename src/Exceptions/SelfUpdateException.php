@@ -97,10 +97,13 @@ class SelfUpdateException extends Exception
         ]);
     }
 
-    public static function swapFailed(string $path): self
+    public static function swapFailed(string $path, ?string $backup = null): self
     {
-        return new self("Unable to replace the cpx PHAR at '{$path}'.", 'Self-update failed', [
-            'The previous PHAR was restored.',
+        return new self("Unable to replace the cpx PHAR at '{$path}'.", 'Self-update failed', $backup === null ? [
+            'The previous PHAR was left in place.',
+        ] : [
+            'The previous PHAR could not be restored automatically.',
+            "A backup was kept at '{$backup}'.",
         ]);
     }
 }

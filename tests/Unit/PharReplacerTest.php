@@ -114,6 +114,42 @@ test('throws when the downloaded phar reports the wrong version', function () {
         ->and(file_get_contents($target))->toBe('old-phar');
 });
 
+test('sweeps stale working files from earlier runs', function () {
+    $directory = $this->temporaryDirectory();
+    $target = "{$directory}/cpx";
+    writeExecutable($target, 'old-phar');
+    file_put_contents("{$target}.".str_repeat('a', 16).'.tmp', 'stale');
+    file_put_contents("{$target}.".str_repeat('b', 16).'.backup', 'stale');
+    file_put_contents("{$target}.keep.tmp", 'not-ours');
+    $script = newPharScript();
+
+    quietly(fn () => (new PharReplacer)->replace($target, releaseFor($script), writesScript($script)));
+
+    expect(glob("{$directory}/*"))->toBe([$target, "{$target}.keep.tmp"]);
+});
+
+test('keeps the backup when the restore also fails', function () {
+    $directory = $this->temporaryDirectory();
+    $target = "{$directory}/cpx";
+    writeExecutable($target, 'old-phar');
+    $script = newPharScript();
+
+    FilesystemFake::$failingRenames = 1;
+    chmod($target, 0444);
+
+    try {
+        expect(fn () => quietly(fn () => (new PharReplacer)->replace($target, releaseFor($script), writesScript($script))))
+            ->toThrow(SelfUpdateException::class, "Unable to replace the cpx PHAR at '{$target}'.");
+    } finally {
+        chmod($target, 0644);
+    }
+
+    $backups = glob("{$directory}/*.backup") ?: [];
+
+    expect($backups)->toHaveCount(1)
+        ->and(file_get_contents($backups[0]))->toBe('old-phar');
+})->skipOnWindows()->skip(function_exists('posix_geteuid') && posix_geteuid() === 0, 'root bypasses file permission checks');
+
 test('throws before downloading when the phar directory is not writable', function () {
     $directory = $this->temporaryDirectory();
     $target = "{$directory}/cpx";
@@ -131,7 +167,7 @@ test('throws before downloading when the phar directory is not writable', functi
     } finally {
         chmod($directory, 0755);
     }
-})->skipOnWindows();
+})->skipOnWindows()->skip(function_exists('posix_geteuid') && posix_geteuid() === 0, 'root bypasses file permission checks');
 
 test('restores the backup when the swap fails', function () {
     $directory = $this->temporaryDirectory();

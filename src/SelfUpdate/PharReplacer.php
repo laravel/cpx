@@ -32,6 +32,8 @@ class PharReplacer
             throw SelfUpdateException::notWritable($target);
         }
 
+        $this->removeStaleWorkingFiles($directory, basename($target));
+
         $temporary = $this->workingPath($target, 'tmp');
 
         try {
@@ -88,18 +90,30 @@ class PharReplacer
         try {
             Filesystem::replaceFile($temporary, $target, viaCopy: $this->windows);
         } catch (RuntimeException) {
-            @copy($backup, $target);
-            $this->cleanup($temporary, $backup);
+            $restored = @copy($backup, $target);
+            $this->cleanup(...($restored ? [$temporary, $backup] : [$temporary]));
 
-            throw SelfUpdateException::swapFailed($target);
+            throw SelfUpdateException::swapFailed($target, $restored ? null : $backup);
         }
 
-        $this->cleanup($backup);
+        $this->cleanup($temporary, $backup);
     }
 
     private function workingPath(string $target, string $suffix): string
     {
         return $target.'.'.bin2hex(random_bytes(8)).'.'.$suffix;
+    }
+
+    /** Working files from a crashed earlier run have unpredictable names, so sweep them before starting. */
+    private function removeStaleWorkingFiles(string $directory, string $basename): void
+    {
+        $pattern = '/\A'.preg_quote($basename, '/').'\.[0-9a-f]{16}\.(tmp|backup)\z/';
+
+        foreach (@scandir($directory) ?: [] as $entry) {
+            if (preg_match($pattern, $entry) === 1) {
+                @unlink("{$directory}/{$entry}");
+            }
+        }
     }
 
     private function cleanup(string ...$paths): void
