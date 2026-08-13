@@ -61,7 +61,7 @@ class SelfUpdateCommand extends Command
             $release = $this->releases->latest();
 
             if ($release->tag === $current) {
-                return $this->reportAlreadyLatest($output, $current, $json);
+                return $this->reportAlreadyLatest($output, $current, $target, $json);
             }
 
             if (! $json) {
@@ -104,7 +104,7 @@ class SelfUpdateCommand extends Command
         $buffer->setDecorated($output->isDecorated());
 
         if ($json) {
-            Result::success($buffer, ['updated' => true, 'from' => $current, 'to' => $release->tag, 'path' => $target]);
+            Result::success($buffer, $this->summary(true, $current, $release->tag, $target));
 
             return $buffer->fetch();
         }
@@ -120,15 +120,25 @@ class SelfUpdateCommand extends Command
         return $buffer->fetch();
     }
 
-    private function reportAlreadyLatest(OutputInterface $output, string $current, bool $json): int
+    private function reportAlreadyLatest(OutputInterface $output, string $current, string $target, bool $json): int
     {
         if ($json) {
-            return Result::success($output, ['updated' => false, 'version' => $current]);
+            return Result::success($output, $this->summary(false, $current, $current, $target));
         }
 
         info("cpx {$current} is already the latest version.");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Both outcomes report the same keys so consumers never have to branch on which are present.
+     *
+     * @return array<string, mixed>
+     */
+    private function summary(bool $updated, string $from, string $to, string $target): array
+    {
+        return ['updated' => $updated, 'from' => $from, 'to' => $to, 'path' => $target];
     }
 
     private function renderUpdatedCallout(string $current, Release $release, string $target): void

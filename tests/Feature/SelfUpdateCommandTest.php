@@ -114,7 +114,7 @@ test('reports an already up-to-date phar as json', function () {
         ->and($payload)->toBe([
             'success' => true,
             'errors' => [],
-            'summary' => ['updated' => false, 'version' => 'dev'],
+            'summary' => ['updated' => false, 'from' => 'dev', 'to' => 'dev', 'path' => $target],
         ]);
 });
 
