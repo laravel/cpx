@@ -68,7 +68,7 @@ class SelfUpdateCommand extends Command
                 info("Downloading cpx {$release->tag}...");
             }
 
-            $this->warmReportingClasses($output, $current, $release, $target, $json);
+            $report = $this->renderUpdated($output, $current, $release, $target, $json);
 
             ProcessRunner::withLogger(new SilentLogger, fn () => $this->replacer->replace(
                 $target,
@@ -76,7 +76,9 @@ class SelfUpdateCommand extends Command
                 fn (string $destination) => $this->releases->download($release, $destination),
             ));
 
-            return $this->reportUpdated($output, $current, $release, $target, $json);
+            $output->write($report, false, OutputInterface::OUTPUT_RAW);
+
+            return self::SUCCESS;
         } catch (SelfUpdateException $exception) {
             if (! Interactivity::isInteractive()) {
                 return Result::failure($output, $exception->getMessage());
@@ -88,25 +90,34 @@ class SelfUpdateCommand extends Command
         }
     }
 
-    /** The running phar cannot autoload after its file is swapped, so preload everything the report touches. */
-    private function warmReportingClasses(OutputInterface $output, string $current, Release $release, string $target, bool $json): void
+    /**
+     * The running phar cannot autoload after its file is swapped, so the report is rendered before
+     * the swap and only written out afterwards. Rendering also loads what a late failure reports.
+     */
+    private function renderUpdated(OutputInterface $output, string $current, Release $release, string $target, bool $json): string
     {
         class_exists(SelfUpdateException::class);
+        class_exists(Result::class);
+        class_exists(JsonEnvelope::class);
+
+        $buffer = new BufferedConsoleOutput;
+        $buffer->setDecorated($output->isDecorated());
 
         if ($json) {
-            class_exists(Result::class);
-            class_exists(JsonEnvelope::class);
+            Result::success($buffer, ['updated' => true, 'from' => $current, 'to' => $release->tag, 'path' => $target]);
 
-            return;
+            return $buffer->fetch();
         }
 
-        Prompt::setOutput(new BufferedConsoleOutput);
+        Prompt::setOutput($buffer);
 
         try {
             $this->renderUpdatedCallout($current, $release, $target);
         } finally {
             Prompt::setOutput($output);
         }
+
+        return $buffer->fetch();
     }
 
     private function reportAlreadyLatest(OutputInterface $output, string $current, bool $json): int
@@ -116,17 +127,6 @@ class SelfUpdateCommand extends Command
         }
 
         info("cpx {$current} is already the latest version.");
-
-        return self::SUCCESS;
-    }
-
-    private function reportUpdated(OutputInterface $output, string $current, Release $release, string $target, bool $json): int
-    {
-        if ($json) {
-            return Result::success($output, ['updated' => true, 'from' => $current, 'to' => $release->tag, 'path' => $target]);
-        }
-
-        $this->renderUpdatedCallout($current, $release, $target);
 
         return self::SUCCESS;
     }
