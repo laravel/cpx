@@ -176,6 +176,24 @@ class Filesystem
         self::removeEntry($directory, rmdir: true);
     }
 
+    /** Replace the target with the source; copy when the target cannot be renamed over (a running Windows PHAR). */
+    public static function replaceFile(string $source, string $target, bool $viaCopy = false): void
+    {
+        if ($viaCopy) {
+            if (! @copy($source, $target)) {
+                throw new RuntimeException("Unable to copy {$source} to {$target}.");
+            }
+
+            @unlink($source);
+
+            return;
+        }
+
+        if (! @rename($source, $target)) {
+            throw new RuntimeException("Unable to move {$source} to {$target}.");
+        }
+    }
+
     /** Replace the target with the source, retrying transient Windows file-lock failures. */
     public static function replaceDirectory(string $source, string $target): void
     {

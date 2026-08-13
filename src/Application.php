@@ -11,6 +11,7 @@ use Cpx\Commands\ExecCommand;
 use Cpx\Commands\InstalledCommand;
 use Cpx\Commands\RunPackageCommand;
 use Cpx\Commands\SandboxCommand;
+use Cpx\Commands\SelfUpdateCommand;
 use Cpx\Commands\TinkerCommand;
 use Cpx\Commands\UnaliasCommand;
 use Cpx\Commands\UpdateCommand;
@@ -101,6 +102,7 @@ class Application extends SymfonyApplication
             new UnaliasCommand,
             new CleanCommand,
             new UpdateCommand,
+            new SelfUpdateCommand,
             new ExecCommand,
             new TinkerCommand,
             new SandboxCommand,
