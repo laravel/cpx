@@ -23,9 +23,15 @@ class SelfUpdateException extends Exception
     {
         callout(
             label: $this->label,
-            content: [$this->getMessage(), ...$this->details],
+            content: $this->messages(),
             type: 'error',
         );
+    }
+
+    /** @return list<string> */
+    public function messages(): array
+    {
+        return [$this->getMessage(), ...$this->details];
     }
 
     public static function notRunningFromPhar(): self

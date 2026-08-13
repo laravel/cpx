@@ -134,6 +134,21 @@ test('fails with guidance when cpx is not running from a phar', function () {
         ->and($output)->toContain('composer global update cpx/cpx');
 });
 
+test('keeps the failure guidance in the json envelope', function () {
+    [$status, $payload] = runSelfUpdateJson(['self-update', '--json']);
+
+    expect($status)->toBe(1)
+        ->and($payload)->toBe([
+            'success' => false,
+            'errors' => [
+                'self-update is only available when cpx is running as a PHAR.',
+                'Update a Composer-managed installation with:',
+                'composer global update cpx/cpx',
+            ],
+            'summary' => [],
+        ]);
+});
+
 test('renders the failure when the release lookup is rate limited', function () {
     $target = $this->temporaryDirectory().'/cpx';
     writeExecutable($target, 'old-phar');
@@ -158,7 +173,10 @@ test('outputs the failure as a json envelope', function () {
     expect($status)->toBe(1)
         ->and($payload)->toBe([
             'success' => false,
-            'errors' => ['GitHub rate limit exceeded while checking for a new cpx version.'],
+            'errors' => [
+                'GitHub rate limit exceeded while checking for a new cpx version.',
+                'Set the GITHUB_TOKEN environment variable to authenticate and raise the limit.',
+            ],
             'summary' => [],
         ]);
 });

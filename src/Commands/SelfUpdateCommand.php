@@ -81,7 +81,7 @@ class SelfUpdateCommand extends Command
             return self::SUCCESS;
         } catch (SelfUpdateException $exception) {
             if (! Interactivity::isInteractive()) {
-                return Result::failure($output, $exception->getMessage());
+                return Result::failure($output, $exception->messages());
             }
 
             $exception->render();
