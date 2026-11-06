@@ -111,7 +111,13 @@ class ProcessRunner
                 return new ProcessResult($process->run(), '');
             }
 
-            $process->setInput(self::$fakeInput ?? STDIN);
+            // Avoid attaching a Windows console STDIN; Symfony's poll loop blocks on fread().
+            if (self::$fakeInput !== null) {
+                $process->setInput(self::$fakeInput);
+            } elseif (! Interactivity::isInteractive()) {
+                $process->setInput(STDIN);
+            }
+
             $output = '';
             $exitCode = $process->run(function (string $type, string $buffer) use (&$output, $captureOutput): void {
                 if ($captureOutput) {
