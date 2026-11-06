@@ -169,6 +169,25 @@ test('it allocates a tty for the child when interactive', function () {
         ->and(file_get_contents($logFile))->toBe('tty');
 })->skip(fn (): bool => ! Process::isTtySupported(), 'TTY is not supported in this environment');
 
+test('it does not hang waiting for console stdin when tty is unsupported', function () {
+    ProcessRunner::clearFakeInput();
+    Interactivity::fake(true);
+
+    $directory = $this->temporaryDirectory('cpx-process');
+    $binary = "{$directory}/stream-output";
+    $logFile = str_replace('\\', '/', "{$directory}/stream.txt");
+
+    writeExecutable($binary, "#!/usr/bin/env php\n<?php \$log = '{$logFile}'; file_put_contents(\$log, ''); for (\$i = 1; \$i <= 3; \$i++) { usleep(100000); file_put_contents(\$log, \"line {\$i}\\n\", FILE_APPEND); } exit(0);\n");
+
+    $started = microtime(true);
+    $status = (new ProcessRunner)->run([PHP_BINARY, $binary]);
+    $elapsed = microtime(true) - $started;
+
+    expect($status)->toBe(0)
+        ->and($elapsed)->toBeLessThan(2.0)
+        ->and(file_get_contents($logFile))->toBe("line 1\nline 2\nline 3\n");
+})->skip(fn (): bool => Process::isTtySupported(), 'Only applies when Symfony cannot allocate a TTY');
+
 test('it keeps the parent stdio streams usable across sequential runs', function () {
     $directory = $this->temporaryDirectory('cpx-process');
     $binary = "{$directory}/exit-code";
